@@ -308,8 +308,8 @@
     <string name="default_anime_category">Varsayılan anime kategorisi</string>
     <string name="pref_manga_library_update_categories_details">Hariç tutulan kategorilerdeki girdiler, dahil edilen kategorilerde olsa bile güncellenmeyecektir.</string>
     <string name="pref_anime_library_update_categories_details">Hariç tutulan kategorilerdeki animeler, dahil edilen kategorilerde de olsalar dahi güncellenmeyecektir.</string>
-    <string name="unofficial_extension_message_aniyomi">Bu uzantı, resmi Aniyomi uzantıları listesinden değildir.</string>
-    <string name="unofficial_anime_extension_message">Bu uzantı, resmi Aniyomi uzantıları listesinden değil.</string>
+    <string name="unofficial_extension_message_aniyomi">Bu uzantı, resmi Nekoyomi uzantıları listesinden değildir.</string>
+    <string name="unofficial_anime_extension_message">Bu uzantı, resmi Nekoyomi uzantıları listesinden değil.</string>
     <string name="episode_download_progress">%1$d%%</string>
     <string name="pref_remove_exclude_categories_manga">Hariç tutulan manga kategorileri</string>
     <string name="pref_remove_exclude_categories_anime">Hariç tutulan anime kategorileri</string>
@@ -421,7 +421,7 @@
     <string name="unseen">İzlenmemiş</string>
     <string name="label_manga_extension_repos">Manga uzantı depoları</string>
     <string name="label_anime_extension_repos">Anime uzantı depoları</string>
-    <string name="onboarding_storage_action_create_folder">Varsayılan Aniyomi klasörünü oluştur</string>
+    <string name="onboarding_storage_action_create_folder">Varsayılan Nekoyomi klasörünü oluştur</string>
     <string name="download_speed_limit">Bölüm indirme hızı sınırı</string>
     <string name="download_speed_limit_hint">Hız sınırını devre dışı bırakmak için 0 olarak ayarlayın.</string>
     <string name="action_display_unseen_badge">Görülmemiş bölümler</string>
@@ -448,7 +448,7 @@
     <string name="also_set_chapter_settings_for_library">Kitaplığımda bulununan tüm mangalara uygula</string>
     <string name="dialog_with_checkbox_reset">Bu manga için tüm bölümleri sıfırla</string>
     <string name="download_insufficient_space">Düşük depolama alanı nedeniyle indirilemedi</string>
-    <string name="download_queue_size_warning">Uyarı: büyük toplu indirmeler, kaynakların daha yavaş çalışmasına ve/veya Aniyomi uygulamasını engellemesine neden olabilir. Daha fazla bilgi için dokunun.</string>
+    <string name="download_queue_size_warning">Uyarı: büyük toplu indirmeler, kaynakların daha yavaş çalışmasına ve/veya Nekoyomi uygulamasını engellemesine neden olabilir. Daha fazla bilgi için dokunun.</string>
     <string name="pref_invalidate_download_cache_summary">Uygulamayı indirilmiş manga ve anime bölümlerini tekrar kontrol etmeye zorla</string>
     <string name="pref_category_intro_skip">Giriş atlama</string>
     <string name="pref_enable_intro_skip">Giriş atlamayı etkinleştir</string>

@@ -158,7 +158,7 @@
     <string name="default_anime_category">Výchozí kategorie anime</string>
     <string name="pref_manga_library_update_categories_details">Položky ve vynechaných kategoriích nebudou aktualizovány, i kdyby byly také v zahrnutých kategoriích.</string>
     <string name="pref_anime_library_update_categories_details">Anime odebrané z kategorií nebudou aktualizována, ani když jsou zároveň v zahrnutých kategoriích.</string>
-    <string name="unofficial_extension_message_aniyomi">Toto rozšíření není z oficiálního seznamu Aniyomi rozšíření.</string>
+    <string name="unofficial_extension_message_aniyomi">Toto rozšíření není z oficiálního seznamu Nekoyomi rozšíření.</string>
     <string name="episode_download_progress">%1$d%%</string>
     <string name="pref_remove_exclude_categories_manga">Vyloučené manga kategorie</string>
     <string name="pref_remove_exclude_categories_anime">Vyloučené kategorie anime</string>
@@ -257,7 +257,7 @@
     <string name="also_set_chapter_settings_for_library">Použít také na všechny mangy v mé knihovně</string>
     <string name="dialog_with_checkbox_reset">Resetovat všechny kapitoly této mangy</string>
     <string name="download_insufficient_space">Nelze stáhnout kvůli nedostatku místa v úložisti</string>
-    <string name="download_queue_size_warning">Upozornění: stahování velkých objemů dat může zpomalit zdroje a/nebo blokovat Aniyomi. Klepnutím se dozvíte více.</string>
+    <string name="download_queue_size_warning">Upozornění: stahování velkých objemů dat může zpomalit zdroje a/nebo blokovat Nekoyomi. Klepnutím se dozvíte více.</string>
     <string name="pref_invalidate_download_cache_summary">Vynutit aplikaci, aby znovu zkontrolovala stažené kapitoly a epizody</string>
     <string name="label_player">Přehrávač</string>
     <string name="pref_player_settings_summary">Interní přehrávač, gesta, dekodéry, titulky</string>
