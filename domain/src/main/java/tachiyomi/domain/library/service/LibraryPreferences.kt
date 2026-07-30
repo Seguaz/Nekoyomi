@@ -416,13 +416,16 @@ class LibraryPreferences(
         private const val LIBRARY_UPDATE_ANIME_CATEGORIES_PREF_KEY = "animelib_update_categories"
         private const val LIBRARY_UPDATE_MANGA_CATEGORIES_EXCLUDE_PREF_KEY = "library_update_categories_exclude"
         private const val LIBRARY_UPDATE_ANIME_CATEGORIES_EXCLUDE_PREF_KEY = "animelib_update_categories_exclude"
-        val categoryPreferenceKeys = setOf(
+        val mangaCategoryPreferenceKeys = setOf(
             DEFAULT_MANGA_CATEGORY_PREF_KEY,
-            DEFAULT_ANIME_CATEGORY_PREF_KEY,
             LIBRARY_UPDATE_MANGA_CATEGORIES_PREF_KEY,
-            LIBRARY_UPDATE_ANIME_CATEGORIES_PREF_KEY,
             LIBRARY_UPDATE_MANGA_CATEGORIES_EXCLUDE_PREF_KEY,
+        )
+        val animeCategoryPreferenceKeys = setOf(
+            DEFAULT_ANIME_CATEGORY_PREF_KEY,
+            LIBRARY_UPDATE_ANIME_CATEGORIES_PREF_KEY,
             LIBRARY_UPDATE_ANIME_CATEGORIES_EXCLUDE_PREF_KEY,
         )
+        val categoryPreferenceKeys = mangaCategoryPreferenceKeys + animeCategoryPreferenceKeys
     }
 }

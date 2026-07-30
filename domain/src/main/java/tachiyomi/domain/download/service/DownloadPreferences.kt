@@ -80,13 +80,16 @@ class DownloadPreferences(
         private const val DOWNLOAD_NEW_MANGA_CATEGORIES_EXCLUDE_PREF_KEY = "download_new_categories_exclude"
         private const val DOWNLOAD_NEW_ANIME_CATEGORIES_EXCLUDE_PREF_KEY = "download_new_anime_categories_exclude"
 
-        val categoryPreferenceKeys = setOf(
+        val mangaCategoryPreferenceKeys = setOf(
             REMOVE_EXCLUDE_MANGA_CATEGORIES_PREF_KEY,
-            REMOVE_EXCLUDE_ANIME_CATEGORIES_PREF_KEY,
             DOWNLOAD_NEW_MANGA_CATEGORIES_PREF_KEY,
-            DOWNLOAD_NEW_ANIME_CATEGORIES_PREF_KEY,
             DOWNLOAD_NEW_MANGA_CATEGORIES_EXCLUDE_PREF_KEY,
+        )
+        val animeCategoryPreferenceKeys = setOf(
+            REMOVE_EXCLUDE_ANIME_CATEGORIES_PREF_KEY,
+            DOWNLOAD_NEW_ANIME_CATEGORIES_PREF_KEY,
             DOWNLOAD_NEW_ANIME_CATEGORIES_EXCLUDE_PREF_KEY,
         )
+        val categoryPreferenceKeys = mangaCategoryPreferenceKeys + animeCategoryPreferenceKeys
     }
 }
