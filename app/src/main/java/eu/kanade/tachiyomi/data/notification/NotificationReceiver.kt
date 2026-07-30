@@ -190,7 +190,6 @@ class NotificationReceiver : BroadcastReceiver() {
      */
     private fun dismissNotification(context: Context, notificationId: Int) {
         context.cancelNotification(notificationId)
-        context.notificationManager.cancelAll()
     }
 
     /**

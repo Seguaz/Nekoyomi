@@ -78,10 +78,14 @@ class PagerViewerAdapter(private val viewer: PagerViewer) : ViewPagerAdapter() {
             // Insert preprocessed pages into current page list
             preprocessed.keys.sortedDescending()
                 .forEach { key ->
+                    val insertPage = preprocessed[key] ?: return@forEach
+                    // Only insert splits that belong to this chapter; a stale split from another
+                    // chapter would land at the wrong index (and could crash on a shorter chapter).
+                    if (insertPage.chapter.chapter.id != chapters.currChapter.chapter.id) return@forEach
                     if (lastPage.index == key) {
-                        insertPageLastPage = preprocessed[key]
+                        insertPageLastPage = insertPage
                     }
-                    preprocessed[key]?.let { pages.add(key + 1, it) }
+                    pages.add(key + 1, insertPage)
                 }
 
             newItems.addAll(pages)
