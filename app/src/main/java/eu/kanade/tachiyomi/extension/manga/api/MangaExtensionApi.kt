@@ -50,6 +50,31 @@ internal class MangaExtensionApi {
 
     private suspend fun getExtensions(extRepo: ExtensionRepo): List<MangaExtension.Available> {
         val repoBaseUrl = extRepo.baseUrl
+        // Prefer the newer "tachiyomix 1.6" index format, falling back to the classic one.
+        return getNewFormatExtensions(repoBaseUrl)?.takeIf { it.isNotEmpty() }
+            ?: getClassicExtensions(repoBaseUrl)
+    }
+
+    private suspend fun getNewFormatExtensions(repoBaseUrl: String): List<MangaExtension.Available>? {
+        return try {
+            val response = networkService.client
+                .newCall(GET("$repoBaseUrl/index.json"))
+                .awaitSuccess()
+
+            with(json) {
+                response
+                    .parseAs<ExtensionRepoJsonObject>()
+                    .extensionList
+                    .extensions
+                    .toExtensions(repoBaseUrl)
+            }
+        } catch (e: Throwable) {
+            // Repo doesn't use the new format (or is unreachable); fall back to the classic index.
+            null
+        }
+    }
+
+    private suspend fun getClassicExtensions(repoBaseUrl: String): List<MangaExtension.Available> {
         return try {
             val response = networkService.client
                 .newCall(GET("$repoBaseUrl/index.min.json"))
@@ -132,6 +157,30 @@ internal class MangaExtensionApi {
             }
     }
 
+    @JvmName("toExtensionsNewFormat")
+    private fun List<NewExtensionJsonObject>.toExtensions(repoUrl: String): List<MangaExtension.Available> {
+        return this
+            .filter {
+                val libVersion = it.extensionLib.toDoubleOrNull() ?: return@filter false
+                libVersion >= MangaExtensionLoader.LIB_VERSION_MIN && libVersion <= MangaExtensionLoader.LIB_VERSION_MAX
+            }
+            .map {
+                MangaExtension.Available(
+                    name = it.name.substringAfter("Tachiyomi: "),
+                    pkgName = it.packageName,
+                    versionName = it.versionName,
+                    versionCode = it.versionCode.toLongOrNull() ?: 0,
+                    libVersion = it.extensionLib.toDouble(),
+                    lang = it.packageName.substringAfter(".extension.").substringBefore('.'),
+                    isNsfw = it.contentWarning != null,
+                    sources = it.sources?.map(newExtensionSourceMapper).orEmpty(),
+                    apkName = it.resources.apkUrl.substringAfterLast('/'),
+                    iconUrl = it.resources.iconUrl ?: "$repoUrl/icon/${it.packageName}.png",
+                    repoUrl = repoUrl,
+                )
+            }
+    }
+
     fun getApkUrl(extension: MangaExtension.Available): String {
         return "${extension.repoUrl}/apk/${extension.apkName}"
     }
@@ -167,5 +216,52 @@ private val extensionSourceMapper: (ExtensionSourceJsonObject) -> MangaExtension
         lang = it.lang,
         name = it.name,
         baseUrl = it.baseUrl,
+    )
+}
+
+// Newer "tachiyomix 1.6" repo index format (Mihon 0.20.0+). Unknown fields such as the repo
+// signing key and jar URLs are ignored by the JSON parser.
+@Serializable
+private data class ExtensionRepoJsonObject(
+    val extensionList: ExtensionListJsonObject,
+)
+
+@Serializable
+private data class ExtensionListJsonObject(
+    val extensions: List<NewExtensionJsonObject>,
+)
+
+@Serializable
+private data class NewExtensionJsonObject(
+    val name: String,
+    val packageName: String,
+    val resources: ExtensionResourcesJsonObject,
+    val extensionLib: String,
+    val versionCode: String,
+    val versionName: String,
+    val contentWarning: String? = null,
+    val sources: List<NewExtensionSourceJsonObject>?,
+)
+
+@Serializable
+private data class ExtensionResourcesJsonObject(
+    val apkUrl: String,
+    val iconUrl: String? = null,
+)
+
+@Serializable
+private data class NewExtensionSourceJsonObject(
+    val id: String,
+    val name: String,
+    val language: String,
+    val homeUrl: String? = null,
+)
+
+private val newExtensionSourceMapper: (NewExtensionSourceJsonObject) -> MangaExtension.Available.MangaSource = {
+    MangaExtension.Available.MangaSource(
+        id = it.id.toLongOrNull() ?: 0,
+        lang = it.language,
+        name = it.name,
+        baseUrl = it.homeUrl.orEmpty(),
     )
 }
