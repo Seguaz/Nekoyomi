@@ -2037,16 +2037,16 @@ class PlayerViewModel @JvmOverloads constructor(
             return null
         }
 
-        getTracks.await(animeId).map { track ->
+        val duration = playerDuration ?: return null
+        getTracks.await(animeId).forEach { track ->
             val tracker = trackerManager.get(track.trackerId)
             malId = when (tracker) {
                 is MyAnimeList -> track.remoteId
                 is Anilist -> AniSkipApi().getMalIdFromAL(track.remoteId)
                 else -> null
             }
-            val duration = playerDuration ?: return null
-            return malId?.let {
-                AniSkipApi().getResult(it.toInt(), episodeNumber, duration.toLong())
+            malId?.let {
+                return AniSkipApi().getResult(it.toInt(), episodeNumber, duration.toLong())
             }
         }
         return null
