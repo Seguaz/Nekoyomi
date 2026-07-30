@@ -10,7 +10,7 @@
 
 A fork of [Aniyomi](https://github.com/aniyomiorg/aniyomi), which is based on [Mihon](https://github.com/mihonapp/mihon) (formerly Tachiyomi). Discover, watch and read anime, manga and more on your Android device.
 
-[![License: Apache-2.0](https://img.shields.io/github/license/Seguaz/Nekoyomi?labelColor=27303D&color=818cf8)](/LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache%202.0-818cf8?labelColor=27303D)](/LICENSE)
 
 ## Download
 
