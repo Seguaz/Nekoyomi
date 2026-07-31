@@ -83,7 +83,7 @@ class PackageInstallerInstallerAnime(private val service: Service) : InstallerAn
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e) { "Failed to install extension ${entry.downloadId} ${entry.uri}" }
             activeSession?.let { (_, sessionId) ->
-                packageInstaller.abandonSession(sessionId)
+                abandonSession(sessionId)
             }
             continueQueue(InstallStep.Error)
         }
@@ -92,11 +92,23 @@ class PackageInstallerInstallerAnime(private val service: Service) : InstallerAn
     override fun cancelEntry(entry: Entry): Boolean {
         activeSession?.let { (activeEntry, sessionId) ->
             if (activeEntry == entry) {
-                packageInstaller.abandonSession(sessionId)
+                abandonSession(sessionId)
                 return false
             }
         }
         return true
+    }
+
+    /**
+     * Abandoning a session can throw a [SecurityException] if it was already
+     * removed (e.g. cancelled twice), which would crash the app. Ignore it.
+     */
+    private fun abandonSession(sessionId: Int) {
+        try {
+            packageInstaller.abandonSession(sessionId)
+        } catch (e: Exception) {
+            logcat(LogPriority.WARN, e) { "Failed to abandon install session $sessionId" }
+        }
     }
 
     override fun onDestroy() {
