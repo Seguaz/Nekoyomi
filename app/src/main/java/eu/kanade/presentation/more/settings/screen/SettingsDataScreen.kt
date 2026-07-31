@@ -143,9 +143,11 @@ object SettingsDataScreen : SearchableSettings {
                     context.toast(MR.strings.file_picker_uri_permission_unsupported)
                 }
 
-                UniFile.fromUri(context, uri)?.let {
-                    storageDirPref.set(it.uri.toString())
-                }
+                // Some OEMs (e.g. certain Samsung devices) fail to wrap the tree Uri with
+                // UniFile even though the raw Uri is usable; persist it either way so the
+                // folder actually sticks instead of leaving the location unset.
+                val storageUri = UniFile.fromUri(context, uri)?.uri ?: uri
+                storageDirPref.set(storageUri.toString())
             }
         }
     }
