@@ -12,15 +12,19 @@ class CreateMangaExtensionRepo(
     private val repository: MangaExtensionRepoRepository,
     private val service: ExtensionRepoService,
 ) {
-    private val repoRegex = """^https://.*/index\.min\.json$""".toRegex()
-
-    suspend fun await(indexUrl: String): Result {
-        val formattedIndexUrl = indexUrl.toHttpUrlOrNull()
+    suspend fun await(repoUrl: String): Result {
+        // Accept the repo base URL, or a URL pointing at the index file
+        // (index.min.json / index.json / index.pb), normalizing to the base.
+        val baseUrl = repoUrl.toHttpUrlOrNull()
+            ?.takeIf { it.scheme == "https" }
             ?.toString()
-            ?.takeIf { it.matches(repoRegex) }
+            ?.trimEnd('/')
+            ?.removeSuffix("/index.min.json")
+            ?.removeSuffix("/index.json")
+            ?.removeSuffix("/index.pb")
+            ?.trimEnd('/')
             ?: return Result.InvalidUrl
 
-        val baseUrl = formattedIndexUrl.removeSuffix("/index.min.json")
         return service.fetchRepoDetails(baseUrl)?.let { insert(it) } ?: Result.InvalidUrl
     }
 
