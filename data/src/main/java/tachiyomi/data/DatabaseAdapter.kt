@@ -4,6 +4,8 @@ import app.cash.sqldelight.ColumnAdapter
 import eu.kanade.tachiyomi.animesource.model.AnimeUpdateStrategy
 import eu.kanade.tachiyomi.animesource.model.FetchType
 import eu.kanade.tachiyomi.source.model.UpdateStrategy
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import java.util.Date
 
 object DateColumnAdapter : ColumnAdapter<Date, Long> {
@@ -43,4 +45,20 @@ object FetchTypeColumnAdapter : ColumnAdapter<FetchType, Long> {
         FetchType.entries.getOrElse(databaseValue.toInt()) { FetchType.Episodes }
 
     override fun encode(value: FetchType): Long = value.ordinal.toLong()
+}
+
+object MemoColumnAdapter : ColumnAdapter<JsonObject, ByteArray> {
+    override fun decode(databaseValue: ByteArray): JsonObject {
+        // Be defensive: legacy/default rows or drivers that pad the BLOB can yield non-JSON bytes.
+        // Fall back to an empty object instead of crashing; a fresh chapter sync will repopulate it.
+        return try {
+            Json.decodeFromString<JsonObject>(databaseValue.decodeToString().trim().ifBlank { "{}" })
+        } catch (e: Exception) {
+            JsonObject(emptyMap())
+        }
+    }
+
+    override fun encode(value: JsonObject): ByteArray {
+        return value.toString().encodeToByteArray()
+    }
 }

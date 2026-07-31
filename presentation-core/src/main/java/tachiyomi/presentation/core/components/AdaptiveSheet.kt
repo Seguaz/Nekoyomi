@@ -12,13 +12,11 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidthIn
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -57,6 +55,9 @@ fun AdaptiveSheet(
     enableSwipeDismiss: Boolean,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    // Captured from the host window by the caller; Compose Dialog windows don't report system-bar
+    // insets reliably (buttons ended up behind the navigation bar on Android 15+).
+    sheetPadding: PaddingValues = PaddingValues(),
     content: @Composable () -> Unit,
 ) {
     val density = LocalDensity.current
@@ -99,7 +100,7 @@ fun AdaptiveSheet(
                         indication = null,
                         onClick = {},
                     )
-                    .systemBarsPadding()
+                    .padding(sheetPadding)
                     .padding(vertical = 16.dp)
                     .then(modifier),
                 shape = MaterialTheme.shapes.extraLarge,
@@ -183,8 +184,8 @@ fun AdaptiveSheet(
                         orientation = Orientation.Vertical,
                         enabled = enableSwipeDismiss,
                     )
-                    .navigationBarsPadding()
-                    .statusBarsPadding(),
+                    .padding(sheetPadding)
+                    .padding(bottom = 12.dp),
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 content = {

@@ -1378,10 +1378,13 @@ class PlayerActivity : BaseActivity() {
 
     private fun endFile(eofReached: Boolean) {
         if (!eofReached || !playerPreferences.autoplayEnabled().get()) return
-        // Guard against spurious end-of-file events fired while the episode is still
-        // loading or before a valid duration is known, which would otherwise skip to
-        // the next episode immediately in an endless loop.
-        if (viewModel.isLoadingEpisode.value || viewModel.duration.value < 1f) return
+        // mpv flags eof-reached=true spuriously while an episode is still loading or during
+        // file transitions (position far from the end). Acting on those would instantly skip
+        // to the next episode and loop through the whole list. Only auto-advance once playback
+        // has actually reached (near) the end of the current episode.
+        val duration = viewModel.duration.value
+        if (viewModel.isLoadingEpisode.value || duration < 1f) return
+        if (viewModel.pos.value < duration - 5f) return
         viewModel.changeEpisode(previous = false, autoPlay = true)
     }
 }

@@ -1,0 +1,2 @@
+-- Add extra source-specific metadata for chapters (tachiyomix 1.6 memo)
+ALTER TABLE chapters ADD COLUMN memo BLOB NOT NULL DEFAULT '{}';

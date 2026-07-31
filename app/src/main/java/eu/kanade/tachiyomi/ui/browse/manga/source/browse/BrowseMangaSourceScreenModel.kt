@@ -35,9 +35,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import logcat.LogPriority
 import tachiyomi.core.common.preference.CheckboxState
 import tachiyomi.core.common.preference.mapAsCheckboxState
 import tachiyomi.core.common.util.lang.launchIO
+import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.manga.interactor.GetMangaCategories
 import tachiyomi.domain.category.manga.interactor.SetMangaCategories
 import tachiyomi.domain.category.model.Category
@@ -54,6 +56,20 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.time.Instant
 import eu.kanade.tachiyomi.source.model.Filter as SourceModelFilter
+
+/**
+ * Some (usually outdated) extensions throw when building their filter list, e.g. calling a
+ * coroutines method that no longer exists. Fall back to an empty list so a single broken source
+ * doesn't crash the whole browse/search screen.
+ */
+private fun CatalogueSource.getFilterListSafe(): FilterList {
+    return try {
+        getFilterList()
+    } catch (e: Throwable) {
+        logcat(LogPriority.ERROR, e) { "Failed to build filters for source $name ($id)" }
+        FilterList()
+    }
+}
 
 class BrowseMangaSourceScreenModel(
     private val sourceId: Long,
@@ -86,12 +102,12 @@ class BrowseMangaSourceScreenModel(
 
                 if (listing is Listing.Search) {
                     query = listing.query
-                    listing = Listing.Search(query, source.getFilterList())
+                    listing = Listing.Search(query, source.getFilterListSafe())
                 }
 
                 it.copy(
                     listing = listing,
-                    filters = source.getFilterList(),
+                    filters = source.getFilterListSafe(),
                     toolbarQuery = query,
                 )
             }
@@ -147,7 +163,7 @@ class BrowseMangaSourceScreenModel(
     fun resetFilters() {
         if (source !is CatalogueSource) return
 
-        mutableState.update { it.copy(filters = source.getFilterList()) }
+        mutableState.update { it.copy(filters = source.getFilterListSafe()) }
     }
 
     fun setListing(listing: Listing) {
@@ -168,7 +184,7 @@ class BrowseMangaSourceScreenModel(
         if (source !is CatalogueSource) return
 
         val input = state.value.listing as? Listing.Search
-            ?: Listing.Search(query = null, filters = source.getFilterList())
+            ?: Listing.Search(query = null, filters = source.getFilterListSafe())
 
         mutableState.update {
             it.copy(
@@ -184,7 +200,7 @@ class BrowseMangaSourceScreenModel(
     fun searchGenre(genreName: String) {
         if (source !is CatalogueSource) return
 
-        val defaultFilters = source.getFilterList()
+        val defaultFilters = source.getFilterListSafe()
         var genreExists = false
 
         filter@ for (sourceFilter in defaultFilters) {

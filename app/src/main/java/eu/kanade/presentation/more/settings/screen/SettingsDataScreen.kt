@@ -53,6 +53,8 @@ import eu.kanade.presentation.util.relativeTimeSpanString
 import eu.kanade.tachiyomi.data.backup.create.BackupCreateJob
 import eu.kanade.tachiyomi.data.backup.restore.BackupRestoreJob
 import eu.kanade.tachiyomi.data.cache.ChapterCache
+import eu.kanade.tachiyomi.data.download.anime.AnimeDownloadCache
+import eu.kanade.tachiyomi.data.download.manga.MangaDownloadCache
 import eu.kanade.tachiyomi.data.export.ExportEntry
 import eu.kanade.tachiyomi.data.export.ExportEntry.Companion.toExportEntry
 import eu.kanade.tachiyomi.data.export.LibraryExporter
@@ -111,6 +113,7 @@ object SettingsDataScreen : SearchableSettings {
         return persistentListOf(
             getStorageLocationPref(storagePreferences = storagePreferences),
             Preference.PreferenceItem.InfoPreference(stringResource(MR.strings.pref_storage_location_info)),
+            getRescanDownloadsPref(),
 
             getBackupAndRestoreGroup(backupPreferences = backupPreferences),
             getDataGroup(),
@@ -185,6 +188,20 @@ object SettingsDataScreen : SearchableSettings {
                 } catch (e: ActivityNotFoundException) {
                     context.toast(MR.strings.file_picker_error)
                 }
+            },
+        )
+    }
+
+    @Composable
+    private fun getRescanDownloadsPref(): Preference.PreferenceItem.TextPreference {
+        val context = LocalContext.current
+        return Preference.PreferenceItem.TextPreference(
+            title = stringResource(MR.strings.pref_invalidate_download_cache),
+            subtitle = stringResource(AYMR.strings.pref_invalidate_download_cache_summary),
+            onClick = {
+                Injekt.get<MangaDownloadCache>().invalidateCache()
+                Injekt.get<AnimeDownloadCache>().invalidateCache()
+                context.toast(MR.strings.download_cache_invalidated)
             },
         )
     }

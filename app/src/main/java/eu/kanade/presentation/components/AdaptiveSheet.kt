@@ -5,6 +5,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.Dialog
@@ -73,6 +76,9 @@ fun AdaptiveSheet(
     content: @Composable () -> Unit,
 ) {
     val isTabletUi = isTabletUi()
+    // Capture the host window insets here; a Compose Dialog's own window doesn't report the
+    // system-bar insets reliably, which left sheet buttons hidden behind the navigation bar.
+    val sheetPadding = WindowInsets.systemBars.asPaddingValues()
 
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -83,6 +89,7 @@ fun AdaptiveSheet(
             isTabletUi = isTabletUi,
             enableSwipeDismiss = enableSwipeDismiss,
             onDismissRequest = onDismissRequest,
+            sheetPadding = sheetPadding,
         ) {
             content()
         }
@@ -91,5 +98,8 @@ fun AdaptiveSheet(
 
 private val dialogProperties = DialogProperties(
     usePlatformDefaultWidth = false,
-    decorFitsSystemWindows = true,
+    // Draw edge-to-edge so Compose dispatches window insets to the dialog. Android 15+ forces
+    // edge-to-edge and ignores decorFitsSystemWindows=true, which left navigationBarsPadding()
+    // reading 0 inside the sheet and buttons (e.g. "Apply") hidden behind the system bars.
+    decorFitsSystemWindows = false,
 )
