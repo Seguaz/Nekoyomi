@@ -1377,8 +1377,11 @@ class PlayerActivity : BaseActivity() {
     }
 
     private fun endFile(eofReached: Boolean) {
-        if (eofReached && playerPreferences.autoplayEnabled().get()) {
-            viewModel.changeEpisode(previous = false, autoPlay = true)
-        }
+        if (!eofReached || !playerPreferences.autoplayEnabled().get()) return
+        // Guard against spurious end-of-file events fired while the episode is still
+        // loading or before a valid duration is known, which would otherwise skip to
+        // the next episode immediately in an endless loop.
+        if (viewModel.isLoadingEpisode.value || viewModel.duration.value < 1f) return
+        viewModel.changeEpisode(previous = false, autoPlay = true)
     }
 }
