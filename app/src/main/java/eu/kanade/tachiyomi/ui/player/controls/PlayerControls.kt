@@ -398,9 +398,13 @@ fun PlayerControls(
                             viewModel.updateIsSeeking(true)
                         },
                         onValueChangeFinished = {
-                            viewModel.updatePlayBackPos(seekPosition)
+                            // Read the latest value straight from the flow: on a tap, onValueChange
+                            // and onValueChangeFinished fire in the same frame, so the composed
+                            // `seekPosition` local is still stale and would seek to the old spot.
+                            val target = viewModel.seekPosition.value
+                            viewModel.updatePlayBackPos(target)
                             viewModel.updateIsSeeking(false)
-                            viewModel.seekTo(seekPosition.toInt(), preciseSeeking)
+                            viewModel.seekTo(target.toInt(), preciseSeeking)
                         },
                         timersInverted = Pair(false, invertDuration),
                         durationTimerOnCLick = { playerPreferences.invertDuration().set(!invertDuration) },
