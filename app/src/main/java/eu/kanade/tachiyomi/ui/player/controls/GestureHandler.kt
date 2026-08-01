@@ -119,7 +119,7 @@ fun GestureHandler(
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeGestures)
             .pointerInput(Unit) {
-                val originalSpeed = viewModel.playbackSpeed.value
+                var originalSpeed = viewModel.playbackSpeed.value
                 detectTapGestures(
                     onTap = {
                         if (controlsShown) viewModel.hideControls() else viewModel.showControls()
@@ -172,11 +172,30 @@ fun GestureHandler(
                         if (!isLongPressing) {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             isLongPressing = true
-                            viewModel.pause()
-                            viewModel.sheetShown.update { Sheets.Screenshot }
+                            originalSpeed = viewModel.playbackSpeed.value
+                            MPVLib.setPropertyDouble("speed", 2.0)
+                            viewModel.playerUpdate.update { PlayerUpdates.DoubleSpeed }
                         }
                     },
                 )
+            }
+            .pointerInput(areControlsLocked) {
+                // Two-finger press takes a screenshot (single-finger long-press is 2x speed).
+                if (areControlsLocked) return@pointerInput
+                awaitPointerEventScope {
+                    var screenshotTriggered = false
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val pressedPointers = event.changes.count { it.pressed }
+                        if (pressedPointers >= 2 && !screenshotTriggered) {
+                            screenshotTriggered = true
+                            viewModel.pause()
+                            viewModel.sheetShown.update { Sheets.Screenshot }
+                        } else if (pressedPointers == 0) {
+                            screenshotTriggered = false
+                        }
+                    }
+                }
             }
             .pointerInput(areControlsLocked) {
                 if (!seekGesture || areControlsLocked) return@pointerInput
