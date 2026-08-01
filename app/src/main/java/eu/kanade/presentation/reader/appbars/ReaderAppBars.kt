@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
@@ -71,12 +70,6 @@ fun ReaderAppBars(
         .surfaceColorAtElevation(3.dp)
         .copy(alpha = if (isSystemInDarkTheme()) 0.9f else 0.95f)
 
-    val modifierWithInsetsPadding = if (fullscreen) {
-        Modifier.systemBarsPadding()
-    } else {
-        Modifier
-    }
-
     Column(
         modifier = Modifier.fillMaxHeight(),
         verticalArrangement = Arrangement.SpaceBetween,
@@ -93,7 +86,7 @@ fun ReaderAppBars(
             ),
         ) {
             AppBar(
-                modifier = modifierWithInsetsPadding
+                modifier = Modifier
                     .clickable(onClick = onClickTopAppBar),
                 backgroundColor = backgroundColor,
                 title = mangaTitle,
@@ -165,7 +158,6 @@ fun ReaderAppBars(
             ),
         ) {
             Column(
-                modifier = modifierWithInsetsPadding,
                 verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),
             ) {
                 ChapterNavigator(
