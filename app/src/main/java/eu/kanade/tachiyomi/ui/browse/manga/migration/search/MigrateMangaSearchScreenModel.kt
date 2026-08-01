@@ -33,7 +33,11 @@ class MigrateMangaSearchScreenModel(
 
     override fun getEnabledSources(): List<CatalogueSource> {
         return super.getEnabledSources()
-            .filter { state.value.sourceFilter != MangaSourceFilter.PinnedOnly || "${it.id}" in pinnedSources }
+            .filter {
+                state.value.sourceFilter != MangaSourceFilter.PinnedOnly ||
+                    pinnedSources.isEmpty() ||
+                    "${it.id}" in pinnedSources
+            }
             .sortedWith(
                 compareBy(
                     { it.id != state.value.fromSourceId },

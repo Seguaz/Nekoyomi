@@ -33,7 +33,11 @@ class MigrateAnimeSearchScreenModel(
 
     override fun getEnabledSources(): List<AnimeCatalogueSource> {
         return super.getEnabledSources()
-            .filter { state.value.sourceFilter != AnimeSourceFilter.PinnedOnly || "${it.id}" in pinnedSources }
+            .filter {
+                state.value.sourceFilter != AnimeSourceFilter.PinnedOnly ||
+                    pinnedSources.isEmpty() ||
+                    "${it.id}" in pinnedSources
+            }
             .sortedWith(
                 compareBy(
                     { it.id != state.value.fromSourceId },
