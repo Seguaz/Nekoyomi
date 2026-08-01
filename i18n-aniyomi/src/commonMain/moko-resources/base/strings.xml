@@ -412,6 +412,10 @@
     <string name="label_watched_duration">Watched duration</string>
     <string name="label_watched_episodes">Watched</string>
     <string name="pref_start_screen">Start Screen</string>
+    <string name="pref_floating_nav_bar">Floating navigation bar</string>
+    <string name="pref_floating_nav_bar_summary">Let content scroll behind a translucent navigation bar</string>
+    <string name="pref_hide_nav_bar_labels">Hide navigation bar labels</string>
+    <string name="pref_hide_nav_bar_labels_summary">Show only icons, without any text label</string>
     <string name="pref_library_manga_columns">Manga items per row</string>
     <string name="pref_library_anime_columns">Anime items per row</string>
     <string name="pref_bottom_nav_no_history">Move History to the More tab</string>

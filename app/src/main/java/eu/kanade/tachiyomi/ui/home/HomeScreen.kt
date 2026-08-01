@@ -8,9 +8,12 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
@@ -36,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,6 +71,7 @@ import soup.compose.material.motion.animation.materialFadeThroughIn
 import soup.compose.material.motion.animation.materialFadeThroughOut
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.i18n.MR
+import tachiyomi.presentation.core.components.material.LocalNavigationBarPadding
 import tachiyomi.presentation.core.components.material.NavigationBar
 import tachiyomi.presentation.core.components.material.NavigationRail
 import tachiyomi.presentation.core.components.material.Scaffold
@@ -92,6 +97,8 @@ object HomeScreen : Screen() {
     @Composable
     override fun Content() {
         val navStyle by uiPreferences.navStyle().collectAsState()
+        val floatingNavBar by uiPreferences.bottomNavFloating().collectAsState()
+        val hideNavBarLabels by uiPreferences.bottomNavHideLabels().collectAsState()
         val navigator = LocalNavigator.currentOrThrow
         TabNavigator(
             tab = defaultTab,
@@ -127,10 +134,16 @@ object HomeScreen : Screen() {
                                             elevation = 3.dp,
                                             shape = RoundedCornerShape(28.dp),
                                         ),
+                                    containerColor = if (floatingNavBar) {
+                                        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f)
+                                    } else {
+                                        NavigationBarDefaults.containerColor
+                                    },
+                                    tonalElevation = if (floatingNavBar) 0.dp else NavigationBarDefaults.Elevation,
                                     windowInsets = WindowInsets(0),
                                 ) {
                                     navStyle.tabs.fastForEach {
-                                        NavigationBarItem(it)
+                                        NavigationBarItem(it, showLabel = !hideNavBarLabels)
                                     }
                                 }
                             }
@@ -138,24 +151,47 @@ object HomeScreen : Screen() {
                     },
                     contentWindowInsets = WindowInsets(0),
                 ) { contentPadding ->
-                    Box(
-                        modifier = Modifier
-                            .padding(contentPadding)
-                            .consumeWindowInsets(contentPadding),
-                    ) {
-                        AnimatedContent(
-                            targetState = tabNavigator.current,
-                            transitionSpec = {
-                                materialFadeThroughIn(
-                                    initialScale = 1f,
-                                    durationMillis = TAB_FADE_DURATION,
-                                ) togetherWith
-                                    materialFadeThroughOut(durationMillis = TAB_FADE_DURATION)
-                            },
-                            label = "tabContent",
+                    val layoutDirection = LocalLayoutDirection.current
+                    // Floating nav bar only applies to the phone bottom bar, not the tablet rail.
+                    val floating = floatingNavBar && !isTabletUi()
+                    // Floating nav bar: drop the bottom reservation from the content box so tab
+                    // content fills behind the translucent bar, and hand that reservation to the
+                    // tab scaffolds (via LocalNavigationBarPadding) so their lists still clear it.
+                    val boxPadding = if (floating) {
+                        PaddingValues(
+                            top = contentPadding.calculateTopPadding(),
+                            start = contentPadding.calculateStartPadding(layoutDirection),
+                            end = contentPadding.calculateEndPadding(layoutDirection),
+                            bottom = 0.dp,
+                        )
+                    } else {
+                        contentPadding
+                    }
+                    val navBarPadding = if (floating) {
+                        PaddingValues(bottom = contentPadding.calculateBottomPadding())
+                    } else {
+                        PaddingValues()
+                    }
+                    CompositionLocalProvider(LocalNavigationBarPadding provides navBarPadding) {
+                        Box(
+                            modifier = Modifier
+                                .padding(boxPadding)
+                                .consumeWindowInsets(boxPadding),
                         ) {
-                            tabNavigator.saveableState(key = "currentTab", it) {
-                                it.Content()
+                            AnimatedContent(
+                                targetState = tabNavigator.current,
+                                transitionSpec = {
+                                    materialFadeThroughIn(
+                                        initialScale = 1f,
+                                        durationMillis = TAB_FADE_DURATION,
+                                    ) togetherWith
+                                        materialFadeThroughOut(durationMillis = TAB_FADE_DURATION)
+                                },
+                                label = "tabContent",
+                            ) {
+                                tabNavigator.saveableState(key = "currentTab", it) {
+                                    it.Content()
+                                }
                             }
                         }
                     }
@@ -222,13 +258,13 @@ object HomeScreen : Screen() {
     }
 
     @Composable
-    private fun RowScope.NavigationBarItem(tab: eu.kanade.presentation.util.Tab) {
+    private fun RowScope.NavigationBarItem(tab: eu.kanade.presentation.util.Tab, showLabel: Boolean) {
         val tabNavigator = LocalTabNavigator.current
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
         val selected = tabNavigator.current::class == tab::class
         val weight by animateFloatAsState(
-            targetValue = if (selected) 2.0f else 1f,
+            targetValue = if (selected && showLabel) 2.0f else 1f,
             label = "navItemWeight",
         )
         Box(
@@ -263,7 +299,7 @@ object HomeScreen : Screen() {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     NavigationIconItem(tab)
-                    AnimatedVisibility(visible = selected) {
+                    AnimatedVisibility(visible = selected && showLabel) {
                         Text(
                             text = tab.options.title,
                             style = MaterialTheme.typography.labelLarge,

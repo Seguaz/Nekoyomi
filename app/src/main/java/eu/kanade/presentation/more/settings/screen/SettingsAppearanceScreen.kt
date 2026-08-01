@@ -149,6 +149,16 @@ object SettingsAppearanceScreen : SearchableSettings {
                     title = "Navigation Style",
                     onValueChanged = { true },
                 ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = uiPreferences.bottomNavFloating(),
+                    title = stringResource(AYMR.strings.pref_floating_nav_bar),
+                    subtitle = stringResource(AYMR.strings.pref_floating_nav_bar_summary),
+                ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = uiPreferences.bottomNavHideLabels(),
+                    title = stringResource(AYMR.strings.pref_hide_nav_bar_labels),
+                    subtitle = stringResource(AYMR.strings.pref_hide_nav_bar_labels_summary),
+                ),
                 Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.dateFormat(),
                     entries = DateFormats

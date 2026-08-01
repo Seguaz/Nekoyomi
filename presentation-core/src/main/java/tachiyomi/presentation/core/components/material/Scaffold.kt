@@ -35,6 +35,7 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,6 +49,13 @@ import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.util.fastMaxBy
 import kotlin.math.max
+
+/**
+ * Extra bottom padding that content inside a [Scaffold] should reserve, on top of the regular
+ * insets. Used by the floating navigation bar so tab content can scroll behind the translucent bar
+ * while the last items still clear it. Defaults to zero (no reservation).
+ */
+val LocalNavigationBarPadding = compositionLocalOf { PaddingValues() }
 
 /**
  * <a href="https://material.io/design/layout/understanding-layout.html" class="external" target="_blank">Material Design layout</a>.
@@ -261,6 +269,8 @@ private fun ScaffoldLayout(
                 val insets = contentWindowInsets.asPaddingValues(this@SubcomposeLayout)
                 val fabOffsetDp = fabOffsetFromBottom?.toDp() ?: 0.dp
                 val bottomBarHeightPx = bottomBarHeight ?: 0
+                // Nekoyomi: extra reservation for the floating navigation bar (0 unless provided)
+                val navigationBarPadding = LocalNavigationBarPadding.current.calculateBottomPadding()
                 val innerPadding = PaddingValues(
                     top =
                     if (topBarPlaceables.isEmpty()) {
@@ -269,7 +279,7 @@ private fun ScaffoldLayout(
                         topBarHeight.toDp()
                     },
                     // Tachiyomi: Also take account of fab height when providing inner padding
-                    bottom = if (bottomBarPlaceables.isEmpty() || bottomBarHeightPx == 0) {
+                    bottom = navigationBarPadding + if (bottomBarPlaceables.isEmpty() || bottomBarHeightPx == 0) {
                         max(insets.calculateBottomPadding(), fabOffsetDp)
                     } else {
                         max(bottomBarHeightPx.toDp(), fabOffsetDp)
