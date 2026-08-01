@@ -44,6 +44,8 @@ class UiPreferences(
 
     fun bottomNavHideLabels() = preferenceStore.getBoolean("pref_bottom_nav_hide_labels", false)
 
+    fun showDownloadSize() = preferenceStore.getBoolean("pref_show_download_size", false)
+
     companion object {
         fun dateFormat(format: String): DateTimeFormatter = when (format) {
             "" -> DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)

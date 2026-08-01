@@ -250,6 +250,17 @@ class MangaDownloadManager(
         }
     }
 
+    /**
+     * Returns the on-disk size of a single downloaded chapter, or 0 if it isn't downloaded.
+     *
+     * @param chapter the chapter to check.
+     * @param manga the manga of the chapter.
+     */
+    fun getDownloadSize(chapter: Chapter, manga: Manga): Long {
+        val source = sourceManager.get(manga.source) ?: return 0L
+        return provider.findChapterDir(chapter.name, chapter.scanlator, manga.title, source)?.size() ?: 0L
+    }
+
     fun cancelQueuedDownloads(downloads: List<MangaDownload>) {
         removeFromDownloadQueue(downloads.map { it.chapter })
     }

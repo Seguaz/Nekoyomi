@@ -86,6 +86,7 @@ import eu.kanade.tachiyomi.ui.entries.anime.AnimeScreenModel
 import eu.kanade.tachiyomi.ui.entries.anime.AnimeSeasonItem
 import eu.kanade.tachiyomi.ui.entries.anime.EpisodeList
 import eu.kanade.tachiyomi.util.system.copyToClipboard
+import eu.kanade.tachiyomi.util.toSize
 import kotlinx.coroutines.delay
 import tachiyomi.domain.entries.anime.model.Anime
 import tachiyomi.domain.items.episode.model.Episode
@@ -1068,6 +1069,7 @@ private fun LazyGridScope.sharedEpisodeItems(
                             )
                         },
                     scanlator = episodeItem.episode.scanlator.takeIf { !it.isNullOrBlank() },
+                    downloadSize = episodeItem.downloadSize?.takeIf { it > 0 }?.toSize(),
                     summary = episodeItem.episode.summary.takeIf { !it.isNullOrBlank() && showSummaries },
                     previewUrl = episodeItem.episode.previewUrl.takeIf { !it.isNullOrBlank() && showPreviews },
                     seen = episodeItem.episode.seen,

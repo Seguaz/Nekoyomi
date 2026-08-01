@@ -69,6 +69,7 @@ import eu.kanade.tachiyomi.ui.browse.manga.extension.details.MangaSourcePreferen
 import eu.kanade.tachiyomi.ui.entries.manga.ChapterList
 import eu.kanade.tachiyomi.ui.entries.manga.MangaScreenModel
 import eu.kanade.tachiyomi.util.system.copyToClipboard
+import eu.kanade.tachiyomi.util.toSize
 import tachiyomi.domain.entries.manga.model.Manga
 import tachiyomi.domain.items.chapter.model.Chapter
 import tachiyomi.domain.items.chapter.service.missingChaptersCount
@@ -805,6 +806,7 @@ private fun LazyListScope.sharedChapterItems(
                             )
                         },
                     scanlator = item.chapter.scanlator.takeIf { !it.isNullOrBlank() },
+                    downloadSize = item.downloadSize?.takeIf { it > 0 }?.toSize(),
                     read = item.chapter.read,
                     bookmark = item.chapter.bookmark,
                     selected = item.selected,

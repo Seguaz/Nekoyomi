@@ -52,6 +52,7 @@ fun MangaChapterListItem(
     date: String?,
     readProgress: String?,
     scanlator: String?,
+    downloadSize: String?,
     read: Boolean,
     bookmark: Boolean,
     selected: Boolean,
@@ -151,7 +152,7 @@ fun MangaChapterListItem(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            if (readProgress != null || scanlator != null) DotSeparatorText()
+                            if (readProgress != null || scanlator != null || downloadSize != null) DotSeparatorText()
                         }
                         if (readProgress != null) {
                             Text(
@@ -160,11 +161,19 @@ fun MangaChapterListItem(
                                 overflow = TextOverflow.Ellipsis,
                                 color = LocalContentColor.current.copy(alpha = DISABLED_ALPHA),
                             )
-                            if (scanlator != null) DotSeparatorText()
+                            if (scanlator != null || downloadSize != null) DotSeparatorText()
                         }
                         if (scanlator != null) {
                             Text(
                                 text = scanlator,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            if (downloadSize != null) DotSeparatorText()
+                        }
+                        if (downloadSize != null) {
+                            Text(
+                                text = downloadSize,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )

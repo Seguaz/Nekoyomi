@@ -28,6 +28,7 @@ import eu.kanade.domain.track.manga.interactor.RefreshMangaTracks
 import eu.kanade.domain.track.manga.interactor.TrackChapter
 import eu.kanade.domain.track.model.AutoTrackState
 import eu.kanade.domain.track.service.TrackPreferences
+import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.entries.DownloadAction
 import eu.kanade.presentation.entries.manga.components.ChapterDownloadAction
 import eu.kanade.presentation.util.formattedMessage
@@ -88,6 +89,7 @@ import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.source.local.entries.manga.isLocal
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.floor
 
 class MangaScreenModel(
@@ -557,8 +559,14 @@ class MangaScreenModel(
         }
     }
 
+    private val uiPreferences: UiPreferences = Injekt.get()
+
+    // Cached on-disk sizes of downloaded chapters (id -> bytes); a download's size never changes.
+    private val downloadSizeCache = ConcurrentHashMap<Long, Long>()
+
     private fun List<Chapter>.toChapterListItems(manga: Manga): List<ChapterList.Item> {
         val isLocal = manga.isLocal()
+        val showDownloadSize = uiPreferences.showDownloadSize().get()
         return map { chapter ->
             val activeDownload = if (isLocal) {
                 null
@@ -581,11 +589,20 @@ class MangaScreenModel(
                 else -> MangaDownload.State.NOT_DOWNLOADED
             }
 
+            val downloadSize = if (showDownloadSize && !isLocal && downloadState == MangaDownload.State.DOWNLOADED) {
+                downloadSizeCache.getOrPut(chapter.id) {
+                    downloadManager.getDownloadSize(chapter, manga)
+                }
+            } else {
+                null
+            }
+
             ChapterList.Item(
                 chapter = chapter,
                 downloadState = downloadState,
                 downloadProgress = activeDownload?.progress ?: 0,
                 selected = chapter.id in selectedChapterIds,
+                downloadSize = downloadSize,
             )
         }
     }
@@ -1227,6 +1244,7 @@ sealed class ChapterList {
         val downloadState: MangaDownload.State,
         val downloadProgress: Int,
         val selected: Boolean = false,
+        val downloadSize: Long? = null,
     ) : ChapterList() {
         val id = chapter.id
         val isDownloaded = downloadState == MangaDownload.State.DOWNLOADED

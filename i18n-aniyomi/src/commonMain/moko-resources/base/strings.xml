@@ -416,6 +416,8 @@
     <string name="pref_floating_nav_bar_summary">Let content scroll behind a translucent navigation bar</string>
     <string name="pref_hide_nav_bar_labels">Hide navigation bar labels</string>
     <string name="pref_hide_nav_bar_labels_summary">Show only icons, without any text label</string>
+    <string name="pref_show_download_size">Show download size</string>
+    <string name="pref_show_download_size_summary">Show the on-disk size of each downloaded chapter or episode</string>
     <string name="pref_library_manga_columns">Manga items per row</string>
     <string name="pref_library_anime_columns">Anime items per row</string>
     <string name="pref_bottom_nav_no_history">Move History to the More tab</string>

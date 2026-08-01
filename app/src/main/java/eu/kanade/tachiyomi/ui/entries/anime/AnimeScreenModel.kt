@@ -28,6 +28,7 @@ import eu.kanade.domain.track.anime.interactor.RefreshAnimeTracks
 import eu.kanade.domain.track.anime.interactor.TrackEpisode
 import eu.kanade.domain.track.model.AutoTrackState
 import eu.kanade.domain.track.service.TrackPreferences
+import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.entries.DownloadAction
 import eu.kanade.presentation.entries.anime.components.EpisodeDownloadAction
 import eu.kanade.presentation.util.formattedMessage
@@ -109,6 +110,7 @@ import tachiyomi.source.local.entries.anime.isLocal
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.util.Calendar
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.floor
 
 class AnimeScreenModel(
@@ -549,8 +551,14 @@ class AnimeScreenModel(
         }
     }
 
+    private val uiPreferences: UiPreferences = Injekt.get()
+
+    // Cached on-disk sizes of downloaded episodes (id -> bytes); a download's size never changes.
+    private val downloadSizeCache = ConcurrentHashMap<Long, Long>()
+
     private fun List<Episode>.toEpisodeListItems(anime: Anime): List<EpisodeList.Item> {
         val isLocal = anime.isLocal()
+        val showDownloadSize = uiPreferences.showDownloadSize().get()
         return map { episode ->
             val activeDownload = if (isLocal) {
                 null
@@ -573,11 +581,20 @@ class AnimeScreenModel(
                 else -> AnimeDownload.State.NOT_DOWNLOADED
             }
 
+            val downloadSize = if (showDownloadSize && !isLocal && downloadState == AnimeDownload.State.DOWNLOADED) {
+                downloadSizeCache.getOrPut(episode.id) {
+                    downloadManager.getDownloadSize(episode, anime)
+                }
+            } else {
+                null
+            }
+
             EpisodeList.Item(
                 episode = episode,
                 downloadState = downloadState,
                 downloadProgress = activeDownload?.progress ?: 0,
                 selected = episode.id in selectedEpisodeIds,
+                downloadSize = downloadSize,
             )
         }
     }
@@ -1745,6 +1762,7 @@ sealed class EpisodeList {
         val downloadState: AnimeDownload.State,
         val downloadProgress: Int,
         val selected: Boolean = false,
+        val downloadSize: Long? = null,
     ) : EpisodeList() {
         val id = episode.id
         val isDownloaded = downloadState == AnimeDownload.State.DOWNLOADED

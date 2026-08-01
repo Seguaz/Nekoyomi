@@ -255,6 +255,17 @@ class AnimeDownloadManager(
         }
     }
 
+    /**
+     * Returns the on-disk size of a single downloaded episode, or 0 if it isn't downloaded.
+     *
+     * @param episode the episode to check.
+     * @param anime the anime of the episode.
+     */
+    fun getDownloadSize(episode: Episode, anime: Anime): Long {
+        val source = sourceManager.get(anime.source) ?: return 0L
+        return provider.findEpisodeDir(episode.name, episode.scanlator, anime.title, source)?.size() ?: 0L
+    }
+
     fun cancelQueuedDownloads(downloads: List<AnimeDownload>) {
         removeFromDownloadQueue(downloads.map { it.episode })
     }

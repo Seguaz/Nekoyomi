@@ -68,6 +68,7 @@ fun AnimeEpisodeListItem(
     date: String?,
     watchProgress: String?,
     scanlator: String?,
+    downloadSize: String?,
     summary: String?,
     previewUrl: String?,
     seen: Boolean,
@@ -129,6 +130,7 @@ fun AnimeEpisodeListItem(
                     watchProgress = watchProgress,
                     fillermark = fillermark,
                     scanlator = scanlator,
+                    downloadSize = downloadSize,
                     seen = seen,
                     bookmark = bookmark,
                     downloadIndicatorEnabled = downloadIndicatorEnabled,
@@ -193,6 +195,7 @@ fun AnimeEpisodeListItem(
                         watchProgress = watchProgress,
                         fillermark = fillermark,
                         scanlator = scanlator,
+                        downloadSize = downloadSize,
                     )
 
                     if (previewUrl != null) {
@@ -217,6 +220,7 @@ private fun RowScope.SimpleEpisodeListItemImpl(
     watchProgress: String?,
     fillermark: Boolean,
     scanlator: String?,
+    downloadSize: String?,
     seen: Boolean,
     bookmark: Boolean,
     downloadIndicatorEnabled: Boolean,
@@ -243,6 +247,7 @@ private fun RowScope.SimpleEpisodeListItemImpl(
             watchProgress = watchProgress,
             fillermark = fillermark,
             scanlator = scanlator,
+            downloadSize = downloadSize,
         )
     }
 
@@ -413,6 +418,7 @@ private fun EpisodeInformation(
     watchProgress: String?,
     fillermark: Boolean,
     scanlator: String?,
+    downloadSize: String?,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         val subtitleStyle = MaterialTheme.typography.bodySmall
@@ -438,7 +444,7 @@ private fun EpisodeInformation(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (watchProgress != null || scanlator != null) DotSeparatorText()
+                if (watchProgress != null || scanlator != null || downloadSize != null) DotSeparatorText()
             }
             if (watchProgress != null) {
                 Text(
@@ -447,11 +453,19 @@ private fun EpisodeInformation(
                     overflow = TextOverflow.Ellipsis,
                     color = LocalContentColor.current.copy(alpha = DISABLED_ALPHA),
                 )
-                if (scanlator != null) DotSeparatorText()
+                if (scanlator != null || downloadSize != null) DotSeparatorText()
             }
             if (scanlator != null) {
                 Text(
                     text = scanlator,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (downloadSize != null) DotSeparatorText()
+            }
+            if (downloadSize != null) {
+                Text(
+                    text = downloadSize,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -499,6 +513,7 @@ fun AnimeEpisodeListItemPreview() {
         date = "7/4/13",
         watchProgress = null,
         scanlator = null,
+        downloadSize = "12 MB",
         summary = "As Titans continue to rampage, the townspeople gather at the inner gate. But a new Titan breaks " +
             "through and this one is unlike the others. Source: crunchyroll",
         previewUrl = null,

@@ -159,6 +159,11 @@ object SettingsAppearanceScreen : SearchableSettings {
                     title = stringResource(AYMR.strings.pref_hide_nav_bar_labels),
                     subtitle = stringResource(AYMR.strings.pref_hide_nav_bar_labels_summary),
                 ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = uiPreferences.showDownloadSize(),
+                    title = stringResource(AYMR.strings.pref_show_download_size),
+                    subtitle = stringResource(AYMR.strings.pref_show_download_size_summary),
+                ),
                 Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.dateFormat(),
                     entries = DateFormats
