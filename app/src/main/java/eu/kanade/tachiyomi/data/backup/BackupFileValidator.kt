@@ -23,7 +23,10 @@ class BackupFileValidator(
     fun validate(uri: Uri): Results {
         val backup = try {
             BackupDecoder(context).decode(uri)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            // Catch Throwable, not just Exception: a very large backup (e.g. one exported with
+            // extensions) makes the decoder read hundreds of MB into memory and throw
+            // OutOfMemoryError, which is an Error and would otherwise crash the whole app.
             throw IllegalStateException(e)
         }
 
