@@ -74,6 +74,7 @@ fun AnimeTrackInfoDialogHome(
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
+            .padding(bottom = 16.dp)
             .windowInsetsPadding(WindowInsets.systemBars),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {

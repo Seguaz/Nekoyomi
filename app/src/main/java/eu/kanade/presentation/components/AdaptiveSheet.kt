@@ -5,13 +5,16 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import cafe.adriel.voyager.core.annotation.InternalVoyagerApi
 import cafe.adriel.voyager.core.lifecycle.DisposableEffectIgnoringConfiguration
 import cafe.adriel.voyager.core.screen.Screen
@@ -76,9 +79,24 @@ fun AdaptiveSheet(
     content: @Composable () -> Unit,
 ) {
     val isTabletUi = isTabletUi()
-    // Capture the host window insets here; a Compose Dialog's own window doesn't report the
-    // system-bar insets reliably, which left sheet buttons hidden behind the navigation bar.
-    val sheetPadding = WindowInsets.systemBars.asPaddingValues()
+    // Capture the host window insets from the Android root view. A Compose Dialog's own window
+    // doesn't report system-bar insets reliably, and WindowInsets.systemBars read here can come
+    // back as 0 when an ancestor screen Scaffold has consumed them (which left sheet content —
+    // tracking rows, buttons — hidden behind the navigation bar). Root-view insets are the real,
+    // unconsumed window insets.
+    val view = LocalView.current
+    val density = LocalDensity.current
+    val systemBarInsets = ViewCompat.getRootWindowInsets(view)
+        ?.getInsets(WindowInsetsCompat.Type.systemBars())
+        ?: Insets.NONE
+    val sheetPadding = with(density) {
+        PaddingValues(
+            start = systemBarInsets.left.toDp(),
+            top = systemBarInsets.top.toDp(),
+            end = systemBarInsets.right.toDp(),
+            bottom = systemBarInsets.bottom.toDp(),
+        )
+    }
 
     Dialog(
         onDismissRequest = onDismissRequest,
