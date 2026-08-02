@@ -3,6 +3,7 @@ package eu.kanade.presentation.more.settings.screen
 import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,10 +39,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
+import coil3.compose.AsyncImage
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.ui.UiPreferences
+import eu.kanade.domain.ui.model.AppIcon
 import eu.kanade.domain.ui.model.NavTab
+import eu.kanade.tachiyomi.ui.main.AppIconManager
 import eu.kanade.domain.ui.model.StartScreen
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
@@ -206,6 +210,18 @@ object SettingsAppearanceScreen : SearchableSettings {
                     title = stringResource(AYMR.strings.pref_show_download_size),
                     subtitle = stringResource(AYMR.strings.pref_show_download_size_summary),
                 ),
+                Preference.PreferenceItem.CustomPreference(
+                    title = stringResource(AYMR.strings.pref_app_icon),
+                ) {
+                    AppIconPreference(
+                        preference = uiPreferences.appIcon(),
+                        title = stringResource(AYMR.strings.pref_app_icon),
+                        onIconSelected = { icon ->
+                            uiPreferences.appIcon().set(icon)
+                            AppIconManager.apply(context, icon)
+                        },
+                    )
+                },
                 Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.dateFormat(),
                     entries = DateFormats
@@ -360,5 +376,75 @@ private fun NavBarOpacityPreview(alpha: Float) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AppIconPreference(
+    preference: tachiyomi.core.common.preference.Preference<AppIcon>,
+    title: String,
+    onIconSelected: (AppIcon) -> Unit,
+) {
+    val selected by preference.collectAsState()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            AppIcon.entries.forEach { icon ->
+                AppIconItem(
+                    icon = icon,
+                    selected = icon == selected,
+                    onClick = { onIconSelected(icon) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppIconItem(
+    icon: AppIcon,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(18.dp)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(4.dp),
+    ) {
+        AsyncImage(
+            model = icon.iconRes,
+            contentDescription = null,
+            modifier = Modifier
+                .size(64.dp)
+                .clip(shape)
+                .then(
+                    if (selected) {
+                        Modifier.border(3.dp, MaterialTheme.colorScheme.primary, shape)
+                    } else {
+                        Modifier
+                    },
+                ),
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = stringResource(icon.titleRes),
+            style = MaterialTheme.typography.labelMedium,
+            color = if (selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
     }
 }

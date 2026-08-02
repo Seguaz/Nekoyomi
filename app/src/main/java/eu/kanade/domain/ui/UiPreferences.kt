@@ -1,6 +1,7 @@
 package eu.kanade.domain.ui
 
 import eu.kanade.domain.ui.model.AppTheme
+import eu.kanade.domain.ui.model.AppIcon
 import eu.kanade.domain.ui.model.NavTab
 import eu.kanade.domain.ui.model.StartScreen
 import eu.kanade.domain.ui.model.TabletUiMode
@@ -48,6 +49,8 @@ class UiPreferences(
     fun bottomNavFloatingAlpha() = preferenceStore.getInt("pref_bottom_nav_floating_alpha", 81)
 
     fun showDownloadSize() = preferenceStore.getBoolean("pref_show_download_size", false)
+
+    fun appIcon() = preferenceStore.getEnum("app_icon", AppIcon.Default)
 
     companion object {
         fun dateFormat(format: String): DateTimeFormatter = when (format) {

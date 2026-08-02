@@ -26,6 +26,7 @@ import eu.kanade.domain.DomainModule
 import eu.kanade.domain.SYDomainModule
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.ui.UiPreferences
+import eu.kanade.tachiyomi.ui.main.AppIconManager
 import eu.kanade.domain.ui.model.setAppCompatDelegateThemeMode
 import eu.kanade.tachiyomi.crash.CrashActivity
 import eu.kanade.tachiyomi.crash.GlobalExceptionHandler
@@ -102,6 +103,10 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         // SY -->
         Injekt.importModule(SYDomainModule())
         // SY <--
+
+        // Keep the launcher icon alias in sync with the saved preference, so a chosen icon that was
+        // removed in an update falls back to an enabled one instead of leaving no launcher entry.
+        AppIconManager.apply(this, Injekt.get<UiPreferences>().appIcon().get())
 
         setupNotificationChannels()
 
