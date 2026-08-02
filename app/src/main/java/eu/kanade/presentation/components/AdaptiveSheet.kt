@@ -6,13 +6,18 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import cafe.adriel.voyager.core.annotation.InternalVoyagerApi
@@ -79,22 +84,23 @@ fun AdaptiveSheet(
     content: @Composable () -> Unit,
 ) {
     val isTabletUi = isTabletUi()
-    // Capture the host window insets from the Android root view. A Compose Dialog's own window
-    // doesn't report system-bar insets reliably, and WindowInsets.systemBars read here can come
-    // back as 0 when an ancestor screen Scaffold has consumed them (which left sheet content —
-    // tracking rows, buttons — hidden behind the navigation bar). Root-view insets are the real,
-    // unconsumed window insets.
+    // Sheet content must clear the system bars. A Compose Dialog's own window doesn't report
+    // system-bar insets reliably, and WindowInsets.systemBars can read as 0 when an ancestor
+    // Scaffold has consumed them (the tracking sheet). The raw Android root-window insets fix that,
+    // but they can come back null/empty on some ROMs (Samsung), which would leave EVERY sheet cut
+    // off. So take the larger of the two per edge — correct in consumed contexts and safe if the
+    // root insets are unavailable.
     val view = LocalView.current
     val density = LocalDensity.current
-    val systemBarInsets = ViewCompat.getRootWindowInsets(view)
-        ?.getInsets(WindowInsetsCompat.Type.systemBars())
-        ?: Insets.NONE
+    val layoutDirection = LocalLayoutDirection.current
+    val composePadding = WindowInsets.systemBars.asPaddingValues()
+    val rootInsets = ViewCompat.getRootWindowInsets(view)?.getInsets(WindowInsetsCompat.Type.systemBars())
     val sheetPadding = with(density) {
         PaddingValues(
-            start = systemBarInsets.left.toDp(),
-            top = systemBarInsets.top.toDp(),
-            end = systemBarInsets.right.toDp(),
-            bottom = systemBarInsets.bottom.toDp(),
+            start = maxOf(composePadding.calculateStartPadding(layoutDirection), (rootInsets?.left ?: 0).toDp()),
+            top = maxOf(composePadding.calculateTopPadding(), (rootInsets?.top ?: 0).toDp()),
+            end = maxOf(composePadding.calculateEndPadding(layoutDirection), (rootInsets?.right ?: 0).toDp()),
+            bottom = maxOf(composePadding.calculateBottomPadding(), (rootInsets?.bottom ?: 0).toDp()),
         )
     }
 

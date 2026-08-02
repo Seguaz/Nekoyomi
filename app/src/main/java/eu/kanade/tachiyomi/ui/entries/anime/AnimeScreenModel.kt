@@ -121,6 +121,7 @@ class AnimeScreenModel(
     private val downloadPreferences: DownloadPreferences = Injekt.get(),
     private val libraryPreferences: LibraryPreferences = Injekt.get(),
     private val trackPreferences: TrackPreferences = Injekt.get(),
+    private val uiPreferences: UiPreferences = Injekt.get(),
     internal val playerPreferences: PlayerPreferences = Injekt.get(),
     internal val gesturePreferences: GesturePreferences = Injekt.get(),
     private val torrentPreferences: TorrentPreferences = Injekt.get(),
@@ -550,8 +551,6 @@ class AnimeScreenModel(
             successState.copy(episodes = newEpisodes)
         }
     }
-
-    private val uiPreferences: UiPreferences = Injekt.get()
 
     // Cached on-disk sizes of downloaded episodes (id -> bytes); a download's size never changes.
     private val downloadSizeCache = ConcurrentHashMap<Long, Long>()

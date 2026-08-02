@@ -99,6 +99,7 @@ class MangaScreenModel(
     private val isFromSource: Boolean,
     private val libraryPreferences: LibraryPreferences = Injekt.get(),
     private val trackPreferences: TrackPreferences = Injekt.get(),
+    private val uiPreferences: UiPreferences = Injekt.get(),
     readerPreferences: ReaderPreferences = Injekt.get(),
     private val trackerManager: TrackerManager = Injekt.get(),
     private val trackChapter: TrackChapter = Injekt.get(),
@@ -558,8 +559,6 @@ class MangaScreenModel(
             successState.copy(chapters = newChapters)
         }
     }
-
-    private val uiPreferences: UiPreferences = Injekt.get()
 
     // Cached on-disk sizes of downloaded chapters (id -> bytes); a download's size never changes.
     private val downloadSizeCache = ConcurrentHashMap<Long, Long>()
