@@ -62,6 +62,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
@@ -199,13 +200,23 @@ class AnimeScreenModel(
         }
     }
 
+    // Bumped whenever a download size is (re)computed so the episode list re-maps to show it.
+    private val downloadSizesVersion = MutableStateFlow(0)
+
+    private companion object {
+        // On-disk sizes of downloaded episodes (episodeId -> bytes), cached app-wide so re-opening
+        // an entry doesn't recompute (a download's size doesn't change). Cleared on process death.
+        val downloadSizeCache = ConcurrentHashMap<Long, Long>()
+    }
+
     init {
         screenModelScope.launchIO {
             combine(
                 getAnimeAndEpisodesAndSeasons.subscribe(animeId).distinctUntilChanged(),
                 downloadCache.changes,
                 downloadManager.queueState,
-            ) { animeAndEpisodesAndSeasons, _, _ -> animeAndEpisodesAndSeasons }
+                downloadSizesVersion,
+            ) { animeAndEpisodesAndSeasons, _, _, _ -> animeAndEpisodesAndSeasons }
                 .flowWithLifecycle(lifecycle)
                 .collectLatest { (anime, episodes, seasons) ->
                     updateSuccessState {
@@ -217,6 +228,8 @@ class AnimeScreenModel(
                     }
                 }
         }
+
+        observeDownloadSizes()
 
         observeDownloads()
 
@@ -552,8 +565,43 @@ class AnimeScreenModel(
         }
     }
 
-    // Cached on-disk sizes of downloaded episodes (id -> bytes); a download's size never changes.
-    private val downloadSizeCache = ConcurrentHashMap<Long, Long>()
+    /**
+     * Reads the on-disk size of downloaded episodes in a dedicated background job (summing directory
+     * sizes over SAF is slow), so the list is never blocked and sizes fill in on their own. Each new
+     * size bumps [downloadSizesVersion], which the main flow observes to refresh the list, and is
+     * cached app-wide in [downloadSizeCache] so re-opening an entry doesn't recompute. Sizes for
+     * removed downloads are dropped so a re-download gets re-measured.
+     */
+    private fun observeDownloadSizes() {
+        if (!uiPreferences.showDownloadSize().get()) return
+        screenModelScope.launchIO {
+            combine(
+                getAnimeAndEpisodesAndSeasons.subscribe(animeId).distinctUntilChanged(),
+                downloadManager.queueState,
+            ) { animeAndEpisodesAndSeasons, _ -> animeAndEpisodesAndSeasons }
+                .flowWithLifecycle(lifecycle)
+                .collectLatest { (anime, episodes, _) ->
+                    if (anime.isLocal()) return@collectLatest
+                    episodes.forEach { episode ->
+                        val downloaded = downloadManager.isEpisodeDownloaded(
+                            episode.name,
+                            episode.scanlator,
+                            anime.title,
+                            anime.source,
+                        )
+                        when {
+                            downloaded && !downloadSizeCache.containsKey(episode.id) -> {
+                                downloadSizeCache[episode.id] = downloadManager.getDownloadSize(episode, anime)
+                                downloadSizesVersion.update { it + 1 }
+                            }
+                            !downloaded && downloadSizeCache.remove(episode.id) != null -> {
+                                downloadSizesVersion.update { it + 1 }
+                            }
+                        }
+                    }
+                }
+        }
+    }
 
     private fun List<Episode>.toEpisodeListItems(anime: Anime): List<EpisodeList.Item> {
         val isLocal = anime.isLocal()
@@ -581,9 +629,7 @@ class AnimeScreenModel(
             }
 
             val downloadSize = if (showDownloadSize && !isLocal && downloadState == AnimeDownload.State.DOWNLOADED) {
-                downloadSizeCache.getOrPut(episode.id) {
-                    downloadManager.getDownloadSize(episode, anime)
-                }
+                downloadSizeCache[episode.id]
             } else {
                 null
             }

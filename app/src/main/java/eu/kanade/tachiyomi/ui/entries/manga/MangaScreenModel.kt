@@ -49,6 +49,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
@@ -172,13 +173,23 @@ class MangaScreenModel(
         }
     }
 
+    // Bumped whenever a download size is (re)computed so the chapter list re-maps to show it.
+    private val downloadSizesVersion = MutableStateFlow(0)
+
+    private companion object {
+        // On-disk sizes of downloaded chapters (chapterId -> bytes), cached app-wide so re-opening
+        // an entry doesn't recompute (a download's size doesn't change). Cleared on process death.
+        val downloadSizeCache = ConcurrentHashMap<Long, Long>()
+    }
+
     init {
         screenModelScope.launchIO {
             combine(
                 getMangaAndChapters.subscribe(mangaId, applyScanlatorFilter = true).distinctUntilChanged(),
                 downloadCache.changes,
                 downloadManager.queueState,
-            ) { mangaAndChapters, _, _ -> mangaAndChapters }
+                downloadSizesVersion,
+            ) { mangaAndChapters, _, _, _ -> mangaAndChapters }
                 .flowWithLifecycle(lifecycle)
                 .collectLatest { (manga, chapters) ->
                     updateSuccessState {
@@ -189,6 +200,8 @@ class MangaScreenModel(
                     }
                 }
         }
+
+        observeDownloadSizes()
 
         screenModelScope.launchIO {
             getExcludedScanlators.subscribe(mangaId)
@@ -560,8 +573,43 @@ class MangaScreenModel(
         }
     }
 
-    // Cached on-disk sizes of downloaded chapters (id -> bytes); a download's size never changes.
-    private val downloadSizeCache = ConcurrentHashMap<Long, Long>()
+    /**
+     * Reads the on-disk size of downloaded chapters in a dedicated background job (summing directory
+     * sizes over SAF is slow), so the list is never blocked and sizes fill in on their own. Each new
+     * size bumps [downloadSizesVersion], which the main flow observes to refresh the list, and is
+     * cached app-wide in [downloadSizeCache] so re-opening an entry doesn't recompute. Sizes for
+     * removed downloads are dropped so a re-download gets re-measured.
+     */
+    private fun observeDownloadSizes() {
+        if (!uiPreferences.showDownloadSize().get()) return
+        screenModelScope.launchIO {
+            combine(
+                getMangaAndChapters.subscribe(mangaId, applyScanlatorFilter = true).distinctUntilChanged(),
+                downloadManager.queueState,
+            ) { mangaAndChapters, _ -> mangaAndChapters }
+                .flowWithLifecycle(lifecycle)
+                .collectLatest { (manga, chapters) ->
+                    if (manga.isLocal()) return@collectLatest
+                    chapters.forEach { chapter ->
+                        val downloaded = downloadManager.isChapterDownloaded(
+                            chapter.name,
+                            chapter.scanlator,
+                            manga.title,
+                            manga.source,
+                        )
+                        when {
+                            downloaded && !downloadSizeCache.containsKey(chapter.id) -> {
+                                downloadSizeCache[chapter.id] = downloadManager.getDownloadSize(chapter, manga)
+                                downloadSizesVersion.update { it + 1 }
+                            }
+                            !downloaded && downloadSizeCache.remove(chapter.id) != null -> {
+                                downloadSizesVersion.update { it + 1 }
+                            }
+                        }
+                    }
+                }
+        }
+    }
 
     private fun List<Chapter>.toChapterListItems(manga: Manga): List<ChapterList.Item> {
         val isLocal = manga.isLocal()
@@ -589,9 +637,7 @@ class MangaScreenModel(
             }
 
             val downloadSize = if (showDownloadSize && !isLocal && downloadState == MangaDownload.State.DOWNLOADED) {
-                downloadSizeCache.getOrPut(chapter.id) {
-                    downloadManager.getDownloadSize(chapter, manga)
-                }
+                downloadSizeCache[chapter.id]
             } else {
                 null
             }
