@@ -44,6 +44,9 @@ class UiPreferences(
 
     fun bottomNavHideLabels() = preferenceStore.getBoolean("pref_bottom_nav_hide_labels", false)
 
+    // Opacity of the floating nav bar, as a percentage (0 = fully translucent, 100 = solid).
+    fun bottomNavFloatingAlpha() = preferenceStore.getInt("pref_bottom_nav_floating_alpha", 85)
+
     fun showDownloadSize() = preferenceStore.getBoolean("pref_show_download_size", false)
 
     companion object {

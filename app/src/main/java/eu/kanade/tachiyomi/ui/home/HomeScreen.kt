@@ -7,6 +7,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -98,6 +100,7 @@ object HomeScreen : Screen() {
     override fun Content() {
         val navStyle by uiPreferences.navStyle().collectAsState()
         val floatingNavBar by uiPreferences.bottomNavFloating().collectAsState()
+        val floatingNavBarAlpha by uiPreferences.bottomNavFloatingAlpha().collectAsState()
         val hideNavBarLabels by uiPreferences.bottomNavHideLabels().collectAsState()
         val navigator = LocalNavigator.currentOrThrow
         TabNavigator(
@@ -126,24 +129,50 @@ object HomeScreen : Screen() {
                                 enter = expandVertically(),
                                 exit = shrinkVertically(),
                             ) {
-                                NavigationBar(
+                                Box(
                                     modifier = Modifier
                                         .windowInsetsPadding(NavigationBarDefaults.windowInsets)
-                                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                                        .shadow(
-                                            elevation = 3.dp,
-                                            shape = RoundedCornerShape(28.dp),
-                                        ),
-                                    containerColor = if (floatingNavBar) {
-                                        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f)
-                                    } else {
-                                        NavigationBarDefaults.containerColor
-                                    },
-                                    tonalElevation = if (floatingNavBar) 0.dp else NavigationBarDefaults.Elevation,
-                                    windowInsets = WindowInsets(0),
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    contentAlignment = Alignment.Center,
                                 ) {
-                                    navStyle.tabs.fastForEach {
-                                        NavigationBarItem(it, showLabel = !hideNavBarLabels)
+                                    // The floating pill uses a translucent fill + subtle outline
+                                    // instead of an elevation shadow: a shadow behind a translucent
+                                    // surface shows through as a grey band and clumps at the bottom
+                                    // corners. The solid (non-floating) bar keeps its shadow.
+                                    val pillShape = RoundedCornerShape(28.dp)
+                                    if (floatingNavBar) {
+                                        val pillAlpha = floatingNavBarAlpha / 100f
+                                        Box(
+                                            modifier = Modifier
+                                                .matchParentSize()
+                                                .background(
+                                                    color = MaterialTheme.colorScheme.surfaceContainerHigh
+                                                        .copy(alpha = pillAlpha),
+                                                    shape = pillShape,
+                                                )
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = MaterialTheme.colorScheme.outlineVariant
+                                                        .copy(alpha = pillAlpha),
+                                                    shape = pillShape,
+                                                ),
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .matchParentSize()
+                                                .shadow(elevation = 3.dp, shape = pillShape)
+                                                .background(NavigationBarDefaults.containerColor),
+                                        )
+                                    }
+                                    NavigationBar(
+                                        containerColor = Color.Transparent,
+                                        tonalElevation = 0.dp,
+                                        windowInsets = WindowInsets(0),
+                                    ) {
+                                        navStyle.tabs.fastForEach {
+                                            NavigationBarItem(it, showLabel = !hideNavBarLabels)
+                                        }
                                     }
                                 }
                             }
