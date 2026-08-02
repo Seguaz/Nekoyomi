@@ -30,7 +30,12 @@ class NavigationOptionsMigration : Migration {
             val navTabs = when (bottomNavStyle.get()) {
                 0 -> setOf(NavTab.Anime.prefKey, NavTab.Manga.prefKey, NavTab.Updates.prefKey, NavTab.Browse.prefKey)
                 1 -> setOf(NavTab.Anime.prefKey, NavTab.Manga.prefKey, NavTab.History.prefKey, NavTab.Browse.prefKey)
-                else -> setOf(NavTab.Anime.prefKey, NavTab.Updates.prefKey, NavTab.History.prefKey, NavTab.Browse.prefKey)
+                else -> setOf(
+                    NavTab.Anime.prefKey,
+                    NavTab.Updates.prefKey,
+                    NavTab.History.prefKey,
+                    NavTab.Browse.prefKey,
+                )
             }
 
             preferenceStore.getEnum("start_screen", StartScreen.ANIME).set(startScreen)

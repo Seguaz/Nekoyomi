@@ -1,7 +1,7 @@
 package eu.kanade.domain.ui
 
-import eu.kanade.domain.ui.model.AppTheme
 import eu.kanade.domain.ui.model.AppIcon
+import eu.kanade.domain.ui.model.AppTheme
 import eu.kanade.domain.ui.model.NavTab
 import eu.kanade.domain.ui.model.StartScreen
 import eu.kanade.domain.ui.model.TabletUiMode
