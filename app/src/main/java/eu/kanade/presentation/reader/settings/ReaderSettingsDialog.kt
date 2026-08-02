@@ -2,7 +2,7 @@ package eu.kanade.presentation.reader.settings
 
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -34,8 +34,12 @@ fun ReaderSettingsDialog(
     val pagerState = rememberPagerState { tabTitles.size }
 
     BoxWithConstraints {
+        // Every tab gets the same fixed content height so the bottom sheet opens to a consistent
+        // size and doesn't resize when swiping between tabs (which looked broken). Options that
+        // don't fit are reached by scrolling inside the page.
+        val pageHeight = maxHeight * 0.4f
+
         TabbedDialog(
-            modifier = Modifier.heightIn(max = maxHeight * 0.75f),
             onDismissRequest = {
                 onDismissRequest()
                 onShowMenus()
@@ -57,6 +61,7 @@ fun ReaderSettingsDialog(
 
             Column(
                 modifier = Modifier
+                    .height(pageHeight)
                     .padding(vertical = TabbedDialogPaddings.Vertical)
                     .verticalScroll(rememberScrollState()),
             ) {
