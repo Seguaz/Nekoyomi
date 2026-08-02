@@ -8,14 +8,17 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageInstaller
 import android.os.Build
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentSanitizer
 import eu.kanade.tachiyomi.extension.InstallStep
 import eu.kanade.tachiyomi.util.lang.use
 import eu.kanade.tachiyomi.util.system.getParcelableExtraCompat
 import eu.kanade.tachiyomi.util.system.getUriSize
+import eu.kanade.tachiyomi.util.system.toast
 import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
+import tachiyomi.i18n.MR
 
 class PackageInstallerInstallerManga(private val service: Service) : InstallerManga(service) {
 
@@ -52,9 +55,24 @@ class PackageInstallerInstallerManga(private val service: Service) : InstallerMa
                     continueQueue(InstallStep.Idle)
                 }
                 PackageInstaller.STATUS_SUCCESS -> continueQueue(InstallStep.Installed)
-                else -> continueQueue(InstallStep.Error)
+                else -> {
+                    // A same-package update signed with a different certificate is rejected by the
+                    // system with a signature-mismatch message. Surface a clear hint instead of a
+                    // silent generic error (otherwise the update just keeps reappearing).
+                    val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE).orEmpty()
+                    if (message.isSignatureMismatch()) {
+                        service.toast(MR.strings.ext_installer_signature_mismatch, Toast.LENGTH_LONG)
+                    }
+                    continueQueue(InstallStep.Error)
+                }
             }
         }
+    }
+
+    private fun String.isSignatureMismatch(): Boolean {
+        return contains("signature", ignoreCase = true) ||
+            contains("INCONSISTENT_CERTIFICATE", ignoreCase = true) ||
+            contains("UPDATE_INCOMPATIBLE", ignoreCase = true)
     }
 
     private var activeSession: Pair<Entry, Int>? = null
