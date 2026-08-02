@@ -89,10 +89,9 @@ fun MangaLibraryPager(
                     )
                 }
 
-                LibraryDisplayMode.CompactGrid, LibraryDisplayMode.CoverOnlyGrid -> {
-                    MangaLibraryCompactGrid(
+                LibraryDisplayMode.ComfortableGrid -> {
+                    MangaLibraryComfortableGrid(
                         items = library,
-                        showTitle = displayMode is LibraryDisplayMode.CompactGrid,
                         columns = columns,
                         contentPadding = contentPadding,
                         selection = selectedManga,
@@ -104,9 +103,12 @@ fun MangaLibraryPager(
                     )
                 }
 
-                LibraryDisplayMode.ComfortableGrid -> {
-                    MangaLibraryComfortableGrid(
+                // CompactGrid, CoverOnlyGrid and — defensively — any other value, so a minified
+                // build can't throw NoWhenBranchMatchedException from an "exhaustive" when.
+                else -> {
+                    MangaLibraryCompactGrid(
                         items = library,
+                        showTitle = displayMode is LibraryDisplayMode.CompactGrid,
                         columns = columns,
                         contentPadding = contentPadding,
                         selection = selectedManga,

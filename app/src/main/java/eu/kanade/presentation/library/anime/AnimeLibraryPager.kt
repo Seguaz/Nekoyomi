@@ -89,21 +89,6 @@ fun AnimeLibraryPager(
                     )
                 }
 
-                LibraryDisplayMode.CompactGrid, LibraryDisplayMode.CoverOnlyGrid -> {
-                    AnimeLibraryCompactGrid(
-                        items = library,
-                        showTitle = displayMode is LibraryDisplayMode.CompactGrid,
-                        columns = columns,
-                        contentPadding = contentPadding,
-                        selection = selectedAnime,
-                        onClick = onClickAnime,
-                        onClickContinueWatching = onClickContinueWatching,
-                        onLongClick = onLongClickAnime,
-                        searchQuery = searchQuery,
-                        onGlobalSearchClicked = onGlobalSearchClicked,
-                    )
-                }
-
                 LibraryDisplayMode.ComfortableGrid -> {
                     AnimeLibraryComfortableGrid(
                         items = library,
@@ -113,6 +98,23 @@ fun AnimeLibraryPager(
                         onClick = onClickAnime,
                         onLongClick = onLongClickAnime,
                         onClickContinueWatching = onClickContinueWatching,
+                        searchQuery = searchQuery,
+                        onGlobalSearchClicked = onGlobalSearchClicked,
+                    )
+                }
+
+                // CompactGrid, CoverOnlyGrid and — defensively — any other value, so a minified
+                // build can't throw NoWhenBranchMatchedException from an "exhaustive" when.
+                else -> {
+                    AnimeLibraryCompactGrid(
+                        items = library,
+                        showTitle = displayMode is LibraryDisplayMode.CompactGrid,
+                        columns = columns,
+                        contentPadding = contentPadding,
+                        selection = selectedAnime,
+                        onClick = onClickAnime,
+                        onClickContinueWatching = onClickContinueWatching,
+                        onLongClick = onLongClickAnime,
                         searchQuery = searchQuery,
                         onGlobalSearchClicked = onGlobalSearchClicked,
                     )
