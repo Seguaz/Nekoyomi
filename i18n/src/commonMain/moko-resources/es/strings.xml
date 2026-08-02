@@ -238,6 +238,7 @@
     <string name="ext_install">Instalar</string>
     <string name="ext_pending">Pendiente</string>
     <string name="ext_downloading">Descargando</string>
+    <string name="ext_queued">En cola</string>
     <string name="ext_installing">Instalando</string>
     <string name="ext_installed">Instalado</string>
     <string name="ext_trust">Confiar</string>

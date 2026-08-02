@@ -4,6 +4,7 @@ enum class InstallStep {
     Idle,
     Pending,
     Downloading,
+    Queued,
     Installing,
     Installed,
     Error,

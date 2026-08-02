@@ -45,6 +45,8 @@ abstract class InstallerManga(private val service: Service) {
      * @param uri Uri of APK to install
      */
     fun addToQueue(downloadId: Long, uri: Uri) {
+        // Mark as queued; if it can be processed right away, [processEntry] flips it to Installing.
+        extensionManager.updateInstallStep(downloadId, InstallStep.Queued)
         queue.add(Entry(downloadId, uri))
         checkQueue()
     }
