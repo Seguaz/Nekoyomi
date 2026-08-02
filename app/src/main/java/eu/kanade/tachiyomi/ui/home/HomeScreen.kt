@@ -39,7 +39,6 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.contentDescription
@@ -53,6 +52,7 @@ import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import cafe.adriel.voyager.navigator.tab.TabNavigator
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.ui.UiPreferences
+import eu.kanade.domain.ui.model.NavTab
 import eu.kanade.presentation.util.Screen
 import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.ui.browse.BrowseTab
@@ -94,17 +94,20 @@ object HomeScreen : Screen() {
 
     private val uiPreferences: UiPreferences by injectLazy()
     private val defaultTab = uiPreferences.startScreen().get().tab
-    private val moreTab = uiPreferences.navStyle().get().moreTab
 
     @Composable
     override fun Content() {
-        val navStyle by uiPreferences.navStyle().collectAsState()
+        val enabledTabs by uiPreferences.bottomNavTabs().collectAsState()
+        val shownTabs = NavTab.shownTabs(enabledTabs)
+        val hiddenTabs = NavTab.hidden(enabledTabs).map { it.tab }
+        // The start-screen tab may have been hidden; fall back to the first shown tab.
+        val homeTab = defaultTab.takeIf { it in shownTabs } ?: shownTabs.first()
         val floatingNavBar by uiPreferences.bottomNavFloating().collectAsState()
         val floatingNavBarAlpha by uiPreferences.bottomNavFloatingAlpha().collectAsState()
         val hideNavBarLabels by uiPreferences.bottomNavHideLabels().collectAsState()
         val navigator = LocalNavigator.currentOrThrow
         TabNavigator(
-            tab = defaultTab,
+            tab = homeTab,
             key = TAB_NAVIGATOR_KEY,
         ) { tabNavigator ->
             // Provide usable navigator to content screen
@@ -113,7 +116,7 @@ object HomeScreen : Screen() {
                     startBar = {
                         if (isTabletUi()) {
                             NavigationRail {
-                                navStyle.tabs.fastForEach {
+                                shownTabs.fastForEach {
                                     NavigationRailItem(it)
                                 }
                             }
@@ -125,22 +128,21 @@ object HomeScreen : Screen() {
                                 showBottomNavEvent.receiveAsFlow().collectLatest { value = it }
                             }
                             AnimatedVisibility(
-                                visible = bottomNavVisible && tabNavigator.current != navStyle.moreTab,
+                                visible = bottomNavVisible && tabNavigator.current !in hiddenTabs,
                                 enter = expandVertically(),
                                 exit = shrinkVertically(),
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .windowInsetsPadding(NavigationBarDefaults.windowInsets)
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    // The floating pill uses a translucent fill + subtle outline
-                                    // instead of an elevation shadow: a shadow behind a translucent
-                                    // surface shows through as a grey band and clumps at the bottom
-                                    // corners. The solid (non-floating) bar keeps its shadow.
-                                    val pillShape = RoundedCornerShape(28.dp)
-                                    if (floatingNavBar) {
+                                if (floatingNavBar) {
+                                    Box(
+                                        modifier = Modifier
+                                            .windowInsetsPadding(NavigationBarDefaults.windowInsets)
+                                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        // Translucent floating pill: a fill + subtle outline rather
+                                        // than an elevation shadow, which would show through the
+                                        // translucent surface as a grey band and clump at the corners.
+                                        val pillShape = RoundedCornerShape(28.dp)
                                         val pillAlpha = floatingNavBarAlpha / 100f
                                         Box(
                                             modifier = Modifier
@@ -157,20 +159,20 @@ object HomeScreen : Screen() {
                                                     shape = pillShape,
                                                 ),
                                         )
-                                    } else {
-                                        Box(
-                                            modifier = Modifier
-                                                .matchParentSize()
-                                                .shadow(elevation = 3.dp, shape = pillShape)
-                                                .background(NavigationBarDefaults.containerColor),
-                                        )
+                                        NavigationBar(
+                                            containerColor = Color.Transparent,
+                                            tonalElevation = 0.dp,
+                                            windowInsets = WindowInsets(0),
+                                        ) {
+                                            shownTabs.fastForEach {
+                                                NavigationBarItem(it, showLabel = !hideNavBarLabels)
+                                            }
+                                        }
                                     }
-                                    NavigationBar(
-                                        containerColor = Color.Transparent,
-                                        tonalElevation = 0.dp,
-                                        windowInsets = WindowInsets(0),
-                                    ) {
-                                        navStyle.tabs.fastForEach {
+                                } else {
+                                    // Classic bar: full width, flush to the bottom, no rounded corners.
+                                    NavigationBar {
+                                        shownTabs.fastForEach {
                                             NavigationBarItem(it, showLabel = !hideNavBarLabels)
                                         }
                                     }
@@ -227,16 +229,9 @@ object HomeScreen : Screen() {
                 }
             }
 
-            val goToStartScreen = {
-                if (defaultTab != moreTab) {
-                    tabNavigator.current = defaultTab
-                } else {
-                    tabNavigator.current = AnimeLibraryTab
-                }
-            }
+            val goToStartScreen = { tabNavigator.current = homeTab }
             BackHandler(
-                enabled = (tabNavigator.current == moreTab || tabNavigator.current != defaultTab) &&
-                    (tabNavigator.current != AnimeLibraryTab || defaultTab != moreTab),
+                enabled = tabNavigator.current != homeTab,
                 onBack = goToStartScreen,
             )
 

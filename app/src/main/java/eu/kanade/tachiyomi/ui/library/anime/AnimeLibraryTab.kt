@@ -42,6 +42,7 @@ import eu.kanade.tachiyomi.data.library.anime.AnimeLibraryUpdateJob
 import eu.kanade.tachiyomi.ui.browse.anime.source.globalsearch.GlobalAnimeSearchScreen
 import eu.kanade.tachiyomi.ui.category.CategoriesTab
 import eu.kanade.tachiyomi.ui.entries.anime.AnimeScreen
+import eu.kanade.domain.ui.model.NavTab
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.player.settings.PlayerPreferences
@@ -117,6 +118,19 @@ data object AnimeLibraryTab : Tab {
             MainActivity.startPlayerActivity(context, episode.animeId, episode.id, extPlayer)
         }
 
+        val fromMore = NavTab.Anime.prefKey !in currentBottomNavTabs()
+        val navigateUp: (() -> Unit)? = if (fromMore) {
+            {
+                if (navigator.lastItem == HomeScreen) {
+                    scope.launch { HomeScreen.openTab(HomeScreen.Tab.AnimeLib()) }
+                } else {
+                    navigator.pop()
+                }
+            }
+        } else {
+            null
+        }
+
         val defaultTitle = stringResource(AYMR.strings.label_anime_library)
 
         Scaffold(
@@ -160,6 +174,7 @@ data object AnimeLibraryTab : Tab {
                     searchQuery = state.searchQuery,
                     onSearchQueryChange = screenModel::search,
                     scrollBehavior = scrollBehavior.takeIf { !tabVisible }, // For scroll overlay when no tab
+                    navigateUp = navigateUp,
                 )
             },
             bottomBar = {

@@ -15,7 +15,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.vectorResource
-import eu.kanade.domain.ui.model.NavStyle
+import androidx.compose.foundation.lazy.items
+import eu.kanade.domain.ui.model.NavTab
 import eu.kanade.presentation.more.settings.widget.SwitchPreferenceWidget
 import eu.kanade.presentation.more.settings.widget.TextPreferenceWidget
 import eu.kanade.tachiyomi.R
@@ -35,8 +36,8 @@ fun MoreScreen(
     onDownloadedOnlyChange: (Boolean) -> Unit,
     incognitoMode: Boolean,
     onIncognitoModeChange: (Boolean) -> Unit,
-    navStyle: NavStyle,
-    onClickAlt: () -> Unit,
+    hiddenNavTabs: List<NavTab>,
+    onClickNavTab: (NavTab) -> Unit,
     onClickDownloadQueue: () -> Unit,
     onClickCategories: () -> Unit,
     onClickStats: () -> Unit,
@@ -76,11 +77,11 @@ fun MoreScreen(
 
             item { HorizontalDivider() }
 
-            item {
+            items(hiddenNavTabs) { navTab ->
                 TextPreferenceWidget(
-                    title = navStyle.moreTab.options.title,
-                    icon = navStyle.moreIcon,
-                    onPreferenceClick = onClickAlt,
+                    title = stringResource(navTab.titleRes),
+                    icon = navTab.icon,
+                    onPreferenceClick = { onClickNavTab(navTab) },
                 )
             }
 

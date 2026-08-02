@@ -41,7 +41,7 @@ import androidx.core.app.ActivityCompat
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.ui.UiPreferences
-import eu.kanade.domain.ui.model.NavStyle
+import eu.kanade.domain.ui.model.NavTab
 import eu.kanade.domain.ui.model.StartScreen
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
@@ -175,13 +175,12 @@ object SettingsAppearanceScreen : SearchableSettings {
                         true
                     },
                 ),
-                Preference.PreferenceItem.ListPreference(
-                    preference = uiPreferences.navStyle(),
-                    entries = NavStyle.entries
-                        .associateWith { stringResource(it.titleRes) }
+                Preference.PreferenceItem.MultiSelectListPreference(
+                    preference = uiPreferences.bottomNavTabs(),
+                    entries = NavTab.entries
+                        .associate { it.prefKey to stringResource(it.titleRes) }
                         .toImmutableMap(),
                     title = stringResource(AYMR.strings.pref_navigation_style),
-                    onValueChanged = { true },
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = uiPreferences.bottomNavFloating(),

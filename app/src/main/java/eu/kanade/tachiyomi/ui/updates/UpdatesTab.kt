@@ -9,7 +9,7 @@ import androidx.compose.ui.platform.LocalContext
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import cafe.adriel.voyager.navigator.tab.TabOptions
-import eu.kanade.domain.ui.model.NavStyle
+import eu.kanade.domain.ui.model.NavTab
 import eu.kanade.presentation.components.TabbedScreen
 import eu.kanade.presentation.util.Tab
 import eu.kanade.tachiyomi.R
@@ -28,14 +28,8 @@ data object UpdatesTab : Tab {
         get() {
             val isSelected = LocalTabNavigator.current.current.key == key
             val image = AnimatedImageVector.animatedVectorResource(R.drawable.anim_updates_enter)
-            val index: UShort = when (currentNavigationStyle()) {
-                NavStyle.MOVE_UPDATES_TO_MORE -> 5u
-                NavStyle.MOVE_HISTORY_TO_MORE -> 2u
-                NavStyle.MOVE_BROWSE_TO_MORE -> 2u
-                NavStyle.MOVE_MANGA_TO_MORE -> 1u
-            }
             return TabOptions(
-                index = index,
+                index = 2u,
                 title = stringResource(MR.strings.label_recent_updates),
                 icon = rememberAnimatedVectorPainter(image, isSelected),
             )
@@ -47,7 +41,7 @@ data object UpdatesTab : Tab {
     @Composable
     override fun Content() {
         val context = LocalContext.current
-        val fromMore = currentNavigationStyle() == NavStyle.MOVE_UPDATES_TO_MORE
+        val fromMore = NavTab.Updates.prefKey !in currentBottomNavTabs()
 
         TabbedScreen(
             titleRes = MR.strings.label_recent_updates,

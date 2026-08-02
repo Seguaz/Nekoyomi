@@ -1,7 +1,7 @@
 package eu.kanade.domain.ui
 
 import eu.kanade.domain.ui.model.AppTheme
-import eu.kanade.domain.ui.model.NavStyle
+import eu.kanade.domain.ui.model.NavTab
 import eu.kanade.domain.ui.model.StartScreen
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
@@ -38,14 +38,14 @@ class UiPreferences(
 
     fun startScreen() = preferenceStore.getEnum("start_screen", StartScreen.ANIME)
 
-    fun navStyle() = preferenceStore.getEnum("bottom_rail_nav_style", NavStyle.MOVE_HISTORY_TO_MORE)
+    fun bottomNavTabs() = preferenceStore.getStringSet("bottom_nav_tabs", NavTab.DEFAULT)
 
-    fun bottomNavFloating() = preferenceStore.getBoolean("pref_bottom_nav_floating", false)
+    fun bottomNavFloating() = preferenceStore.getBoolean("pref_bottom_nav_floating", true)
 
-    fun bottomNavHideLabels() = preferenceStore.getBoolean("pref_bottom_nav_hide_labels", false)
+    fun bottomNavHideLabels() = preferenceStore.getBoolean("pref_bottom_nav_hide_labels", true)
 
     // Opacity of the floating nav bar, as a percentage (0 = fully translucent, 100 = solid).
-    fun bottomNavFloatingAlpha() = preferenceStore.getInt("pref_bottom_nav_floating_alpha", 85)
+    fun bottomNavFloatingAlpha() = preferenceStore.getInt("pref_bottom_nav_floating_alpha", 81)
 
     fun showDownloadSize() = preferenceStore.getBoolean("pref_show_download_size", false)
 

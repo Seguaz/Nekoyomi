@@ -29,7 +29,7 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import cafe.adriel.voyager.navigator.tab.TabOptions
-import eu.kanade.domain.ui.model.NavStyle
+import eu.kanade.domain.ui.model.NavTab
 import eu.kanade.presentation.category.components.ChangeCategoryDialog
 import eu.kanade.presentation.entries.components.LibraryBottomActionMenu
 import eu.kanade.presentation.library.DeleteLibraryEntryDialog
@@ -71,11 +71,10 @@ data object MangaLibraryTab : Tab {
     override val options: TabOptions
         @Composable
         get() {
-            val fromMore = currentNavigationStyle() == NavStyle.MOVE_MANGA_TO_MORE
             val title = AYMR.strings.label_manga_library
             val isSelected = LocalTabNavigator.current.current.key == key
             val image = AnimatedImageVector.animatedVectorResource(R.drawable.anim_library_enter)
-            val index: UShort = if (fromMore) 5u else 1u
+            val index: UShort = 1u
             return TabOptions(
                 index = index,
                 title = stringResource(title),
@@ -110,7 +109,7 @@ data object MangaLibraryTab : Tab {
             started
         }
 
-        val fromMore = currentNavigationStyle() == NavStyle.MOVE_MANGA_TO_MORE
+        val fromMore = NavTab.Manga.prefKey !in currentBottomNavTabs()
 
         val navigateUp: (() -> Unit)? = if (fromMore) {
             {

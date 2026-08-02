@@ -16,7 +16,6 @@ import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.ScreenTransitionContent
 import eu.kanade.domain.ui.UiPreferences
-import eu.kanade.domain.ui.model.NavStyle
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,7 +39,7 @@ interface Tab : cafe.adriel.voyager.navigator.tab.Tab {
     suspend fun onReselect(navigator: Navigator) {}
 
     @Composable
-    fun currentNavigationStyle(): NavStyle = uiPreferences.navStyle().collectAsState().value
+    fun currentBottomNavTabs(): Set<String> = uiPreferences.bottomNavTabs().collectAsState().value
 }
 
 abstract class Screen : Screen {
