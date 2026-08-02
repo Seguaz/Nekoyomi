@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.browse.anime.migration.anime
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -10,8 +11,8 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.browse.anime.MigrateAnimeScreen
 import eu.kanade.presentation.util.Screen
+import eu.kanade.tachiyomi.ui.browse.anime.migration.advanced.MigrateAnimeListScreen
 import eu.kanade.tachiyomi.ui.browse.anime.migration.search.MigrateAnimeSearchScreen
-import eu.kanade.tachiyomi.ui.entries.anime.AnimeScreen
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.coroutines.flow.collectLatest
 import tachiyomi.i18n.MR
@@ -34,12 +35,25 @@ data class MigrateAnimeScreen(
             return
         }
 
+        BackHandler(enabled = state.selectionMode) {
+            screenModel.clearSelection()
+        }
+
         MigrateAnimeScreen(
             navigateUp = navigator::pop,
             title = state.source!!.name,
             state = state,
             onClickItem = { navigator.push(MigrateAnimeSearchScreen(it.id)) },
-            onClickCover = { navigator.push(AnimeScreen(it.id)) },
+            onSelectItem = screenModel::toggleSelection,
+            onSelectAll = screenModel::toggleAllSelection,
+            onClickMigrate = {
+                if (state.selection.isNotEmpty()) {
+                    val selection = state.selection.toList()
+                    screenModel.clearSelection()
+                    navigator.push(MigrateAnimeListScreen(selection))
+                }
+            },
+            onClickCancelSelection = screenModel::clearSelection,
         )
 
         LaunchedEffect(Unit) {

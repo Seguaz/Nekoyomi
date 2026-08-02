@@ -95,6 +95,20 @@ object AnimeMigrationFlags {
         return flags
     }
 
+    /**
+     * Returns every flag with its default selection, independent of a specific entry.
+     * Used by the mass migration screen, where flags apply to many entries at once.
+     */
+    fun getAllFlags(defaultSelectedBitMap: Int): List<AnimeMigrationFlag> {
+        return listOf(
+            AnimeMigrationFlag.create(EPISODES, defaultSelectedBitMap, AYMR.strings.episodes),
+            AnimeMigrationFlag.create(CATEGORIES, defaultSelectedBitMap, MR.strings.categories),
+            AnimeMigrationFlag.create(CUSTOM_COVER, defaultSelectedBitMap, MR.strings.custom_cover),
+            AnimeMigrationFlag.create(CUSTOM_BACKGROUND, defaultSelectedBitMap, AYMR.strings.custom_background),
+            AnimeMigrationFlag.create(DELETE_DOWNLOADED, defaultSelectedBitMap, MR.strings.delete_downloaded),
+        )
+    }
+
     /** Returns a bit map of selected flags. */
     fun getSelectedFlagsBitMap(
         selectedFlags: List<Boolean>,

@@ -52,15 +52,45 @@ class MigrateAnimeScreenModel(
                         .toImmutableList()
                 }
                 .collectLatest { list ->
-                    mutableState.update { it.copy(titleList = list) }
+                    mutableState.update { state ->
+                        // Drop any selection that no longer exists (e.g. after a migration)
+                        val ids = list.mapTo(HashSet()) { it.id }
+                        state.copy(
+                            titleList = list,
+                            selection = state.selection.filter { it in ids },
+                        )
+                    }
                 }
         }
+    }
+
+    fun toggleSelection(anime: Anime) {
+        mutableState.update { state ->
+            val newSelection = if (anime.id in state.selection) {
+                state.selection - anime.id
+            } else {
+                state.selection + anime.id
+            }
+            state.copy(selection = newSelection)
+        }
+    }
+
+    fun toggleAllSelection() {
+        mutableState.update { state ->
+            val allSelected = state.selection.size == state.titles.size && state.titles.isNotEmpty()
+            state.copy(selection = if (allSelected) emptyList() else state.titles.map { it.id })
+        }
+    }
+
+    fun clearSelection() {
+        mutableState.update { it.copy(selection = emptyList()) }
     }
 
     @Immutable
     data class State(
         val source: AnimeSource? = null,
         private val titleList: ImmutableList<Anime>? = null,
+        val selection: List<Long> = emptyList(),
     ) {
 
         val titles: ImmutableList<Anime>
@@ -71,6 +101,9 @@ class MigrateAnimeScreenModel(
 
         val isEmpty: Boolean
             get() = titles.isEmpty()
+
+        val selectionMode: Boolean
+            get() = selection.isNotEmpty()
     }
 }
 

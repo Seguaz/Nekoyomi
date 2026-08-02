@@ -234,6 +234,14 @@
     <string name="pref_app_icon">Icono de la aplicación</string>
     <string name="app_icon_default">Predeterminado</string>
     <string name="app_icon_grayscale">Escala de grises</string>
+    <string name="migration_migrate_all">Migrar todo</string>
+    <string name="migration_searching">Buscando…</string>
+    <string name="migration_no_alternatives">Sin coincidencia</string>
+    <string name="migration_pick_alternative">Elegir a mano</string>
+    <string name="migration_skip">Omitir</string>
+    <string name="migration_completed">Migración completada</string>
+    <string name="migration_chapter_count">%1$d capítulos</string>
+    <string name="migration_episode_count">%1$d episodios</string>
     <string name="pref_hide_nav_bar_labels">Ocultar etiquetas de la barra de navegación</string>
     <string name="pref_hide_nav_bar_labels_summary">Muestra solo los iconos, sin ningún texto</string>
     <string name="pref_show_download_size">Mostrar tamaño de descarga</string>

@@ -75,6 +75,19 @@ object MangaMigrationFlags {
         return flags
     }
 
+    /**
+     * Returns every flag with its default selection, independent of a specific entry.
+     * Used by the mass migration screen, where flags apply to many entries at once.
+     */
+    fun getAllFlags(defaultSelectedBitMap: Int): List<MangaMigrationFlag> {
+        return listOf(
+            MangaMigrationFlag.create(CHAPTERS, defaultSelectedBitMap, MR.strings.chapters),
+            MangaMigrationFlag.create(CATEGORIES, defaultSelectedBitMap, MR.strings.categories),
+            MangaMigrationFlag.create(CUSTOM_COVER, defaultSelectedBitMap, MR.strings.custom_cover),
+            MangaMigrationFlag.create(DELETE_DOWNLOADED, defaultSelectedBitMap, MR.strings.delete_downloaded),
+        )
+    }
+
     /** Returns a bit map of selected flags. */
     fun getSelectedFlagsBitMap(
         selectedFlags: List<Boolean>,
