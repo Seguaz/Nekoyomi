@@ -242,6 +242,9 @@
     <string name="migration_completed">Migración completada</string>
     <string name="migration_chapter_count">%1$d capítulos</string>
     <string name="migration_episode_count">%1$d episodios</string>
+    <string name="notification_library_up_to_date">Biblioteca al día</string>
+    <string name="notification_no_new_chapters">Sin capítulos nuevos</string>
+    <string name="notification_no_new_episodes">Sin episodios nuevos</string>
     <string name="pref_hide_nav_bar_labels">Ocultar etiquetas de la barra de navegación</string>
     <string name="pref_hide_nav_bar_labels_summary">Muestra solo los iconos, sin ningún texto</string>
     <string name="pref_show_download_size">Mostrar tamaño de descarga</string>

@@ -36,6 +36,7 @@ import tachiyomi.domain.items.chapter.model.Chapter
 import tachiyomi.domain.library.manga.LibraryManga
 import tachiyomi.domain.source.manga.service.MangaSourceManager
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.aniyomi.AYMR
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.math.RoundingMode
@@ -162,6 +163,22 @@ class MangaLibraryUpdateNotifier(
             setSmallIcon(R.drawable.ic_ani)
 
             setContentIntent(NotificationReceiver.openErrorLogPendingActivity(context, uri))
+        }
+    }
+
+    /**
+     * Shows a brief notification when a manual update finished with nothing new to report, so the
+     * user knows the update actually ran (instead of thinking it silently did nothing).
+     */
+    fun showUpdateUpToDateNotification() {
+        context.notify(
+            Notifications.ID_LIBRARY_UP_TO_DATE,
+            Notifications.CHANNEL_LIBRARY_PROGRESS,
+        ) {
+            setContentTitle(context.stringResource(AYMR.strings.notification_library_up_to_date))
+            setContentText(context.stringResource(AYMR.strings.notification_no_new_chapters))
+            setSmallIcon(R.drawable.ic_ani)
+            setAutoCancel(true)
         }
     }
 

@@ -122,11 +122,13 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
             try {
                 updateChapterList()
                 Result.success()
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 if (e is CancellationException) {
                     // Assume success although cancelled
                     Result.success()
                 } else {
+                    // Catch Throwable (not just Exception) so an Error thrown by a broken extension
+                    // (e.g. NoSuchMethodError) fails this run gracefully instead of crashing the job.
                     logcat(LogPriority.ERROR, e)
                     Result.failure()
                 }
@@ -326,6 +328,12 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
                 failedUpdates.size,
                 errorFile.getUriCompat(context),
             )
+        }
+
+        // On a manual update that finished with nothing new (and no errors), let the user know it
+        // actually ran, instead of silently doing nothing.
+        if (newUpdates.isEmpty() && failedUpdates.isEmpty() && tags.contains(WORK_NAME_MANUAL)) {
+            notifier.showUpdateUpToDateNotification()
         }
     }
 

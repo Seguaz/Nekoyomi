@@ -426,6 +426,9 @@
     <string name="migration_completed">Migration completed</string>
     <string name="migration_chapter_count">%1$d chapters</string>
     <string name="migration_episode_count">%1$d episodes</string>
+    <string name="notification_library_up_to_date">Library is up to date</string>
+    <string name="notification_no_new_chapters">No new chapters</string>
+    <string name="notification_no_new_episodes">No new episodes</string>
     <string name="pref_hide_nav_bar_labels">Hide navigation bar labels</string>
     <string name="pref_hide_nav_bar_labels_summary">Show only icons, without any text label</string>
     <string name="pref_show_download_size">Show download size</string>

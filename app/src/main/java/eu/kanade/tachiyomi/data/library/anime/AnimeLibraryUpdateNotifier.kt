@@ -184,6 +184,22 @@ class AnimeLibraryUpdateNotifier(
     }
 
     /**
+     * Shows a brief notification when a manual update finished with nothing new to report, so the
+     * user knows the update actually ran (instead of thinking it silently did nothing).
+     */
+    fun showUpdateUpToDateNotification() {
+        context.notify(
+            Notifications.ID_LIBRARY_UP_TO_DATE,
+            Notifications.CHANNEL_LIBRARY_PROGRESS,
+        ) {
+            setContentTitle(context.stringResource(AYMR.strings.notification_library_up_to_date))
+            setContentText(context.stringResource(AYMR.strings.notification_no_new_episodes))
+            setSmallIcon(R.drawable.ic_ani)
+            setAutoCancel(true)
+        }
+    }
+
+    /**
      * Shows the notification containing the result of the update done by the service.
      *
      * @param updates a list of anime with new updates.
