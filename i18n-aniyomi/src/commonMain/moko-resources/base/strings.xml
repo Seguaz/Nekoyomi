@@ -418,6 +418,10 @@
     <string name="pref_app_icon">App icon</string>
     <string name="app_icon_default">Default</string>
     <string name="app_icon_grayscale">Grayscale</string>
+    <string name="pref_category_cover_backdrop">Cover backdrop</string>
+    <string name="pref_entry_backdrop_opacity">Blurred backdrop opacity</string>
+    <string name="pref_entry_backdrop_blur">Blurred backdrop blur</string>
+    <string name="pref_entry_backdrop_dim">Blurred backdrop darkening</string>
     <string name="migration_migrate_all">Migrate all</string>
     <string name="migration_searching">Searching…</string>
     <string name="migration_no_alternatives">No alternative found</string>

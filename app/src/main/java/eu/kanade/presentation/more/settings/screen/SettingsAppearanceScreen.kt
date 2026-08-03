@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,8 +36,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -53,6 +59,7 @@ import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.screen.appearance.AppLanguageScreen
 import eu.kanade.presentation.more.settings.widget.AppThemeModePreferenceWidget
 import eu.kanade.presentation.more.settings.widget.AppThemePreferenceWidget
+import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.main.AppIconManager
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.persistentListOf
@@ -80,6 +87,23 @@ object SettingsAppearanceScreen : SearchableSettings {
         return listOf(
             getThemeGroup(uiPreferences = uiPreferences),
             getDisplayGroup(uiPreferences = uiPreferences),
+            getCoverBackdropGroup(uiPreferences = uiPreferences),
+        )
+    }
+
+    @Composable
+    private fun getCoverBackdropGroup(
+        uiPreferences: UiPreferences,
+    ): Preference.PreferenceGroup {
+        return Preference.PreferenceGroup(
+            title = stringResource(AYMR.strings.pref_category_cover_backdrop),
+            preferenceItems = persistentListOf(
+                Preference.PreferenceItem.CustomPreference(
+                    title = stringResource(AYMR.strings.pref_category_cover_backdrop),
+                ) {
+                    CoverBackdropPreference(uiPreferences = uiPreferences)
+                },
+            ),
         )
     }
 
@@ -310,6 +334,160 @@ private fun FloatingNavBarOpacityPreference(
             },
         )
     }
+}
+
+/** Cover backdrop settings: a live preview plus opacity/blur/darkening sliders. */
+@Composable
+private fun CoverBackdropPreference(uiPreferences: UiPreferences) {
+    val opacityPref = uiPreferences.entryBackdropOpacity()
+    val blurPref = uiPreferences.entryBackdropBlur()
+    val dimPref = uiPreferences.entryBackdropDim()
+
+    val savedOpacity by opacityPref.collectAsState()
+    val savedBlur by blurPref.collectAsState()
+    val savedDim by dimPref.collectAsState()
+
+    // Follow the drag live for the preview; persist only when the user lets go.
+    var opacity by remember(savedOpacity) { mutableFloatStateOf(savedOpacity.toFloat()) }
+    var blur by remember(savedBlur) { mutableFloatStateOf(savedBlur.toFloat()) }
+    var dim by remember(savedDim) { mutableFloatStateOf(savedDim.toFloat()) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+    ) {
+        CoverBackdropPreview(
+            opacity = opacity / 100f,
+            blur = blur.roundToInt().dp,
+            dim = dim / 100f,
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        BackdropSliderRow(
+            title = stringResource(AYMR.strings.pref_entry_backdrop_opacity),
+            value = opacity,
+            valueRange = 0f..100f,
+            valueLabel = "${opacity.roundToInt()}%",
+            onValueChange = { opacity = it },
+            onValueChangeFinished = { opacityPref.set(opacity.roundToInt()) },
+        )
+        BackdropSliderRow(
+            title = stringResource(AYMR.strings.pref_entry_backdrop_blur),
+            value = blur,
+            valueRange = 0f..40f,
+            valueLabel = "${blur.roundToInt()} dp",
+            onValueChange = { blur = it },
+            onValueChangeFinished = { blurPref.set(blur.roundToInt()) },
+        )
+        BackdropSliderRow(
+            title = stringResource(AYMR.strings.pref_entry_backdrop_dim),
+            value = dim,
+            valueRange = 0f..100f,
+            valueLabel = "${dim.roundToInt()}%",
+            onValueChange = { dim = it },
+            onValueChangeFinished = { dimPref.set(dim.roundToInt()) },
+        )
+    }
+}
+
+@Composable
+private fun CoverBackdropPreview(opacity: Float, blur: Dp, dim: Float) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        // Faux blurred cover backdrop (the app icon stands in for a cover).
+        AsyncImage(
+            model = R.mipmap.ic_launcher,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .matchParentSize()
+                .blur(blur)
+                .alpha(opacity),
+        )
+        if (dim > 0f) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Black.copy(alpha = dim)),
+            )
+        }
+        // Faux header content so the effect reads in context.
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 48.dp, height = 68.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.primary),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Box(
+                    modifier = Modifier
+                        .height(12.dp)
+                        .fillMaxWidth(0.6f)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onSurface),
+                )
+                Spacer(Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .height(10.dp)
+                        .fillMaxWidth(0.4f)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onSurfaceVariant),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BackdropSliderRow(
+    title: String,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    valueLabel: String,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = valueLabel,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+    Slider(
+        value = value,
+        onValueChange = onValueChange,
+        onValueChangeFinished = onValueChangeFinished,
+        valueRange = valueRange,
+        thumb = {
+            Box(
+                modifier = Modifier
+                    .size(width = 6.dp, height = 20.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+            )
+        },
+    )
 }
 
 /** A small live preview of the floating nav bar over faux content, so its opacity is visible. */

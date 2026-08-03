@@ -52,6 +52,13 @@ class UiPreferences(
 
     fun appIcon() = preferenceStore.getEnum("app_icon", AppIcon.Default)
 
+    // Blurred cover backdrop on the manga/anime entry screen (values as percentages / dp).
+    fun entryBackdropOpacity() = preferenceStore.getInt("pref_entry_backdrop_opacity", 20)
+
+    fun entryBackdropBlur() = preferenceStore.getInt("pref_entry_backdrop_blur", 4)
+
+    fun entryBackdropDim() = preferenceStore.getInt("pref_entry_backdrop_dim", 0)
+
     companion object {
         fun dateFormat(format: String): DateTimeFormatter = when (format) {
             "" -> DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)

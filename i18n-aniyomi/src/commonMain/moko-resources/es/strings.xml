@@ -234,6 +234,10 @@
     <string name="pref_app_icon">Icono de la aplicación</string>
     <string name="app_icon_default">Predeterminado</string>
     <string name="app_icon_grayscale">Escala de grises</string>
+    <string name="pref_category_cover_backdrop">Fondo de portada</string>
+    <string name="pref_entry_backdrop_opacity">Opacidad del fondo difuminado</string>
+    <string name="pref_entry_backdrop_blur">Desenfoque del fondo difuminado</string>
+    <string name="pref_entry_backdrop_dim">Oscurecido del fondo difuminado</string>
     <string name="migration_migrate_all">Migrar todo</string>
     <string name="migration_searching">Buscando…</string>
     <string name="migration_no_alternatives">Sin coincidencia</string>

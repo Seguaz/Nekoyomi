@@ -77,6 +77,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.components.DropdownMenu
 import eu.kanade.presentation.entries.components.DotSeparatorText
 import eu.kanade.presentation.entries.components.ItemCover
@@ -91,7 +92,10 @@ import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.pluralStringResource
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.clickableNoIndication
+import tachiyomi.presentation.core.util.collectAsState
 import tachiyomi.presentation.core.util.secondaryItemAlpha
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
@@ -110,7 +114,11 @@ fun MangaInfoBox(
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier) {
-        // Backdrop
+        // Blurred cover backdrop. Uses the cover, so a user-set custom cover is reflected here too.
+        val uiPreferences = remember { Injekt.get<UiPreferences>() }
+        val backdropOpacity by uiPreferences.entryBackdropOpacity().collectAsState()
+        val backdropBlur by uiPreferences.entryBackdropBlur().collectAsState()
+        val backdropDim by uiPreferences.entryBackdropDim().collectAsState()
         val backdropGradientColors = listOf(
             Color.Transparent,
             MaterialTheme.colorScheme.background,
@@ -130,9 +138,16 @@ fun MangaInfoBox(
                         brush = Brush.verticalGradient(colors = backdropGradientColors),
                     )
                 }
-                .blur(4.dp)
-                .alpha(0.2f),
+                .blur(backdropBlur.dp)
+                .alpha(backdropOpacity / 100f),
         )
+        if (backdropDim > 0) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Black.copy(alpha = backdropDim / 100f)),
+            )
+        }
 
         // Manga & source info
         CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
