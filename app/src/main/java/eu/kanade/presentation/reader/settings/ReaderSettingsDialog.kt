@@ -1,5 +1,6 @@
 package eu.kanade.presentation.reader.settings
 
+import android.view.WindowManager
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
@@ -51,9 +52,13 @@ fun ReaderSettingsDialog(
 
             LaunchedEffect(pagerState.currentPage) {
                 if (pagerState.currentPage == 2) {
-                    window?.setDimAmount(0f)
+                    // Color filter page: remove the sheet's dim so the page shows exactly how the
+                    // filter looks. Clearing FLAG_DIM_BEHIND (not just setDimAmount(0f)) is what
+                    // actually drops the dim layer — on some ROMs the amount change isn't repainted.
+                    window?.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
                     onHideMenus()
                 } else {
+                    window?.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
                     window?.setDimAmount(0.5f)
                     onShowMenus()
                 }
