@@ -18,6 +18,7 @@ data class Chapter(
     val lastModifiedAt: Long,
     val version: Long,
     val memo: JsonObject = JsonObject(emptyMap()),
+    val readCount: Long = 0,
 ) {
     val isRecognizedNumber: Boolean
         get() = chapterNumber >= 0f

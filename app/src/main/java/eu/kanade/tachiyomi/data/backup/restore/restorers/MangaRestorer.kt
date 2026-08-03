@@ -206,6 +206,7 @@ class MangaRestorer(
                     chapter.dateUpload,
                     chapter.version,
                     chapter.memo,
+                    chapter.readCount,
                 )
             }
         }

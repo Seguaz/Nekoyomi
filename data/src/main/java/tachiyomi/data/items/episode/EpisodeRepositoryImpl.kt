@@ -33,6 +33,7 @@ class EpisodeRepositoryImpl(
                         episode.summary,
                         episode.previewUrl,
                         episode.fillermark,
+                        episode.watchCount,
                     )
                     val lastInsertId = episodesQueries.selectLastInsertedRowId().executeAsOne()
                     episode.copy(id = lastInsertId)
@@ -82,6 +83,14 @@ class EpisodeRepositoryImpl(
     override suspend fun removeEpisodesWithIds(episodeIds: List<Long>) {
         try {
             handler.await { episodesQueries.removeEpisodesWithIds(episodeIds) }
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, e)
+        }
+    }
+
+    override suspend fun incrementWatchCount(episodeId: Long) {
+        try {
+            handler.await { episodesQueries.incrementWatchCount(episodeId) }
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e)
         }
@@ -144,6 +153,7 @@ class EpisodeRepositoryImpl(
         summary: String?,
         previewUrl: String?,
         fillermark: Boolean,
+        watchCount: Long,
     ): Episode = Episode(
         id = id,
         animeId = animeId,
@@ -163,5 +173,6 @@ class EpisodeRepositoryImpl(
         previewUrl = previewUrl,
         lastModifiedAt = lastModifiedAt,
         version = version,
+        watchCount = watchCount,
     )
 }

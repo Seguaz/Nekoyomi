@@ -33,6 +33,7 @@ class ChapterRepositoryImpl(
                         chapter.dateUpload,
                         chapter.version,
                         chapter.memo,
+                        chapter.readCount,
                     )
                     val lastInsertId = chaptersQueries.selectLastInsertedRowId().executeAsOne()
                     chapter.copy(id = lastInsertId)
@@ -80,6 +81,14 @@ class ChapterRepositoryImpl(
     override suspend fun removeChaptersWithIds(chapterIds: List<Long>) {
         try {
             handler.await { chaptersQueries.removeChaptersWithIds(chapterIds) }
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, e)
+        }
+    }
+
+    override suspend fun incrementReadCount(chapterId: Long) {
+        try {
+            handler.await { chaptersQueries.incrementReadCount(chapterId) }
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e)
         }
@@ -150,6 +159,7 @@ class ChapterRepositoryImpl(
         @Suppress("UNUSED_PARAMETER")
         isSyncing: Long,
         memo: JsonObject,
+        readCount: Long,
     ): Chapter = Chapter(
         id = id,
         mangaId = mangaId,
@@ -166,5 +176,6 @@ class ChapterRepositoryImpl(
         lastModifiedAt = lastModifiedAt,
         version = version,
         memo = memo,
+        readCount = readCount,
     )
 }

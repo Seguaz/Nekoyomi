@@ -30,6 +30,7 @@ data class BackupEpisode(
     @ProtoNumber(501) var fillermark: Boolean = false,
     @ProtoNumber(502) var summary: String? = null,
     @ProtoNumber(503) var previewUrl: String? = null,
+    @ProtoNumber(504) var watchCount: Long = 0,
 
 ) {
     fun toEpisodeImpl(): Episode {
@@ -50,6 +51,7 @@ data class BackupEpisode(
             sourceOrder = this@BackupEpisode.sourceOrder,
             lastModifiedAt = this@BackupEpisode.lastModifiedAt,
             version = this@BackupEpisode.version,
+            watchCount = this@BackupEpisode.watchCount,
         )
     }
 }
@@ -74,6 +76,7 @@ val backupEpisodeMapper = {
         summary: String?,
         previewUrl: String?,
         fillermark: Boolean,
+        watchCount: Long,
     ->
     BackupEpisode(
         url = url,
@@ -92,5 +95,6 @@ val backupEpisodeMapper = {
         sourceOrder = source_order,
         lastModifiedAt = lastModifiedAt,
         version = version,
+        watchCount = watchCount,
     )
 }

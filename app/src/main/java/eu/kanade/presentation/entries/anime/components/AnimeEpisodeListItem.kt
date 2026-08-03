@@ -69,6 +69,7 @@ fun AnimeEpisodeListItem(
     watchProgress: String?,
     scanlator: String?,
     downloadSize: String?,
+    watchCount: Long,
     summary: String?,
     previewUrl: String?,
     seen: Boolean,
@@ -131,6 +132,7 @@ fun AnimeEpisodeListItem(
                     fillermark = fillermark,
                     scanlator = scanlator,
                     downloadSize = downloadSize,
+                    watchCount = watchCount,
                     seen = seen,
                     bookmark = bookmark,
                     downloadIndicatorEnabled = downloadIndicatorEnabled,
@@ -196,6 +198,7 @@ fun AnimeEpisodeListItem(
                         fillermark = fillermark,
                         scanlator = scanlator,
                         downloadSize = downloadSize,
+                        watchCount = watchCount,
                     )
 
                     if (previewUrl != null) {
@@ -221,6 +224,7 @@ private fun RowScope.SimpleEpisodeListItemImpl(
     fillermark: Boolean,
     scanlator: String?,
     downloadSize: String?,
+    watchCount: Long,
     seen: Boolean,
     bookmark: Boolean,
     downloadIndicatorEnabled: Boolean,
@@ -248,6 +252,7 @@ private fun RowScope.SimpleEpisodeListItemImpl(
             fillermark = fillermark,
             scanlator = scanlator,
             downloadSize = downloadSize,
+            watchCount = watchCount,
         )
     }
 
@@ -419,6 +424,7 @@ private fun EpisodeInformation(
     fillermark: Boolean,
     scanlator: String?,
     downloadSize: String?,
+    watchCount: Long,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         val subtitleStyle = MaterialTheme.typography.bodySmall
@@ -470,6 +476,16 @@ private fun EpisodeInformation(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            if (watchCount > 1) {
+                if (date != null || watchProgress != null || scanlator != null || downloadSize != null) {
+                    DotSeparatorText()
+                }
+                Text(
+                    text = "×$watchCount",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -512,6 +528,7 @@ fun AnimeEpisodeListItemPreview() {
         title = "Ep. 1 - To You, 2000 Years in the Future: The Fall of Zhiganshina (1)",
         date = "7/4/13",
         watchProgress = null,
+        watchCount = 0,
         scanlator = null,
         downloadSize = "12 MB",
         summary = "As Titans continue to rampage, the townspeople gather at the inner gate. But a new Titan breaks " +

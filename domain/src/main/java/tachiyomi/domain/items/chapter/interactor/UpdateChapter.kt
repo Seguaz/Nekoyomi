@@ -24,4 +24,12 @@ class UpdateChapter(
             logcat(LogPriority.ERROR, e)
         }
     }
+
+    suspend fun awaitIncrementReadCount(chapterId: Long) {
+        try {
+            chapterRepository.incrementReadCount(chapterId)
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, e)
+        }
+    }
 }

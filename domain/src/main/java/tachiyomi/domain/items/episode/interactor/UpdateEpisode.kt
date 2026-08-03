@@ -24,4 +24,12 @@ class UpdateEpisode(
             logcat(LogPriority.ERROR, e)
         }
     }
+
+    suspend fun awaitIncrementWatchCount(episodeId: Long) {
+        try {
+            episodeRepository.incrementWatchCount(episodeId)
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, e)
+        }
+    }
 }

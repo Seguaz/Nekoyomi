@@ -1070,6 +1070,7 @@ private fun LazyGridScope.sharedEpisodeItems(
                         },
                     scanlator = episodeItem.episode.scanlator.takeIf { !it.isNullOrBlank() },
                     downloadSize = episodeItem.downloadSize?.takeIf { it > 0 }?.toSize(),
+                    watchCount = episodeItem.episode.watchCount,
                     summary = episodeItem.episode.summary.takeIf { !it.isNullOrBlank() && showSummaries },
                     previewUrl = episodeItem.episode.previewUrl.takeIf { !it.isNullOrBlank() && showPreviews },
                     seen = episodeItem.episode.seen,

@@ -14,6 +14,8 @@ interface ChapterRepository {
 
     suspend fun removeChaptersWithIds(chapterIds: List<Long>)
 
+    suspend fun incrementReadCount(chapterId: Long)
+
     suspend fun getChapterByMangaId(mangaId: Long, applyScanlatorFilter: Boolean = false): List<Chapter>
 
     suspend fun getScanlatorsByMangaId(mangaId: Long): List<String>

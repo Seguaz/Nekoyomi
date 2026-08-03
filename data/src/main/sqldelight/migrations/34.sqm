@@ -1,0 +1,2 @@
+-- Per-chapter read counter (how many times each chapter has been read to completion).
+ALTER TABLE chapters ADD COLUMN read_count INTEGER NOT NULL DEFAULT 0;

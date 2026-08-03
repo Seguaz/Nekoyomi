@@ -189,6 +189,9 @@ class PlayerViewModel @JvmOverloads constructor(
     private val _currentEpisode = MutableStateFlow<Episode?>(null)
     val currentEpisode = _currentEpisode.asStateFlow()
 
+    // Guards the watch counter so an episode is counted at most once per time it's opened.
+    private var countedEpisodeId: Long? = null
+
     private val _currentAnime = MutableStateFlow<Anime?>(null)
     val currentAnime = _currentAnime.asStateFlow()
 
@@ -1625,6 +1628,8 @@ class PlayerViewModel @JvmOverloads constructor(
         val chosenEpisode = currentPlaylist.value.firstOrNull { ep -> ep.id == episodeId } ?: return null
 
         _currentEpisode.update { _ -> chosenEpisode }
+        // A fresh open of this episode may count towards the watch counter again.
+        countedEpisodeId = null
         updateEpisode(chosenEpisode)
 
         return withIOContext {
@@ -1687,6 +1692,14 @@ class PlayerViewModel @JvmOverloads constructor(
 
     private suspend fun updateEpisodeProgressOnComplete(currentEp: Episode) {
         currentEp.seen = true
+
+        // Increment the watch counter once per time the episode is opened and finished.
+        val episodeId = currentEp.id
+        if (episodeId != null && countedEpisodeId != episodeId) {
+            countedEpisodeId = episodeId
+            updateEpisode.awaitIncrementWatchCount(episodeId)
+        }
+
         updateTrackEpisodeSeen(currentEp)
         deleteEpisodeIfNeeded(currentEp)
 

@@ -807,6 +807,7 @@ private fun LazyListScope.sharedChapterItems(
                         },
                     scanlator = item.chapter.scanlator.takeIf { !it.isNullOrBlank() },
                     downloadSize = item.downloadSize?.takeIf { it > 0 }?.toSize(),
+                    readCount = item.chapter.readCount,
                     read = item.chapter.read,
                     bookmark = item.chapter.bookmark,
                     selected = item.selected,

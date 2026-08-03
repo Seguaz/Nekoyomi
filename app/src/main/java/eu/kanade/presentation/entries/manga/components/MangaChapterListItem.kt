@@ -53,6 +53,7 @@ fun MangaChapterListItem(
     readProgress: String?,
     scanlator: String?,
     downloadSize: String?,
+    readCount: Long,
     read: Boolean,
     bookmark: Boolean,
     selected: Boolean,
@@ -174,6 +175,16 @@ fun MangaChapterListItem(
                         if (downloadSize != null) {
                             Text(
                                 text = downloadSize,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        if (readCount > 1) {
+                            if (date != null || readProgress != null || scanlator != null || downloadSize != null) {
+                                DotSeparatorText()
+                            }
+                            Text(
+                                text = "×$readCount",
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )

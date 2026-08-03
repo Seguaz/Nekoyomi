@@ -14,6 +14,8 @@ interface EpisodeRepository {
 
     suspend fun removeEpisodesWithIds(episodeIds: List<Long>)
 
+    suspend fun incrementWatchCount(episodeId: Long)
+
     suspend fun getEpisodeByAnimeId(animeId: Long): List<Episode>
 
     suspend fun getBookmarkedEpisodesByAnimeId(animeId: Long): List<Episode>

@@ -145,6 +145,9 @@ class ReaderViewModel @JvmOverloads constructor(
      */
     private var chapterReadStartTime: Long? = null
 
+    // Guards the read counter so a chapter is counted at most once per time it's opened.
+    private var countedChapterId: Long? = null
+
     private var chapterToDownload: MangaDownload? = null
 
     /**
@@ -339,6 +342,9 @@ class ReaderViewModel @JvmOverloads constructor(
      */
     private fun loadNewChapter(chapter: ReaderChapter) {
         val loader = loader ?: return
+
+        // A fresh open of this chapter may count towards the read counter again.
+        countedChapterId = null
 
         viewModelScope.launchIO {
             logcat { "Loading ${chapter.chapter.url}" }
@@ -553,6 +559,14 @@ class ReaderViewModel @JvmOverloads constructor(
 
     private suspend fun updateChapterProgressOnComplete(readerChapter: ReaderChapter) {
         readerChapter.chapter.read = true
+
+        // Increment the read counter once per time the chapter is opened and finished.
+        val chapterId = readerChapter.chapter.id
+        if (chapterId != null && countedChapterId != chapterId) {
+            countedChapterId = chapterId
+            updateChapter.awaitIncrementReadCount(chapterId)
+        }
+
         updateTrackChapterRead(readerChapter)
         deleteChapterIfNeeded(readerChapter)
 

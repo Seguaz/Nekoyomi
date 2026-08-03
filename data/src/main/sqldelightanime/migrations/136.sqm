@@ -1,0 +1,2 @@
+-- Per-episode watch counter (how many times each episode has been watched to completion).
+ALTER TABLE episodes ADD COLUMN watch_count INTEGER NOT NULL DEFAULT 0;

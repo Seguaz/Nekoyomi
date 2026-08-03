@@ -232,6 +232,7 @@ class AnimeRestorer(
                     episode.summary,
                     episode.previewUrl,
                     episode.fillermark,
+                    episode.watchCount,
                 )
             }
         }

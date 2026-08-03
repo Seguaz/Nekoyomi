@@ -18,6 +18,7 @@ CREATE TABLE chapters(
     version INTEGER NOT NULL DEFAULT 0,
     is_syncing INTEGER NOT NULL DEFAULT 0,
     memo BLOB AS JsonObject NOT NULL DEFAULT '{}',
+    read_count INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY(manga_id) REFERENCES mangas (_id)
     ON DELETE CASCADE
 );
@@ -98,9 +99,14 @@ UPDATE chapters
 SET is_syncing = 0
 WHERE is_syncing = 1;
 
+incrementReadCount:
+UPDATE chapters
+SET read_count = read_count + 1
+WHERE _id = :id;
+
 insert:
-INSERT INTO chapters(manga_id, url, name, scanlator, read, bookmark, last_page_read, chapter_number, source_order,date_fetch, date_upload, last_modified_at, version, is_syncing, memo)
-VALUES (:mangaId, :url, :name, :scanlator, :read, :bookmark, :lastPageRead, :chapterNumber, :sourceOrder, :dateFetch, :dateUpload, 0, :version, 0, :memo);
+INSERT INTO chapters(manga_id, url, name, scanlator, read, bookmark, last_page_read, chapter_number, source_order,date_fetch, date_upload, last_modified_at, version, is_syncing, memo, read_count)
+VALUES (:mangaId, :url, :name, :scanlator, :read, :bookmark, :lastPageRead, :chapterNumber, :sourceOrder, :dateFetch, :dateUpload, 0, :version, 0, :memo, :readCount);
 
 update:
 UPDATE chapters

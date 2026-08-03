@@ -19,6 +19,7 @@ data class Episode(
     val previewUrl: String?,
     val lastModifiedAt: Long,
     val version: Long,
+    val watchCount: Long = 0,
 ) {
     val isRecognizedNumber: Boolean
         get() = episodeNumber >= 0f
