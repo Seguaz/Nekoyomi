@@ -2,6 +2,7 @@ package eu.kanade.presentation.library.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -24,6 +25,17 @@ internal fun DownloadsBadge(count: Long) {
 internal fun UnviewedBadge(count: Long) {
     if (count > 0) {
         Badge(text = "$count")
+    }
+}
+
+@Composable
+internal fun PinnedBadge(pinned: Boolean) {
+    if (pinned) {
+        Badge(
+            imageVector = Icons.Filled.PushPin,
+            color = MaterialTheme.colorScheme.primary,
+            iconColor = MaterialTheme.colorScheme.onPrimary,
+        )
     }
 }
 

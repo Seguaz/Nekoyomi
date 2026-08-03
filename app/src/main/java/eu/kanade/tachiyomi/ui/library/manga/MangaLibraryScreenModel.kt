@@ -169,6 +169,10 @@ class MangaLibraryScreenModel(
                 }
             }
             .launchIn(screenModelScope)
+
+        libraryPreferences.pinnedMangaIds().changes()
+            .onEach { pinned -> mutableState.update { it.copy(pinnedIds = pinned) } }
+            .launchIn(screenModelScope)
     }
 
     private suspend fun MangaLibraryMap.applyFilters(
@@ -312,14 +316,20 @@ class MangaLibraryScreenModel(
             }
         }
 
+        val pinnedIds = libraryPreferences.pinnedMangaIds().get()
+        val pinnedFirst = compareByDescending<MangaLibraryItem> { it.libraryManga.id.toString() in pinnedIds }
+
         return mapValues { (key, value) ->
             if (key.sort.type == MangaLibrarySort.Type.Random) {
-                return@mapValues value.shuffled(Random(libraryPreferences.randomMangaSortSeed().get()))
+                val shuffled = value.shuffled(Random(libraryPreferences.randomMangaSortSeed().get()))
+                return@mapValues if (pinnedIds.isEmpty()) shuffled else shuffled.sortedWith(pinnedFirst)
             }
 
-            val comparator = key.sort.comparator()
-                .let { if (key.sort.isAscending) it else it.reversed() }
-                .thenComparator(sortAlphabetically)
+            val comparator = pinnedFirst.then(
+                key.sort.comparator()
+                    .let { if (key.sort.isAscending) it else it.reversed() }
+                    .thenComparator(sortAlphabetically),
+            )
 
             value.sortedWith(comparator)
         }
@@ -366,7 +376,8 @@ class MangaLibraryScreenModel(
             getLibraryManga.subscribe(),
             getLibraryItemPreferencesFlow(),
             downloadCache.changes,
-        ) { libraryMangaList, prefs, _ ->
+            libraryPreferences.pinnedMangaIds().changes(),
+        ) { libraryMangaList, prefs, _, pinnedIds ->
             libraryMangaList
                 .map { libraryManga ->
                     // Display mode based on user preference: take it from global library setting or category
@@ -384,6 +395,7 @@ class MangaLibraryScreenModel(
                         } else {
                             ""
                         },
+                        isPinned = libraryManga.id.toString() in pinnedIds,
                     )
                 }
                 .groupBy { it.libraryManga.category }
@@ -485,6 +497,20 @@ class MangaLibraryScreenModel(
                 downloadManager.downloadChapters(manga, chapters)
             }
         }
+    }
+
+    /**
+     * Pins the selection to the top of the library, or unpins it if every selected entry is
+     * already pinned.
+     */
+    fun togglePinSelection() {
+        val pref = libraryPreferences.pinnedMangaIds()
+        val selectedIds = state.value.selection.map { it.id.toString() }.toSet()
+        if (selectedIds.isEmpty()) return
+        val current = pref.get()
+        val allPinned = selectedIds.all { it in current }
+        pref.set(if (allPinned) current - selectedIds else current + selectedIds)
+        clearSelection()
     }
 
     /**
@@ -747,6 +773,7 @@ class MangaLibraryScreenModel(
         val showMangaCount: Boolean = false,
         val showMangaContinueButton: Boolean = false,
         val dialog: Dialog? = null,
+        val pinnedIds: Set<String> = emptySet(),
     ) {
         private val libraryCount by lazy {
             library.values

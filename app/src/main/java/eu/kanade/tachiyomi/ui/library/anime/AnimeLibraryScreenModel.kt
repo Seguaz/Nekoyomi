@@ -172,6 +172,10 @@ class AnimeLibraryScreenModel(
                 }
             }
             .launchIn(screenModelScope)
+
+        libraryPreferences.pinnedAnimeIds().changes()
+            .onEach { pinned -> mutableState.update { it.copy(pinnedIds = pinned) } }
+            .launchIn(screenModelScope)
     }
 
     private suspend fun AnimeLibraryMap.applyFilters(
@@ -325,14 +329,20 @@ class AnimeLibraryScreenModel(
             }
         }
 
+        val pinnedIds = libraryPreferences.pinnedAnimeIds().get()
+        val pinnedFirst = compareByDescending<AnimeLibraryItem> { it.libraryAnime.id.toString() in pinnedIds }
+
         return mapValues { (key, value) ->
             if (key.sort.type == AnimeLibrarySort.Type.Random) {
-                return@mapValues value.shuffled(Random(libraryPreferences.randomAnimeSortSeed().get()))
+                val shuffled = value.shuffled(Random(libraryPreferences.randomAnimeSortSeed().get()))
+                return@mapValues if (pinnedIds.isEmpty()) shuffled else shuffled.sortedWith(pinnedFirst)
             }
 
-            val comparator = key.sort.comparator()
-                .let { if (key.sort.isAscending) it else it.reversed() }
-                .thenComparator(sortAlphabetically)
+            val comparator = pinnedFirst.then(
+                key.sort.comparator()
+                    .let { if (key.sort.isAscending) it else it.reversed() }
+                    .thenComparator(sortAlphabetically),
+            )
 
             value.sortedWith(comparator)
         }
@@ -380,7 +390,8 @@ class AnimeLibraryScreenModel(
             getLibraryAnime.subscribe(),
             getAnimelibItemPreferencesFlow(),
             downloadCache.changes,
-        ) { animelibAnimeList, prefs, _ ->
+            libraryPreferences.pinnedAnimeIds().changes(),
+        ) { animelibAnimeList, prefs, _, pinnedIds ->
             animelibAnimeList
                 .map { animelibAnime ->
                     // Display mode based on user preference: take it from global library setting or category
@@ -398,6 +409,7 @@ class AnimeLibraryScreenModel(
                         } else {
                             ""
                         },
+                        isPinned = animelibAnime.id.toString() in pinnedIds,
                     )
                 }
                 .groupBy { it.libraryAnime.category }
@@ -514,6 +526,20 @@ class AnimeLibraryScreenModel(
                 )
             }
         }
+        clearSelection()
+    }
+
+    /**
+     * Pins the selection to the top of the library, or unpins it if every selected entry is
+     * already pinned.
+     */
+    fun togglePinSelection() {
+        val pref = libraryPreferences.pinnedAnimeIds()
+        val selectedIds = state.value.selection.map { it.id.toString() }.toSet()
+        if (selectedIds.isEmpty()) return
+        val current = pref.get()
+        val allPinned = selectedIds.all { it in current }
+        pref.set(if (allPinned) current - selectedIds else current + selectedIds)
         clearSelection()
     }
 
@@ -762,6 +788,7 @@ class AnimeLibraryScreenModel(
         val showAnimeCount: Boolean = false,
         val showAnimeContinueButton: Boolean = false,
         val dialog: Dialog? = null,
+        val pinnedIds: Set<String> = emptySet(),
     ) {
         private val libraryCount by lazy {
             library.values

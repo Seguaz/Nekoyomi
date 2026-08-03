@@ -178,6 +178,9 @@ data object MangaLibraryTab : Tab {
                     onDownloadClicked = screenModel::runDownloadActionSelection
                         .takeIf { state.selection.fastAll { !it.manga.isLocal() } },
                     onDeleteClicked = screenModel::openDeleteMangaDialog,
+                    onPinClicked = screenModel::togglePinSelection,
+                    pinned = state.selection.isNotEmpty() &&
+                        state.selection.fastAll { it.id.toString() in state.pinnedIds },
                     isManga = true,
                 )
             },

@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.automirrored.outlined.LabelOff
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.BookmarkAdd
 import androidx.compose.material.icons.outlined.BookmarkRemove
 import androidx.compose.material.icons.outlined.Delete
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Input
 import androidx.compose.material.icons.outlined.NewLabel
 import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.RemoveDone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -296,6 +298,8 @@ fun LibraryBottomActionMenu(
     onMarkAsUnviewedClicked: () -> Unit,
     onDownloadClicked: ((DownloadAction) -> Unit)?,
     onDeleteClicked: () -> Unit,
+    onPinClicked: () -> Unit,
+    pinned: Boolean,
     isManga: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -333,6 +337,13 @@ fun LibraryBottomActionMenu(
                     )
                     .padding(horizontal = 8.dp, vertical = 12.dp),
             ) {
+                Button(
+                    title = stringResource(if (pinned) MR.strings.action_unpin else MR.strings.action_pin),
+                    icon = if (pinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                    toConfirm = false,
+                    onLongClick = onPinClicked,
+                    onClick = onPinClicked,
+                )
                 Button(
                     title = stringResource(MR.strings.action_move_category),
                     icon = Icons.AutoMirrored.Outlined.Label,
