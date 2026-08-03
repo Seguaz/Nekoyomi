@@ -172,6 +172,9 @@ private fun ScaffoldLayout(
     contentWindowInsets: WindowInsets,
     bottomBar: @Composable () -> Unit,
 ) {
+    // Nekoyomi: reservation for the floating navigation bar (0 unless provided by the host). Read
+    // here in the composable scope so both the snackbar and the FAB can clear the floating pill.
+    val navigationBarPadding = LocalNavigationBarPadding.current.calculateBottomPadding()
     SubcomposeLayout { constraints ->
         val layoutWidth = constraints.maxWidth
         val layoutHeight = constraints.maxHeight
@@ -255,12 +258,18 @@ private fun ScaffoldLayout(
                 .fastMaxBy { it.height }
                 ?.height
                 ?.takeIf { it != 0 }
+            // Nekoyomi: px reservation for the floating navigation bar so the snackbar/FAB float
+            // just above the translucent pill instead of being hidden behind it. It already spans
+            // from the screen bottom (system nav inset included), so take the max with the regular
+            // bottom reservation — don't add them, or the system inset is counted twice.
+            val navigationBarPaddingPx = navigationBarPadding.roundToPx()
+            val bottomReservation = max(max(bottomBarHeight ?: 0, bottomInset), navigationBarPaddingPx)
             val fabOffsetFromBottom = fabPlacement?.let {
-                max(bottomBarHeight ?: 0, bottomInset) + it.height + FabSpacing.roundToPx()
+                bottomReservation + it.height + FabSpacing.roundToPx()
             }
 
             val snackbarOffsetFromBottom = if (snackbarHeight != 0) {
-                snackbarHeight + (fabOffsetFromBottom ?: max(bottomBarHeight ?: 0, bottomInset))
+                snackbarHeight + (fabOffsetFromBottom ?: bottomReservation)
             } else {
                 0
             }
@@ -269,8 +278,6 @@ private fun ScaffoldLayout(
                 val insets = contentWindowInsets.asPaddingValues(this@SubcomposeLayout)
                 val fabOffsetDp = fabOffsetFromBottom?.toDp() ?: 0.dp
                 val bottomBarHeightPx = bottomBarHeight ?: 0
-                // Nekoyomi: extra reservation for the floating navigation bar (0 unless provided)
-                val navigationBarPadding = LocalNavigationBarPadding.current.calculateBottomPadding()
                 val innerPadding = PaddingValues(
                     top =
                     if (topBarPlaceables.isEmpty()) {
