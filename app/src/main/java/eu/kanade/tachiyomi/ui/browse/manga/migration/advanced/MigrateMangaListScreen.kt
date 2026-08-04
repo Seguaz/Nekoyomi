@@ -10,6 +10,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.browse.manga.MigrateMangaListScreenContent
 import eu.kanade.presentation.util.Screen
+import eu.kanade.tachiyomi.ui.browse.migration.MigrationSourcePriorityScreen
 import eu.kanade.tachiyomi.ui.entries.manga.MangaScreen
 import eu.kanade.tachiyomi.util.system.toast
 import tachiyomi.i18n.aniyomi.AYMR
@@ -44,6 +45,7 @@ class MigrateMangaListScreen(
             onClickMigrate = screenModel::openMigrateDialog,
             onDismissDialog = screenModel::dismissDialog,
             onConfirmMigrate = screenModel::startMigration,
+            onClickPriority = { navigator.push(MigrationSourcePriorityScreen(isManga = true)) },
         )
     }
 }

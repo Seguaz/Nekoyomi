@@ -22,6 +22,7 @@ fun MigrateAnimeSearchScreen(
     onClickSource: (AnimeCatalogueSource) -> Unit,
     onClickItem: (Anime) -> Unit,
     onLongClickItem: (Anime) -> Unit,
+    onClickPriority: (() -> Unit)? = null,
 ) {
     Scaffold(
         topBar = { scrollBehavior ->
@@ -37,6 +38,7 @@ fun MigrateAnimeSearchScreen(
                 onlyShowHasResults = state.onlyShowHasResults,
                 onToggleResults = onToggleResults,
                 scrollBehavior = scrollBehavior,
+                onClickPriority = onClickPriority,
             )
         },
     ) { paddingValues ->

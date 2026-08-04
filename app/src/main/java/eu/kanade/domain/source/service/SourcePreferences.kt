@@ -62,6 +62,10 @@ class SourcePreferences(
     fun pinnedAnimeSources() = preferenceStore.getStringSet("pinned_anime_catalogues", emptySet())
     fun pinnedMangaSources() = preferenceStore.getStringSet("pinned_catalogues", emptySet())
 
+    // Ordered, comma-separated source ids that are searched first (in order) during migration.
+    fun migrationSourcePriorityAnime() = preferenceStore.getString("migration_source_priority_anime", "")
+    fun migrationSourcePriorityManga() = preferenceStore.getString("migration_source_priority_manga", "")
+
     fun lastUsedAnimeSource() = preferenceStore.getLong(
         Preference.appStateKey("last_anime_catalogue_source"),
         -1,

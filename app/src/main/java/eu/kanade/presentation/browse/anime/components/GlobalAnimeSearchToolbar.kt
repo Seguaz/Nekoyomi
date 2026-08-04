@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.LowPriority
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -29,6 +30,7 @@ import androidx.compose.ui.Modifier
 import eu.kanade.presentation.components.SearchToolbar
 import eu.kanade.tachiyomi.ui.browse.anime.source.globalsearch.AnimeSourceFilter
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
 
@@ -45,6 +47,7 @@ fun GlobalAnimeSearchToolbar(
     onlyShowHasResults: Boolean,
     onToggleResults: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
+    onClickPriority: (() -> Unit)? = null,
 ) {
     Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
         Box {
@@ -121,6 +124,26 @@ fun GlobalAnimeSearchToolbar(
                     Text(text = stringResource(MR.strings.has_results))
                 },
             )
+
+            if (onClickPriority != null) {
+                VerticalDivider()
+
+                FilterChip(
+                    selected = false,
+                    onClick = onClickPriority,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Outlined.LowPriority,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(FilterChipDefaults.IconSize),
+                        )
+                    },
+                    label = {
+                        Text(text = stringResource(AYMR.strings.migration_source_priority))
+                    },
+                )
+            }
         }
 
         HorizontalDivider()

@@ -56,8 +56,18 @@ abstract class MangaSearchScreenModel(
 
     protected var extensionFilter: String? = null
 
+    /**
+     * Ordered source ids searched first during migration. Empty (the base/global-search case) makes
+     * [priorityRank] a no-op so this only affects the migration screen that overrides it.
+     */
+    protected open val migrationSourcePriority: List<Long> = emptyList()
+
+    protected fun priorityRank(id: Long): Int =
+        migrationSourcePriority.indexOf(id).let { if (it < 0) Int.MAX_VALUE else it }
+
     private val sortComparator = { map: Map<CatalogueSource, MangaSearchItemResult> ->
         compareBy<CatalogueSource>(
+            { priorityRank(it.id) },
             { (map[it] as? MangaSearchItemResult.Success)?.isEmpty ?: true },
             { "${it.id}" !in pinnedSources },
             { "${it.name.lowercase()} (${it.lang})" },
@@ -88,6 +98,7 @@ abstract class MangaSearchScreenModel(
             .filter { it.lang in enabledLanguages && "${it.id}" !in disabledSources }
             .sortedWith(
                 compareBy(
+                    { priorityRank(it.id) },
                     { "${it.id}" !in pinnedSources },
                     { "${it.name.lowercase()} (${it.lang})" },
                 ),

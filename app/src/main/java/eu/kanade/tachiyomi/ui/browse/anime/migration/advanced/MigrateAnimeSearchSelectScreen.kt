@@ -9,6 +9,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.browse.anime.MigrateAnimeSearchScreen
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.ui.browse.anime.migration.search.MigrateAnimeSearchScreenModel
+import eu.kanade.tachiyomi.ui.browse.migration.MigrationSourcePriorityScreen
 import eu.kanade.tachiyomi.ui.entries.anime.AnimeScreen
 
 /**
@@ -43,6 +44,7 @@ class MigrateAnimeSearchSelectScreen(private val oldAnimeId: Long) : Screen() {
                 navigator.pop()
             },
             onLongClickItem = { navigator.push(AnimeScreen(it.id, true)) },
+            onClickPriority = { navigator.push(MigrationSourcePriorityScreen(isManga = false)) },
         )
     }
 }

@@ -8,6 +8,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.browse.manga.MigrateMangaSearchScreen
 import eu.kanade.presentation.util.Screen
+import eu.kanade.tachiyomi.ui.browse.migration.MigrationSourcePriorityScreen
 import eu.kanade.tachiyomi.ui.entries.manga.MangaScreen
 
 class MigrateMangaSearchScreen(private val mangaId: Long) : Screen() {
@@ -46,6 +47,7 @@ class MigrateMangaSearchScreen(private val mangaId: Long) : Screen() {
                 )
             },
             onLongClickItem = { navigator.push(MangaScreen(it.id, true)) },
+            onClickPriority = { navigator.push(MigrationSourcePriorityScreen(isManga = true)) },
         )
 
         when (val dialog = dialogState.dialog) {

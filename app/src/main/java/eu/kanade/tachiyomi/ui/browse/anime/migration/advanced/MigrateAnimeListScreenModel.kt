@@ -11,6 +11,7 @@ import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
@@ -31,13 +32,20 @@ class MigrateAnimeListScreenModel(
     private val getAnime: GetAnime = Injekt.get(),
     private val networkToLocalAnime: NetworkToLocalAnime = Injekt.get(),
     private val migrateAnime: MigrateAnime = MigrateAnime(),
-    sourcePreferences: SourcePreferences = Injekt.get(),
+    private val sourcePreferences: SourcePreferences = Injekt.get(),
     preferenceStore: PreferenceStore = Injekt.get(),
 ) : StateScreenModel<MigrateAnimeListScreenModel.State>(State()) {
 
     private val enabledLanguages = sourcePreferences.enabledLanguages().get()
     private val disabledSources = sourcePreferences.disabledAnimeSources().get()
     private val pinnedSources = sourcePreferences.pinnedAnimeSources().get()
+    private var migrationPriority = parsePriority(sourcePreferences.migrationSourcePriorityAnime().get())
+
+    private fun parsePriority(raw: String): List<Long> =
+        raw.split(",").mapNotNull { it.trim().toLongOrNull() }
+
+    private fun priorityRank(id: Long): Int =
+        migrationPriority.indexOf(id).let { if (it < 0) Int.MAX_VALUE else it }
 
     val migrateFlags: Preference<Int> by lazy {
         preferenceStore.getInt("migrate_flags", Int.MAX_VALUE)
@@ -51,6 +59,16 @@ class MigrateAnimeListScreenModel(
             }
         }
         screenModelScope.launchIO { start() }
+        // Re-run the suggestions when the migration priority order is edited (e.g. from the toolbar).
+        screenModelScope.launch {
+            sourcePreferences.migrationSourcePriorityAnime().changes().collectLatest { raw ->
+                val updated = parsePriority(raw)
+                if (updated != migrationPriority) {
+                    migrationPriority = updated
+                    start()
+                }
+            }
+        }
     }
 
     private suspend fun start() {
@@ -86,13 +104,16 @@ class MigrateAnimeListScreenModel(
             .filter { it.lang in enabledLanguages && "${it.id}" !in disabledSources && it.id != fromSourceId }
             .sortedWith(
                 compareBy(
+                    { priorityRank(it.id) },
                     { "${it.id}" !in pinnedSources },
                     { "${it.name.lowercase()} (${it.lang})" },
                 ),
             )
-        // Default to pinned sources (matching the single-item migrate default); fall back to all.
+        // User-defined priority sources are always searched first, in their order (even if unpinned).
+        val prioritized = enabled.filter { priorityRank(it.id) != Int.MAX_VALUE }
+        // Then default to pinned sources (matching the single-item migrate default); fall back to all.
         val pinned = enabled.filter { "${it.id}" in pinnedSources }
-        return pinned.ifEmpty { enabled }
+        return (prioritized + pinned.ifEmpty { enabled }).distinctBy { it.id }
     }
 
     private suspend fun findBestMatch(oldAnime: Anime): SearchResult {
@@ -232,5 +253,10 @@ sealed interface SearchResult {
 }
 
 private fun String.normalizedForMatch(): String {
-    return trim().lowercase().replace(Regex("[\\p{Punct}\\s]"), "")
+    // Fold accents, treat the multiplication sign as a plain "x" (e.g. SPY×FAMILY == Spy x Family),
+    // then keep only ascii letters/digits so punctuation/spacing/casing don't break exact matching.
+    return java.text.Normalizer.normalize(trim(), java.text.Normalizer.Form.NFD)
+        .lowercase()
+        .replace('×', 'x')
+        .replace(Regex("[^a-z0-9]"), "")
 }

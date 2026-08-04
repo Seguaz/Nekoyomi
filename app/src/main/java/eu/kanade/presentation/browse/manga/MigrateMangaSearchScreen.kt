@@ -22,6 +22,7 @@ fun MigrateMangaSearchScreen(
     onClickSource: (CatalogueSource) -> Unit,
     onClickItem: (Manga) -> Unit,
     onLongClickItem: (Manga) -> Unit,
+    onClickPriority: (() -> Unit)? = null,
 ) {
     Scaffold(
         topBar = { scrollBehavior ->
@@ -37,6 +38,7 @@ fun MigrateMangaSearchScreen(
                 onlyShowHasResults = state.onlyShowHasResults,
                 onToggleResults = onToggleResults,
                 scrollBehavior = scrollBehavior,
+                onClickPriority = onClickPriority,
             )
         },
     ) { paddingValues ->

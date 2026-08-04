@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.LowPriority
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,11 +44,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.components.AppBar
+import eu.kanade.presentation.components.AppBarActions
 import eu.kanade.presentation.entries.components.ItemCover
 import eu.kanade.tachiyomi.ui.browse.anime.migration.AnimeMigrationFlags
 import eu.kanade.tachiyomi.ui.browse.anime.migration.advanced.MigrateAnimeListScreenModel
 import eu.kanade.tachiyomi.ui.browse.anime.migration.advanced.MigratingAnimeItem
 import eu.kanade.tachiyomi.ui.browse.anime.migration.advanced.SearchResult
+import kotlinx.collections.immutable.persistentListOf
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.LabeledCheckbox
@@ -68,6 +71,7 @@ fun MigrateAnimeListScreenContent(
     onClickMigrate: () -> Unit,
     onDismissDialog: () -> Unit,
     onConfirmMigrate: (replace: Boolean, flags: Int) -> Unit,
+    onClickPriority: () -> Unit,
 ) {
     Scaffold(
         topBar = { scrollBehavior ->
@@ -79,6 +83,17 @@ fun MigrateAnimeListScreenContent(
                     "${state.foundCount}/${state.items.size}"
                 },
                 navigateUp = navigateUp,
+                actions = {
+                    AppBarActions(
+                        persistentListOf(
+                            AppBar.Action(
+                                title = stringResource(AYMR.strings.migration_source_priority),
+                                icon = Icons.Outlined.LowPriority,
+                                onClick = onClickPriority,
+                            ),
+                        ),
+                    )
+                },
                 scrollBehavior = scrollBehavior,
             )
         },
