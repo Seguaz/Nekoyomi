@@ -218,7 +218,8 @@ class AnimeLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
 
                     // Item restrictions only apply to automatic (scheduled) updates; a manual
                     // update refreshes everything the user explicitly asked for.
-                    isAutoUpdate && ENTRY_NON_COMPLETED in restrictions &&
+                    isAutoUpdate &&
+                        ENTRY_NON_COMPLETED in restrictions &&
                         it.anime.status.toInt() == SAnime.COMPLETED -> {
                         skippedUpdates.add(
                             it.anime to context.stringResource(MR.strings.skipped_reason_completed),
@@ -240,7 +241,8 @@ class AnimeLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
                         false
                     }
 
-                    isAutoUpdate && ENTRY_OUTSIDE_RELEASE_PERIOD in restrictions &&
+                    isAutoUpdate &&
+                        ENTRY_OUTSIDE_RELEASE_PERIOD in restrictions &&
                         it.anime.nextUpdate > fetchWindowUpperBound -> {
                         skippedUpdates.add(
                             it.anime to context.stringResource(MR.strings.skipped_reason_not_in_release_period),
