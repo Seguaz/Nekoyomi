@@ -157,16 +157,6 @@ internal class MangaExtensionInstaller(private val context: Context) {
      */
     fun installApk(downloadId: Long, uri: Uri) {
         when (val installer = extensionInstaller.get()) {
-            BasePreferences.ExtensionInstaller.LEGACY -> {
-                val intent = Intent(context, MangaExtensionInstallActivity::class.java)
-                    .setDataAndType(uri, APK_MIME)
-                    .putExtra(EXTRA_DOWNLOAD_ID, downloadId)
-                    .setFlags(
-                        Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                    )
-
-                context.startActivity(intent)
-            }
             BasePreferences.ExtensionInstaller.PRIVATE -> {
                 val extensionManager = Injekt.get<MangaExtensionManager>()
                 val tempFile = File(context.cacheDir, "temp_$downloadId")

@@ -31,6 +31,19 @@ abstract class InstallerAnime(private val service: Service) {
         }
     }
 
+    // Lets an out-of-process component (e.g. the legacy install Activity) report a finished install
+    // so the queue advances to the next entry — keeping the system prompts serialized.
+    private val continueReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val downloadId = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1).takeIf { it >= 0 } ?: return
+            val step = intent.getStringExtra(EXTRA_INSTALL_STEP)
+                ?.let { runCatching { InstallStep.valueOf(it) }.getOrNull() } ?: return
+            if (waitingInstall.get()?.downloadId == downloadId) {
+                continueQueue(step)
+            }
+        }
+    }
+
     /**
      * Installer readiness. If false, queue check will not run.
      *
@@ -115,6 +128,7 @@ abstract class InstallerAnime(private val service: Service) {
     @CallSuper
     open fun onDestroy() {
         LocalBroadcastManager.getInstance(service).unregisterReceiver(cancelReceiver)
+        LocalBroadcastManager.getInstance(service).unregisterReceiver(continueReceiver)
         queue.forEach { extensionManager.updateInstallStep(it.downloadId, InstallStep.Error) }
         queue.clear()
         waitingInstall.set(null)
@@ -150,13 +164,17 @@ abstract class InstallerAnime(private val service: Service) {
     data class Entry(val downloadId: Long, val uri: Uri)
 
     init {
-        val filter = IntentFilter(ACTION_CANCEL_QUEUE)
-        LocalBroadcastManager.getInstance(service).registerReceiver(cancelReceiver, filter)
+        LocalBroadcastManager.getInstance(service)
+            .registerReceiver(cancelReceiver, IntentFilter(ACTION_CANCEL_QUEUE))
+        LocalBroadcastManager.getInstance(service)
+            .registerReceiver(continueReceiver, IntentFilter(ACTION_CONTINUE_QUEUE))
     }
 
     companion object {
         private const val ACTION_CANCEL_QUEUE = "InstallerAnime.action.CANCEL_QUEUE"
+        private const val ACTION_CONTINUE_QUEUE = "InstallerAnime.action.CONTINUE_QUEUE"
         private const val EXTRA_DOWNLOAD_ID = "InstallerAnime.extra.DOWNLOAD_ID"
+        private const val EXTRA_INSTALL_STEP = "InstallerAnime.extra.INSTALL_STEP"
 
         /**
          * Attempts to cancel the installation entry for the provided download ID.
@@ -166,6 +184,17 @@ abstract class InstallerAnime(private val service: Service) {
         fun cancelInstallQueue(context: Context, downloadId: Long) {
             val intent = Intent(ACTION_CANCEL_QUEUE)
             intent.putExtra(EXTRA_DOWNLOAD_ID, downloadId)
+            LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
+        }
+
+        /**
+         * Reports that the install for the provided download ID finished with [step], so the queue
+         * advances to the next entry. Used by the legacy install Activity.
+         */
+        fun continueInstallQueue(context: Context, downloadId: Long, step: InstallStep) {
+            val intent = Intent(ACTION_CONTINUE_QUEUE)
+                .putExtra(EXTRA_DOWNLOAD_ID, downloadId)
+                .putExtra(EXTRA_INSTALL_STEP, step.name)
             LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
         }
     }

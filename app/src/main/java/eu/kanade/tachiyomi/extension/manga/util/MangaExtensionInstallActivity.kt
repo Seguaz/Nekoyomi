@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import eu.kanade.tachiyomi.extension.InstallStep
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
+import eu.kanade.tachiyomi.extension.manga.installer.InstallerManga
 import eu.kanade.tachiyomi.util.system.hasMiuiPackageInstaller
 import eu.kanade.tachiyomi.util.system.toast
 import uy.kohesive.injekt.Injekt
@@ -73,6 +74,8 @@ class MangaExtensionInstallActivity : Activity() {
             else -> InstallStep.Error
         }
         extensionManager.updateInstallStep(downloadId, newStep)
+        // Advance the shared install queue so the next legacy install can show its prompt.
+        InstallerManga.continueInstallQueue(this, downloadId, newStep)
     }
 }
 
