@@ -434,6 +434,12 @@
     <string name="notification_library_up_to_date">Library is up to date</string>
     <string name="notification_no_new_chapters">No new chapters</string>
     <string name="notification_no_new_episodes">No new episodes</string>
+    <string name="player_opensubtitles_search">Search OpenSubtitles</string>
+    <string name="player_opensubtitles_searching">Searching subtitles…</string>
+    <string name="player_opensubtitles_none">No subtitles found</string>
+    <string name="player_opensubtitles_error">Couldn\'t search subtitles</string>
+    <string name="player_opensubtitles_added">Subtitle added</string>
+    <string name="player_opensubtitles_downloads">%1$d downloads</string>
     <string name="pref_hide_nav_bar_labels">Hide navigation bar labels</string>
     <string name="pref_hide_nav_bar_labels_summary">Show only icons, without any text label</string>
     <string name="pref_show_download_size">Show download size</string>

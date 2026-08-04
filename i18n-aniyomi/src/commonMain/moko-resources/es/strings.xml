@@ -250,6 +250,12 @@
     <string name="notification_library_up_to_date">Biblioteca al día</string>
     <string name="notification_no_new_chapters">Sin capítulos nuevos</string>
     <string name="notification_no_new_episodes">Sin episodios nuevos</string>
+    <string name="player_opensubtitles_search">Buscar en OpenSubtitles</string>
+    <string name="player_opensubtitles_searching">Buscando subtítulos…</string>
+    <string name="player_opensubtitles_none">No se encontraron subtítulos</string>
+    <string name="player_opensubtitles_error">No se pudieron buscar los subtítulos</string>
+    <string name="player_opensubtitles_added">Subtítulo añadido</string>
+    <string name="player_opensubtitles_downloads">%1$d descargas</string>
     <string name="pref_hide_nav_bar_labels">Ocultar etiquetas de la barra de navegación</string>
     <string name="pref_hide_nav_bar_labels_summary">Muestra solo los iconos, sin ningún texto</string>
     <string name="pref_show_download_size">Mostrar tamaño de descarga</string>

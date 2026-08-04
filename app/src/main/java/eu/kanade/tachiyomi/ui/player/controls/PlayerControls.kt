@@ -72,6 +72,7 @@ import eu.kanade.tachiyomi.ui.player.controls.components.SeekbarWithTimers
 import eu.kanade.tachiyomi.ui.player.controls.components.TextPlayerUpdate
 import eu.kanade.tachiyomi.ui.player.controls.components.ThumbnailPreview
 import eu.kanade.tachiyomi.ui.player.controls.components.VolumeSlider
+import eu.kanade.tachiyomi.ui.player.controls.components.dialogs.OpenSubtitlesDialog
 import eu.kanade.tachiyomi.ui.player.controls.components.sheets.toFixed
 import eu.kanade.tachiyomi.ui.player.settings.AudioPreferences
 import eu.kanade.tachiyomi.ui.player.settings.GesturePreferences
@@ -595,6 +596,10 @@ fun PlayerControls(
             subtitles = subtitles.toImmutableList(),
             selectedSubtitles = selectedSubtitles.toList().toImmutableList(),
             onAddSubtitle = viewModel::addSubtitle,
+            onSearchOpenSubtitles = {
+                viewModel.showSheet(Sheets.None)
+                viewModel.searchOpenSubtitles()
+            },
             onSelectSubtitle = viewModel::selectSub,
             audioTracks = audioTracks.toImmutableList(),
             selectedAudio = selectedAudio,
@@ -666,6 +671,13 @@ fun PlayerControls(
                 activity.changeEpisode(it)
             },
             onDismissRequest = { viewModel.showDialog(Dialogs.None) },
+        )
+
+        val openSubtitlesState by viewModel.openSubtitlesState.collectAsState()
+        OpenSubtitlesDialog(
+            state = openSubtitlesState,
+            onSelect = viewModel::downloadOpenSubtitle,
+            onDismissRequest = viewModel::dismissOpenSubtitles,
         )
 
         BrightnessOverlay(

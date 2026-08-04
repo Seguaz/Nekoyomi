@@ -81,6 +81,10 @@ import eu.kanade.tachiyomi.ui.player.settings.PlayerPreferences
 import eu.kanade.tachiyomi.ui.player.utils.AniSkipApi
 import eu.kanade.tachiyomi.ui.player.utils.ChapterUtils.Companion.getStringRes
 import eu.kanade.tachiyomi.ui.player.utils.TrackSelect
+import eu.kanade.tachiyomi.ui.player.utils.subtitle.OpenSubtitlesProvider
+import eu.kanade.tachiyomi.ui.player.utils.subtitle.OpenSubtitlesUiState
+import eu.kanade.tachiyomi.ui.player.utils.subtitle.RemoteSubtitle
+import eu.kanade.tachiyomi.ui.player.utils.subtitle.SubtitleProvider
 import eu.kanade.tachiyomi.ui.reader.SaveImageNotifier
 import eu.kanade.tachiyomi.util.editBackground
 import eu.kanade.tachiyomi.util.editCover
@@ -138,6 +142,7 @@ import uy.kohesive.injekt.api.get
 import java.io.File
 import java.io.InputStream
 import java.util.Date
+import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.seconds
@@ -302,6 +307,12 @@ class PlayerViewModel @JvmOverloads constructor(
     val sheetShown = MutableStateFlow(Sheets.None)
     val panelShown = MutableStateFlow(Panels.None)
     val dialogShown = MutableStateFlow<Dialogs>(Dialogs.None)
+
+    private val subtitleProvider: SubtitleProvider = OpenSubtitlesProvider()
+
+    // OpenSubtitles search dialog state; null means hidden.
+    private val _openSubtitlesState = MutableStateFlow<OpenSubtitlesUiState?>(null)
+    val openSubtitlesState = _openSubtitlesState.asStateFlow()
 
     private val _dismissSheet = MutableStateFlow(false)
     val dismissSheet = _dismissSheet.asStateFlow()
@@ -565,6 +576,108 @@ class PlayerViewModel @JvmOverloads constructor(
 
     fun updateSubtitle(sid: Int, secondarySid: Int) {
         _selectedSubtitles.update { Pair(sid, secondarySid) }
+    }
+
+    /** Preferred subtitle languages (ISO 639-1) for OpenSubtitles: device language + English. */
+    private fun openSubtitlesLanguages(): List<String> {
+        val device = runCatching { Locale.getDefault().language }.getOrNull()
+            ?.takeIf { it.isNotBlank() }
+        return listOfNotNull(device, "en").distinct()
+    }
+
+    fun searchOpenSubtitles() {
+        val anime = currentAnime.value ?: return
+        val episodeNumber = currentEpisode.value?.episode_number
+            ?.takeIf { it > 0f }
+            ?.toInt()
+
+        _openSubtitlesState.update { OpenSubtitlesUiState.Loading }
+        viewModelScope.launchIO {
+            try {
+                val results = subtitleProvider.search(
+                    query = anime.title,
+                    languages = openSubtitlesLanguages(),
+                    season = null,
+                    episode = episodeNumber,
+                )
+                _openSubtitlesState.update {
+                    if (results.isEmpty()) {
+                        OpenSubtitlesUiState.Empty
+                    } else {
+                        OpenSubtitlesUiState.Results(results)
+                    }
+                }
+            } catch (e: Throwable) {
+                logcat(LogPriority.ERROR, e) { "OpenSubtitles search failed" }
+                _openSubtitlesState.update { OpenSubtitlesUiState.Error }
+            }
+        }
+    }
+
+    fun downloadOpenSubtitle(subtitle: RemoteSubtitle) {
+        viewModelScope.launchIO {
+            try {
+                val bytes = subtitleProvider.download(subtitle)
+
+                val dir = File(cachePath, "opensubtitles").apply { mkdirs() }
+                val extension = subtitle.format.ifBlank { "srt" }
+                val base = subtitle.fileName.ifBlank { "subtitle" }
+                    .substringBeforeLast('.')
+                    .replace(Regex("[^A-Za-z0-9._-]"), "_")
+                    .take(80)
+                val file = File(dir, "${System.currentTimeMillis()}_$base.$extension")
+                file.writeBytes(bytes)
+
+                withUIContext {
+                    // Build args without empty trailing values (mpv positional args).
+                    val args = mutableListOf("sub-add", file.path, "select")
+                    if (subtitle.fileName.isNotBlank()) {
+                        args.add(subtitle.fileName)
+                        if (subtitle.languageCode.isNotBlank()) args.add(subtitle.languageCode)
+                    }
+                    MPVLib.command(args.toTypedArray())
+
+                    // Explicitly select the freshly added track and make sure subs are visible,
+                    // instead of relying only on the "select" flag.
+                    val newSid = lastSubtitleTrackId()
+                    if (newSid != null) {
+                        MPVLib.setPropertyBoolean("sub-visibility", true)
+                        activity.player.sid = newSid
+                        updateSubtitle(newSid, activity.player.secondarySid)
+                    }
+                    logcat(LogPriority.INFO) {
+                        "OpenSubtitles added ${file.name} (${file.length()} bytes), sid=$newSid"
+                    }
+                }
+                loadTracks()
+
+                _openSubtitlesState.update { null }
+                withUIContext {
+                    activity.toast(activity.stringResource(AYMR.strings.player_opensubtitles_added))
+                }
+            } catch (e: Throwable) {
+                logcat(LogPriority.ERROR, e) { "OpenSubtitles download failed" }
+                withUIContext {
+                    activity.toast(activity.stringResource(AYMR.strings.player_opensubtitles_error))
+                }
+            }
+        }
+    }
+
+    fun dismissOpenSubtitles() {
+        _openSubtitlesState.update { null }
+    }
+
+    /** Returns the mpv id of the last subtitle track (the most recently added one), or null. */
+    private fun lastSubtitleTrackId(): Int? {
+        val count = MPVLib.getPropertyInt("track-list/count") ?: return null
+        var lastSubId: Int? = null
+        for (i in 0 until count) {
+            if (MPVLib.getPropertyString("track-list/$i/type") == "sub") {
+                MPVLib.getPropertyInt("track-list/$i/id")?.let { lastSubId = it }
+            }
+        }
+        return lastSubId
     }
 
     fun updatePlayBackPos(pos: Float) {
