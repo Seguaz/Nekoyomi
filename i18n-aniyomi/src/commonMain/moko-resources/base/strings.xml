@@ -148,6 +148,8 @@
     <string name="pref_debanding_yuv420p">YUV420P</string>
     <string name="pref_use_yuv420p_title">Use YUV420P pixel format</string>
     <string name="pref_use_yuv420p_subtitle">May fix black screens on some video codecs, can also improve performance at the cost of quality</string>
+    <string name="pref_reduce_tearing_title">Reduce screen tearing (experimental)</string>
+    <string name="pref_reduce_tearing_subtitle">Syncs playback to the display refresh rate and interpolates frames. May not remove tearing on every device and can use more battery</string>
     <!-- Player settings - Subtitles -->
     <string name="pref_player_subtitle">Subtitles</string>
     <string name="pref_player_subtitle_summary">Preferred languages, whitelist, blacklist</string>

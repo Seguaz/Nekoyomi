@@ -93,6 +93,8 @@
     <string name="pref_debanding_yuv420p">YUV420P</string>
     <string name="pref_use_yuv420p_title">Utilice el formato de píxeles YUV420P</string>
     <string name="pref_use_yuv420p_subtitle">Puede arreglar las pantallas negras en algunos códecs de vídeo, también puede mejorar el rendimiento a costa de la calidad</string>
+    <string name="pref_reduce_tearing_title">Reducir el screen tearing (experimental)</string>
+    <string name="pref_reduce_tearing_subtitle">Sincroniza la reproducción con la frecuencia de refresco de la pantalla e interpola fotogramas. Puede no eliminar el tearing en todos los dispositivos y consumir más batería</string>
     <string name="pref_player_subtitle">Subtítulos</string>
     <string name="pref_player_subtitle_summary">Idiomas preferidos, lista blanca, lista negra</string>
     <string name="pref_player_subtitle_lang">Idiomas preferidos</string>

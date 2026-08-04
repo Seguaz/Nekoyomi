@@ -125,6 +125,14 @@ class AniyomiMPVView(context: Context, attributes: AttributeSet) : BaseMPVView(c
         if (decoderPreferences.useYUV420P().get()) {
             MPVLib.setOptionString("vf", "format=yuv420p")
         }
+        if (decoderPreferences.reduceTearing().get()) {
+            // Sync the video clock to the display's refresh rate and interpolate frames to it.
+            // This is the strongest mpv-level lever against tearing/judder; oversample keeps the
+            // interpolation cheap enough for mobile GPUs. May not fully remove tearing on every ROM.
+            MPVLib.setOptionString("video-sync", "display-resample")
+            MPVLib.setOptionString("interpolation", "yes")
+            MPVLib.setOptionString("tscale", "oversample")
+        }
         MPVLib.setOptionString("msg-level", "all=" + if (networkPreferences.verboseLogging().get()) "v" else "warn")
 
         MPVLib.setPropertyBoolean("keep-open", true)
