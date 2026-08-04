@@ -218,10 +218,12 @@ object SettingsAppearanceScreen : SearchableSettings {
                 Preference.PreferenceItem.CustomPreference(
                     title = stringResource(AYMR.strings.pref_floating_nav_bar_opacity),
                 ) {
-                    FloatingNavBarOpacityPreference(
-                        preference = floatingNavBarAlphaPref,
-                        enabled = floatingNavBar,
-                        title = stringResource(AYMR.strings.pref_floating_nav_bar_opacity),
+                    FloatingNavBarPreference(
+                        opacityPreference = floatingNavBarAlphaPref,
+                        scalePreference = uiPreferences.bottomNavIconScale(),
+                        opacityEnabled = floatingNavBar,
+                        opacityTitle = stringResource(AYMR.strings.pref_floating_nav_bar_opacity),
+                        sizeTitle = stringResource(AYMR.strings.pref_nav_bar_icon_size),
                     )
                 },
                 Preference.PreferenceItem.SwitchPreference(
@@ -280,58 +282,44 @@ private val DateFormats = listOf(
 )
 
 @Composable
-private fun FloatingNavBarOpacityPreference(
-    preference: tachiyomi.core.common.preference.Preference<Int>,
-    enabled: Boolean,
-    title: String,
+private fun FloatingNavBarPreference(
+    opacityPreference: tachiyomi.core.common.preference.Preference<Int>,
+    scalePreference: tachiyomi.core.common.preference.Preference<Int>,
+    opacityEnabled: Boolean,
+    opacityTitle: String,
+    sizeTitle: String,
 ) {
-    val savedValue by preference.collectAsState()
+    val savedOpacity by opacityPreference.collectAsState()
+    val savedScale by scalePreference.collectAsState()
     // Follow the drag live for the preview; persist only when the user lets go.
-    var sliderValue by remember(savedValue) { mutableFloatStateOf(savedValue.toFloat()) }
-    val percent = sliderValue.roundToInt()
+    var opacity by remember(savedOpacity) { mutableFloatStateOf(savedOpacity.toFloat()) }
+    var scale by remember(savedScale) { mutableFloatStateOf(savedScale.toFloat()) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = "$percent%",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
+        NavBarOpacityPreview(alpha = opacity / 100f, iconScale = scale / 100f)
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
 
-        NavBarOpacityPreview(alpha = percent / 100f)
-
-        Slider(
-            value = sliderValue,
-            onValueChange = { sliderValue = it },
-            onValueChangeFinished = { preference.set(sliderValue.roundToInt()) },
+        BackdropSliderRow(
+            title = opacityTitle,
+            value = opacity,
             valueRange = 0f..100f,
-            enabled = enabled,
-            thumb = {
-                Box(
-                    modifier = Modifier
-                        .size(width = 6.dp, height = 20.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (enabled) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                            },
-                        ),
-                )
-            },
+            valueLabel = "${opacity.roundToInt()}%",
+            enabled = opacityEnabled,
+            onValueChange = { opacity = it },
+            onValueChangeFinished = { opacityPreference.set(opacity.roundToInt()) },
+        )
+        BackdropSliderRow(
+            title = sizeTitle,
+            value = scale,
+            valueRange = 60f..140f,
+            valueLabel = "${scale.roundToInt()}%",
+            onValueChange = { scale = it },
+            onValueChangeFinished = { scalePreference.set(scale.roundToInt()) },
         )
     }
 }
@@ -461,7 +449,13 @@ private fun BackdropSliderRow(
     valueLabel: String,
     onValueChange: (Float) -> Unit,
     onValueChangeFinished: () -> Unit,
+    enabled: Boolean = true,
 ) {
+    val accent = if (enabled) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = title,
@@ -471,7 +465,7 @@ private fun BackdropSliderRow(
         Text(
             text = valueLabel,
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = accent,
         )
     }
     Slider(
@@ -479,20 +473,21 @@ private fun BackdropSliderRow(
         onValueChange = onValueChange,
         onValueChangeFinished = onValueChangeFinished,
         valueRange = valueRange,
+        enabled = enabled,
         thumb = {
             Box(
                 modifier = Modifier
                     .size(width = 6.dp, height = 20.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
+                    .background(accent),
             )
         },
     )
 }
 
-/** A small live preview of the floating nav bar over faux content, so its opacity is visible. */
+/** A small live preview of the floating nav bar over faux content, so its opacity + icon size read. */
 @Composable
-private fun NavBarOpacityPreview(alpha: Float) {
+private fun NavBarOpacityPreview(alpha: Float, iconScale: Float) {
     val pillShape = RoundedCornerShape(24.dp)
     Box(
         modifier = Modifier
@@ -550,7 +545,7 @@ private fun NavBarOpacityPreview(alpha: Float) {
                     imageVector = icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(22.dp * iconScale),
                 )
             }
         }

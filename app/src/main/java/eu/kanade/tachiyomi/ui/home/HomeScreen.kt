@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
@@ -83,6 +84,9 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
 
+/** Scale factor applied to the navigation bar icons (1f = default), set from Appearance settings. */
+private val LocalNavBarIconScale = compositionLocalOf { 1f }
+
 object HomeScreen : Screen() {
 
     private val librarySearchEvent = Channel<String>()
@@ -105,6 +109,7 @@ object HomeScreen : Screen() {
         val floatingNavBar by uiPreferences.bottomNavFloating().collectAsState()
         val floatingNavBarAlpha by uiPreferences.bottomNavFloatingAlpha().collectAsState()
         val hideNavBarLabels by uiPreferences.bottomNavHideLabels().collectAsState()
+        val navBarIconScale by uiPreferences.bottomNavIconScale().collectAsState()
         val navigator = LocalNavigator.currentOrThrow
         TabNavigator(
             tab = homeTab,
@@ -132,48 +137,52 @@ object HomeScreen : Screen() {
                                 enter = expandVertically(),
                                 exit = shrinkVertically(),
                             ) {
-                                if (floatingNavBar) {
-                                    Box(
-                                        modifier = Modifier
-                                            .windowInsetsPadding(NavigationBarDefaults.windowInsets)
-                                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        // Translucent floating pill: a fill + subtle outline rather
-                                        // than an elevation shadow, which would show through the
-                                        // translucent surface as a grey band and clump at the corners.
-                                        val pillShape = RoundedCornerShape(28.dp)
-                                        val pillAlpha = floatingNavBarAlpha / 100f
+                                CompositionLocalProvider(
+                                    LocalNavBarIconScale provides navBarIconScale / 100f,
+                                ) {
+                                    if (floatingNavBar) {
                                         Box(
                                             modifier = Modifier
-                                                .matchParentSize()
-                                                .background(
-                                                    color = MaterialTheme.colorScheme.surfaceContainerHigh
-                                                        .copy(alpha = pillAlpha),
-                                                    shape = pillShape,
-                                                )
-                                                .border(
-                                                    width = 1.dp,
-                                                    color = MaterialTheme.colorScheme.outlineVariant
-                                                        .copy(alpha = pillAlpha),
-                                                    shape = pillShape,
-                                                ),
-                                        )
-                                        NavigationBar(
-                                            containerColor = Color.Transparent,
-                                            tonalElevation = 0.dp,
-                                            windowInsets = WindowInsets(0),
+                                                .windowInsetsPadding(NavigationBarDefaults.windowInsets)
+                                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                            contentAlignment = Alignment.Center,
                                         ) {
+                                            // Translucent floating pill: a fill + subtle outline rather
+                                            // than an elevation shadow, which would show through the
+                                            // translucent surface as a grey band and clump at the corners.
+                                            val pillShape = RoundedCornerShape(28.dp)
+                                            val pillAlpha = floatingNavBarAlpha / 100f
+                                            Box(
+                                                modifier = Modifier
+                                                    .matchParentSize()
+                                                    .background(
+                                                        color = MaterialTheme.colorScheme.surfaceContainerHigh
+                                                            .copy(alpha = pillAlpha),
+                                                        shape = pillShape,
+                                                    )
+                                                    .border(
+                                                        width = 1.dp,
+                                                        color = MaterialTheme.colorScheme.outlineVariant
+                                                            .copy(alpha = pillAlpha),
+                                                        shape = pillShape,
+                                                    ),
+                                            )
+                                            NavigationBar(
+                                                containerColor = Color.Transparent,
+                                                tonalElevation = 0.dp,
+                                                windowInsets = WindowInsets(0),
+                                            ) {
+                                                shownTabs.fastForEach {
+                                                    NavigationBarItem(it, showLabel = !hideNavBarLabels)
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        // Classic bar: full width, flush to the bottom, no rounded corners.
+                                        NavigationBar {
                                             shownTabs.fastForEach {
                                                 NavigationBarItem(it, showLabel = !hideNavBarLabels)
                                             }
-                                        }
-                                    }
-                                } else {
-                                    // Classic bar: full width, flush to the bottom, no rounded corners.
-                                    NavigationBar {
-                                        shownTabs.fastForEach {
-                                            NavigationBarItem(it, showLabel = !hideNavBarLabels)
                                         }
                                     }
                                 }
@@ -424,7 +433,7 @@ object HomeScreen : Screen() {
                 contentDescription = tab.options.title,
                 // TODO: https://issuetracker.google.com/u/0/issues/316327367
                 tint = LocalContentColor.current,
-                modifier = Modifier.size(28.dp),
+                modifier = Modifier.size(28.dp * LocalNavBarIconScale.current),
             )
         }
     }

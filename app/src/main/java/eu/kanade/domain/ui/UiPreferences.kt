@@ -48,6 +48,9 @@ class UiPreferences(
     // Opacity of the floating nav bar, as a percentage (0 = fully translucent, 100 = solid).
     fun bottomNavFloatingAlpha() = preferenceStore.getInt("pref_bottom_nav_floating_alpha", 81)
 
+    // Size of the navigation bar icons, as a percentage (100 = default).
+    fun bottomNavIconScale() = preferenceStore.getInt("pref_bottom_nav_icon_scale", 100)
+
     fun showDownloadSize() = preferenceStore.getBoolean("pref_show_download_size", false)
 
     fun appIcon() = preferenceStore.getEnum("app_icon", AppIcon.Default)
