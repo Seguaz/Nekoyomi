@@ -116,7 +116,7 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
         libraryPreferences.lastUpdatedTimestamp().set(Instant.now().toEpochMilli())
 
         val categoryId = inputData.getLong(KEY_CATEGORY, -1L)
-        addMangaToQueue(categoryId)
+        addMangaToQueue(categoryId, tags.contains(WORK_NAME_AUTO))
 
         return withIOContext {
             try {
@@ -156,7 +156,7 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
      *
      * @param categoryId the ID of the category to update, or -1 if no category specified.
      */
-    private suspend fun addMangaToQueue(categoryId: Long) {
+    private suspend fun addMangaToQueue(categoryId: Long, isAutoUpdate: Boolean) {
         val libraryManga = getLibraryManga.await()
 
         val listToUpdate = if (categoryId != -1L) {
@@ -195,28 +195,32 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
                         false
                     }
 
-                    ENTRY_NON_COMPLETED in restrictions && it.manga.status.toInt() == SManga.COMPLETED -> {
+                    // Item restrictions only apply to automatic (scheduled) updates; a manual
+                    // update refreshes everything the user explicitly asked for.
+                    isAutoUpdate && ENTRY_NON_COMPLETED in restrictions &&
+                        it.manga.status.toInt() == SManga.COMPLETED -> {
                         skippedUpdates.add(
                             it.manga to context.stringResource(MR.strings.skipped_reason_completed),
                         )
                         false
                     }
 
-                    ENTRY_HAS_UNVIEWED in restrictions && it.unreadCount != 0L -> {
+                    isAutoUpdate && ENTRY_HAS_UNVIEWED in restrictions && it.unreadCount != 0L -> {
                         skippedUpdates.add(
                             it.manga to context.stringResource(MR.strings.skipped_reason_not_caught_up),
                         )
                         false
                     }
 
-                    ENTRY_NON_VIEWED in restrictions && it.totalChapters > 0L && !it.hasStarted -> {
+                    isAutoUpdate && ENTRY_NON_VIEWED in restrictions && it.totalChapters > 0L && !it.hasStarted -> {
                         skippedUpdates.add(
                             it.manga to context.stringResource(MR.strings.skipped_reason_not_started),
                         )
                         false
                     }
 
-                    ENTRY_OUTSIDE_RELEASE_PERIOD in restrictions && it.manga.nextUpdate > fetchWindowUpperBound -> {
+                    isAutoUpdate && ENTRY_OUTSIDE_RELEASE_PERIOD in restrictions &&
+                        it.manga.nextUpdate > fetchWindowUpperBound -> {
                         skippedUpdates.add(
                             it.manga to context.stringResource(MR.strings.skipped_reason_not_in_release_period),
                         )

@@ -117,7 +117,7 @@ class AnimeLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
         libraryPreferences.lastUpdatedTimestamp().set(Instant.now().toEpochMilli())
 
         val categoryId = inputData.getLong(KEY_CATEGORY, -1L)
-        addAnimeToQueue(categoryId)
+        addAnimeToQueue(categoryId, tags.contains(WORK_NAME_AUTO))
 
         return withIOContext {
             try {
@@ -158,7 +158,7 @@ class AnimeLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
      *
      * @param categoryId the ID of the category to update, or -1 if no category specified.
      */
-    private suspend fun addAnimeToQueue(categoryId: Long) {
+    private suspend fun addAnimeToQueue(categoryId: Long, isAutoUpdate: Boolean) {
         val libraryAnime = getLibraryAnime.await()
 
         val listToUpdate = if (categoryId != -1L) {
@@ -216,28 +216,32 @@ class AnimeLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
                         false
                     }
 
-                    ENTRY_NON_COMPLETED in restrictions && it.anime.status.toInt() == SAnime.COMPLETED -> {
+                    // Item restrictions only apply to automatic (scheduled) updates; a manual
+                    // update refreshes everything the user explicitly asked for.
+                    isAutoUpdate && ENTRY_NON_COMPLETED in restrictions &&
+                        it.anime.status.toInt() == SAnime.COMPLETED -> {
                         skippedUpdates.add(
                             it.anime to context.stringResource(MR.strings.skipped_reason_completed),
                         )
                         false
                     }
 
-                    ENTRY_HAS_UNVIEWED in restrictions && it.unseenCount != 0L -> {
+                    isAutoUpdate && ENTRY_HAS_UNVIEWED in restrictions && it.unseenCount != 0L -> {
                         skippedUpdates.add(
                             it.anime to context.stringResource(MR.strings.skipped_reason_not_caught_up),
                         )
                         false
                     }
 
-                    ENTRY_NON_VIEWED in restrictions && it.totalCount > 0L && !it.hasStarted -> {
+                    isAutoUpdate && ENTRY_NON_VIEWED in restrictions && it.totalCount > 0L && !it.hasStarted -> {
                         skippedUpdates.add(
                             it.anime to context.stringResource(MR.strings.skipped_reason_not_started),
                         )
                         false
                     }
 
-                    ENTRY_OUTSIDE_RELEASE_PERIOD in restrictions && it.anime.nextUpdate > fetchWindowUpperBound -> {
+                    isAutoUpdate && ENTRY_OUTSIDE_RELEASE_PERIOD in restrictions &&
+                        it.anime.nextUpdate > fetchWindowUpperBound -> {
                         skippedUpdates.add(
                             it.anime to context.stringResource(MR.strings.skipped_reason_not_in_release_period),
                         )
