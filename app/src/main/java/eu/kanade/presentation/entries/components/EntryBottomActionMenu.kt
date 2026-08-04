@@ -31,6 +31,8 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Input
+import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.outlined.LayersClear
 import androidx.compose.material.icons.outlined.NewLabel
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.PushPin
@@ -299,7 +301,10 @@ fun LibraryBottomActionMenu(
     onDownloadClicked: ((DownloadAction) -> Unit)?,
     onDeleteClicked: () -> Unit,
     onPinClicked: () -> Unit,
+    onGroupIntoSeriesClicked: () -> Unit,
+    onUngroupClicked: () -> Unit,
     pinned: Boolean,
+    grouped: Boolean,
     isManga: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -343,6 +348,15 @@ fun LibraryBottomActionMenu(
                     toConfirm = false,
                     onLongClick = onPinClicked,
                     onClick = onPinClicked,
+                )
+                Button(
+                    title = stringResource(
+                        if (grouped) MR.strings.action_ungroup else MR.strings.action_group_into_series,
+                    ),
+                    icon = if (grouped) Icons.Outlined.LayersClear else Icons.Outlined.Layers,
+                    toConfirm = false,
+                    onLongClick = if (grouped) onUngroupClicked else onGroupIntoSeriesClicked,
+                    onClick = if (grouped) onUngroupClicked else onGroupIntoSeriesClicked,
                 )
                 Button(
                     title = stringResource(MR.strings.action_move_category),

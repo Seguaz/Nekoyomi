@@ -11,6 +11,7 @@ import eu.kanade.presentation.library.components.EntryComfortableGridItem
 import eu.kanade.presentation.library.components.LanguageBadge
 import eu.kanade.presentation.library.components.LazyLibraryGrid
 import eu.kanade.presentation.library.components.PinnedBadge
+import eu.kanade.presentation.library.components.SeriesBadge
 import eu.kanade.presentation.library.components.UnviewedBadge
 import eu.kanade.presentation.library.components.globalSearchItem
 import eu.kanade.tachiyomi.ui.library.manga.MangaLibraryItem
@@ -57,6 +58,11 @@ internal fun MangaLibraryComfortableGrid(
                 },
                 coverBadgeEnd = {
                     PinnedBadge(pinned = libraryItem.isPinned)
+                    SeriesBadge(
+                        seriesName = libraryItem.seriesName,
+                        count = libraryItem.seriesMemberCount,
+                        expanded = libraryItem.seriesExpanded,
+                    )
                     LanguageBadge(
                         isLocal = libraryItem.isLocal,
                         sourceLanguage = libraryItem.sourceLanguage,

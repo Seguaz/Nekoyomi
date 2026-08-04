@@ -37,6 +37,7 @@ fun MangaLibraryContent(
     showPageTabs: Boolean,
     onChangeCurrentPage: (Int) -> Unit,
     onMangaClicked: (Long) -> Unit,
+    onToggleSeriesExpanded: (String?) -> Unit,
     onContinueReadingClicked: ((LibraryManga) -> Unit)?,
     onToggleSelection: (LibraryManga) -> Unit,
     onToggleRangeSelection: (LibraryManga) -> Unit,
@@ -76,7 +77,13 @@ fun MangaLibraryContent(
         val notSelectionMode = selection.isEmpty()
         val onClickManga = { manga: LibraryManga ->
             if (notSelectionMode) {
-                onMangaClicked(manga.manga.id)
+                val item = getLibraryForPage(pagerState.currentPage)
+                    .find { it.libraryManga.id == manga.id }
+                if (item?.isSeriesHead == true) {
+                    onToggleSeriesExpanded(item.seriesName)
+                } else {
+                    onMangaClicked(manga.manga.id)
+                }
             } else {
                 onToggleSelection(manga)
             }

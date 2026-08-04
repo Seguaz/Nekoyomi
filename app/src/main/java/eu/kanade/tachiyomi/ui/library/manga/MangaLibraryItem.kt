@@ -13,6 +13,10 @@ class MangaLibraryItem(
     var isLocal: Boolean = false,
     var sourceLanguage: String = "",
     var isPinned: Boolean = false,
+    var seriesName: String? = null,
+    var isSeriesHead: Boolean = false,
+    var seriesMemberCount: Int = 0,
+    var seriesExpanded: Boolean = false,
     private val sourceManager: MangaSourceManager = Injekt.get(),
 ) {
     /**

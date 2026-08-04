@@ -36,6 +36,7 @@ import eu.kanade.presentation.library.DeleteLibraryEntryDialog
 import eu.kanade.presentation.library.anime.AnimeLibraryContent
 import eu.kanade.presentation.library.anime.AnimeLibrarySettingsDialog
 import eu.kanade.presentation.library.components.LibraryToolbar
+import eu.kanade.presentation.library.components.SeriesGroupDialog
 import eu.kanade.presentation.more.onboarding.GETTING_STARTED_URL
 import eu.kanade.presentation.util.Tab
 import eu.kanade.tachiyomi.R
@@ -187,8 +188,12 @@ data object AnimeLibraryTab : Tab {
                         .takeIf { state.selection.fastAll { !it.anime.isLocal() } },
                     onDeleteClicked = screenModel::openDeleteAnimeDialog,
                     onPinClicked = screenModel::togglePinSelection,
+                    onGroupIntoSeriesClicked = screenModel::openGroupIntoSeriesDialog,
+                    onUngroupClicked = screenModel::ungroupSelection,
                     pinned = state.selection.isNotEmpty() &&
                         state.selection.fastAll { it.id.toString() in state.pinnedIds },
+                    grouped = state.selection.isNotEmpty() &&
+                        state.selection.fastAll { it.id in state.seriesIds },
                     isManga = false,
                 )
             },
@@ -221,6 +226,7 @@ data object AnimeLibraryTab : Tab {
                         showPageTabs = state.showCategoryTabs || !state.searchQuery.isNullOrEmpty(),
                         onChangeCurrentPage = { screenModel.activeCategoryIndex = it },
                         onAnimeClicked = { navigator.push(AnimeScreen(it)) },
+                        onToggleSeriesExpanded = screenModel::toggleSeriesExpanded,
                         onContinueWatchingClicked = { it: LibraryAnime ->
                             scope.launchIO {
                                 val episode = screenModel.getNextUnseenEpisode(it.anime)
@@ -288,6 +294,13 @@ data object AnimeLibraryTab : Tab {
                         screenModel.clearSelection()
                     },
                     isManga = false,
+                )
+            }
+            is AnimeLibraryScreenModel.Dialog.GroupIntoSeries -> {
+                SeriesGroupDialog(
+                    onDismissRequest = onDismissRequest,
+                    onConfirm = { name -> screenModel.groupIntoSeries(name, dialog.ids) },
+                    existingSeries = dialog.existingNames,
                 )
             }
             null -> {}

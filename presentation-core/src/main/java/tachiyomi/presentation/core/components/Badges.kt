@@ -99,3 +99,51 @@ fun Badge(
         style = MaterialTheme.typography.bodySmall,
     )
 }
+
+@Composable
+fun Badge(
+    imageVector: ImageVector,
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.secondary,
+    iconColor: Color = MaterialTheme.colorScheme.onSecondary,
+    shape: Shape = RectangleShape,
+) {
+    val iconContentPlaceholder = "[icon]"
+    val annotated = buildAnnotatedString {
+        appendInlineContent(iconContentPlaceholder)
+        append(" ")
+        append(text)
+    }
+    val inlineContent = persistentMapOf(
+        Pair(
+            iconContentPlaceholder,
+            InlineTextContent(
+                Placeholder(
+                    width = MaterialTheme.typography.bodySmall.fontSize,
+                    height = MaterialTheme.typography.bodySmall.fontSize,
+                    placeholderVerticalAlign = PlaceholderVerticalAlign.Center,
+                ),
+            ) {
+                Icon(
+                    imageVector = imageVector,
+                    tint = iconColor,
+                    contentDescription = null,
+                )
+            },
+        ),
+    )
+
+    Text(
+        text = annotated,
+        inlineContent = inlineContent,
+        modifier = modifier
+            .clip(shape)
+            .background(color)
+            .padding(horizontal = 3.dp, vertical = 1.dp),
+        color = iconColor,
+        fontWeight = FontWeight.Medium,
+        maxLines = 1,
+        style = MaterialTheme.typography.bodySmall,
+    )
+}

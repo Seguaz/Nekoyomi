@@ -26,6 +26,10 @@
     <string name="action_move_category">Asignar categorías</string>
     <string name="action_pin">Fijar arriba</string>
     <string name="action_unpin">Desfijar</string>
+    <string name="action_group_into_series">Agrupar en serie</string>
+    <string name="action_ungroup">Desagrupar</string>
+    <string name="series_name">Nombre de la serie</string>
+    <string name="series_add_to_existing">Añadir a una serie existente:</string>
     <string name="action_edit_cover">Editar la portada</string>
     <string name="action_pause">Pausar</string>
     <string name="action_previous_chapter">Capítulo anterior</string>

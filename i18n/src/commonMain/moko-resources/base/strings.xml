@@ -97,6 +97,10 @@
     <string name="action_move_category">Set categories</string>
     <string name="action_pin">Pin to top</string>
     <string name="action_unpin">Unpin</string>
+    <string name="action_group_into_series">Group into series</string>
+    <string name="action_ungroup">Ungroup</string>
+    <string name="series_name">Series name</string>
+    <string name="series_add_to_existing">Add to an existing series:</string>
     <string name="delete_category_confirmation">Do you wish to delete the category \"%s\"?</string>
     <string name="delete_category">Delete category</string>
     <string name="action_edit_cover">Edit cover</string>

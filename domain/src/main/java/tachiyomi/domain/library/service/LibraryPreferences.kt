@@ -160,6 +160,10 @@ class LibraryPreferences(
     fun pinnedAnimeIds() = preferenceStore.getStringSet("library_pinned_anime_ids", emptySet())
     fun pinnedMangaIds() = preferenceStore.getStringSet("library_pinned_manga_ids", emptySet())
 
+    // Custom series groupings. Each element encodes one entry's membership as "<id><seriesName>".
+    fun seriesGroupingsAnime() = preferenceStore.getStringSet("library_series_anime", emptySet())
+    fun seriesGroupingsManga() = preferenceStore.getStringSet("library_series_manga", emptySet())
+
     fun animeUpdateCategories() =
         preferenceStore.getStringSet(LIBRARY_UPDATE_ANIME_CATEGORIES_PREF_KEY, emptySet())
 

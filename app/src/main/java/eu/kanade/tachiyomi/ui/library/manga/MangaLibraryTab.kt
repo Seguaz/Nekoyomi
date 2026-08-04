@@ -34,6 +34,7 @@ import eu.kanade.presentation.category.components.ChangeCategoryDialog
 import eu.kanade.presentation.entries.components.LibraryBottomActionMenu
 import eu.kanade.presentation.library.DeleteLibraryEntryDialog
 import eu.kanade.presentation.library.components.LibraryToolbar
+import eu.kanade.presentation.library.components.SeriesGroupDialog
 import eu.kanade.presentation.library.manga.MangaLibraryContent
 import eu.kanade.presentation.library.manga.MangaLibrarySettingsDialog
 import eu.kanade.presentation.more.onboarding.GETTING_STARTED_URL
@@ -179,8 +180,12 @@ data object MangaLibraryTab : Tab {
                         .takeIf { state.selection.fastAll { !it.manga.isLocal() } },
                     onDeleteClicked = screenModel::openDeleteMangaDialog,
                     onPinClicked = screenModel::togglePinSelection,
+                    onGroupIntoSeriesClicked = screenModel::openGroupIntoSeriesDialog,
+                    onUngroupClicked = screenModel::ungroupSelection,
                     pinned = state.selection.isNotEmpty() &&
                         state.selection.fastAll { it.id.toString() in state.pinnedIds },
+                    grouped = state.selection.isNotEmpty() &&
+                        state.selection.fastAll { it.id in state.seriesIds },
                     isManga = true,
                 )
             },
@@ -213,6 +218,7 @@ data object MangaLibraryTab : Tab {
                         showPageTabs = state.showCategoryTabs || !state.searchQuery.isNullOrEmpty(),
                         onChangeCurrentPage = { screenModel.activeCategoryIndex = it },
                         onMangaClicked = { navigator.push(MangaScreen(it)) },
+                        onToggleSeriesExpanded = screenModel::toggleSeriesExpanded,
                         onContinueReadingClicked = { it: LibraryManga ->
                             scope.launchIO {
                                 val chapter = screenModel.getNextUnreadChapter(it.manga)
@@ -293,6 +299,13 @@ data object MangaLibraryTab : Tab {
                         screenModel.clearSelection()
                     },
                     isManga = true,
+                )
+            }
+            is MangaLibraryScreenModel.Dialog.GroupIntoSeries -> {
+                SeriesGroupDialog(
+                    onDismissRequest = onDismissRequest,
+                    onConfirm = { name -> screenModel.groupIntoSeries(name, dialog.ids) },
+                    existingSeries = dialog.existingNames,
                 )
             }
             null -> {}

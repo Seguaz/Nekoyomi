@@ -3,7 +3,10 @@ package eu.kanade.presentation.library.components
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -35,6 +38,36 @@ internal fun PinnedBadge(pinned: Boolean) {
             imageVector = Icons.Filled.PushPin,
             color = MaterialTheme.colorScheme.primary,
             iconColor = MaterialTheme.colorScheme.onPrimary,
+        )
+    }
+}
+
+@Composable
+internal fun SeriesBadge(
+    seriesName: String?,
+    count: Int = 0,
+    expanded: Boolean = false,
+) {
+    if (seriesName == null) return
+    if (count > 1) {
+        // Series head: member count + expand/collapse indicator.
+        Badge(
+            imageVector = Icons.Outlined.Layers,
+            text = "$count",
+            color = MaterialTheme.colorScheme.secondary,
+            iconColor = MaterialTheme.colorScheme.onSecondary,
+        )
+        Badge(
+            imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+            color = MaterialTheme.colorScheme.secondary,
+            iconColor = MaterialTheme.colorScheme.onSecondary,
+        )
+    } else {
+        // Lone grouped entry or an expanded member: plain marker.
+        Badge(
+            imageVector = Icons.Outlined.Layers,
+            color = MaterialTheme.colorScheme.secondary,
+            iconColor = MaterialTheme.colorScheme.onSecondary,
         )
     }
 }

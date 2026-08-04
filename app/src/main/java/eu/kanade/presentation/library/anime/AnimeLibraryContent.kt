@@ -37,6 +37,7 @@ fun AnimeLibraryContent(
     showPageTabs: Boolean,
     onChangeCurrentPage: (Int) -> Unit,
     onAnimeClicked: (Long) -> Unit,
+    onToggleSeriesExpanded: (String?) -> Unit,
     onContinueWatchingClicked: ((LibraryAnime) -> Unit)?,
     onToggleSelection: (LibraryAnime) -> Unit,
     onToggleRangeSelection: (LibraryAnime) -> Unit,
@@ -76,7 +77,13 @@ fun AnimeLibraryContent(
         val notSelectionMode = selection.isEmpty()
         val onClickAnime = { anime: LibraryAnime ->
             if (notSelectionMode) {
-                onAnimeClicked(anime.anime.id)
+                val item = getAnimeLibraryForPage(pagerState.currentPage)
+                    .find { it.libraryAnime.id == anime.id }
+                if (item?.isSeriesHead == true) {
+                    onToggleSeriesExpanded(item.seriesName)
+                } else {
+                    onAnimeClicked(anime.anime.id)
+                }
             } else {
                 onToggleSelection(anime)
             }

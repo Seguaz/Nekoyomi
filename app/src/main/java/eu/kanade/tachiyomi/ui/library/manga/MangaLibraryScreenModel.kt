@@ -26,6 +26,7 @@ import eu.kanade.tachiyomi.data.download.manga.MangaDownloadManager
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.HttpSource
+import eu.kanade.tachiyomi.ui.library.SeriesGrouping
 import eu.kanade.tachiyomi.util.chapter.getNextUnread
 import eu.kanade.tachiyomi.util.removeCovers
 import kotlinx.collections.immutable.ImmutableList
@@ -103,16 +104,20 @@ class MangaLibraryScreenModel(
 
     init {
         screenModelScope.launchIO {
+            val searchAndExpand = combine(
+                state.map { it.searchQuery }.distinctUntilChanged().debounce(SEARCH_DEBOUNCE_MILLIS),
+                state.map { it.seriesExpanded }.distinctUntilChanged(),
+            ) { searchQuery, expanded -> searchQuery to expanded }
             combine(
-                state.map { it.searchQuery }.debounce(SEARCH_DEBOUNCE_MILLIS),
+                searchAndExpand,
                 getLibraryFlow(),
                 getTracksPerManga.subscribe(),
                 getTrackingFilterFlow(),
                 downloadCache.changes,
-            ) { searchQuery, library, tracks, trackingFilter, _ ->
+            ) { (searchQuery, expanded), library, tracks, trackingFilter, _ ->
                 library
                     .applyFilters(tracks, trackingFilter)
-                    .applySort(tracks, trackingFilter.keys)
+                    .applySort(tracks, trackingFilter.keys, expanded, collapseSeries = searchQuery == null)
                     .mapValues { (_, value) ->
                         if (searchQuery != null) {
                             value.filter { it.matches(searchQuery) }
@@ -172,6 +177,10 @@ class MangaLibraryScreenModel(
 
         libraryPreferences.pinnedMangaIds().changes()
             .onEach { pinned -> mutableState.update { it.copy(pinnedIds = pinned) } }
+            .launchIn(screenModelScope)
+
+        libraryPreferences.seriesGroupingsManga().changes()
+            .onEach { set -> mutableState.update { it.copy(seriesIds = SeriesGrouping.decode(set).keys) } }
             .launchIn(screenModelScope)
     }
 
@@ -256,6 +265,8 @@ class MangaLibraryScreenModel(
     private fun MangaLibraryMap.applySort(
         trackMap: Map<Long, List<MangaTrack>>,
         loggedInTrackerIds: Set<Long>,
+        expandedSeries: Set<String>,
+        collapseSeries: Boolean,
     ): MangaLibraryMap {
         val sortAlphabetically: (MangaLibraryItem, MangaLibraryItem) -> Int = { i1, i2 ->
             i1.libraryManga.manga.title.lowercase().compareToWithCollator(i2.libraryManga.manga.title.lowercase())
@@ -320,6 +331,13 @@ class MangaLibraryScreenModel(
         val pinnedFirst = compareByDescending<MangaLibraryItem> { it.libraryManga.id.toString() in pinnedIds }
 
         return mapValues { (key, value) ->
+            // Reset transient series-collapse flags (items are reused across re-emissions).
+            value.forEach {
+                it.isSeriesHead = false
+                it.seriesMemberCount = 0
+                it.seriesExpanded = false
+            }
+
             if (key.sort.type == MangaLibrarySort.Type.Random) {
                 val shuffled = value.shuffled(Random(libraryPreferences.randomMangaSortSeed().get()))
                 return@mapValues if (pinnedIds.isEmpty()) shuffled else shuffled.sortedWith(pinnedFirst)
@@ -331,7 +349,44 @@ class MangaLibraryScreenModel(
                     .thenComparator(sortAlphabetically),
             )
 
-            value.sortedWith(comparator)
+            if (!collapseSeries) {
+                return@mapValues value.sortedWith(comparator)
+            }
+
+            // Collapse custom series: keep only the head of each multi-member series unless expanded.
+            val groups = value.filter { it.seriesName != null }
+                .groupBy { it.seriesName!! }
+                .filter { it.value.size > 1 }
+            if (groups.isEmpty()) return@mapValues value.sortedWith(comparator)
+
+            val memberIds = groups.values.flatten().mapTo(HashSet()) { it.libraryManga.id }
+            val headIds = groups.values
+                .mapNotNull { members -> members.minWithOrNull(comparator) }
+                .mapTo(HashSet()) { it.libraryManga.id }
+
+            value.forEach { item ->
+                val head = item.libraryManga.id in headIds
+                item.isSeriesHead = head
+                if (head) {
+                    item.seriesMemberCount = groups[item.seriesName]!!.size
+                    item.seriesExpanded = item.seriesName in expandedSeries
+                }
+            }
+
+            // Representatives: entries not in any series, plus each series' head.
+            val reps = value
+                .filter { it.libraryManga.id !in memberIds || it.libraryManga.id in headIds }
+                .sortedWith(comparator)
+
+            reps.flatMap { rep ->
+                if (rep.isSeriesHead && rep.seriesExpanded) {
+                    listOf(rep) + groups[rep.seriesName]!!
+                        .sortedWith(comparator)
+                        .filter { it.libraryManga.id != rep.libraryManga.id }
+                } else {
+                    listOf(rep)
+                }
+            }
         }
     }
 
@@ -377,7 +432,9 @@ class MangaLibraryScreenModel(
             getLibraryItemPreferencesFlow(),
             downloadCache.changes,
             libraryPreferences.pinnedMangaIds().changes(),
-        ) { libraryMangaList, prefs, _, pinnedIds ->
+            libraryPreferences.seriesGroupingsManga().changes(),
+        ) { libraryMangaList, prefs, _, pinnedIds, seriesSet ->
+            val seriesById = SeriesGrouping.decode(seriesSet)
             libraryMangaList
                 .map { libraryManga ->
                     // Display mode based on user preference: take it from global library setting or category
@@ -396,6 +453,7 @@ class MangaLibraryScreenModel(
                             ""
                         },
                         isPinned = libraryManga.id.toString() in pinnedIds,
+                        seriesName = seriesById[libraryManga.id],
                     )
                 }
                 .groupBy { it.libraryManga.category }
@@ -510,6 +568,53 @@ class MangaLibraryScreenModel(
         val current = pref.get()
         val allPinned = selectedIds.all { it in current }
         pref.set(if (allPinned) current - selectedIds else current + selectedIds)
+        clearSelection()
+    }
+
+    /**
+     * Opens the dialog to group the current selection into a named custom series.
+     */
+    fun openGroupIntoSeriesDialog() {
+        val ids = state.value.selection.map { it.id }
+        if (ids.isEmpty()) return
+        val existing = SeriesGrouping.seriesNames(libraryPreferences.seriesGroupingsManga().get())
+        mutableState.update { it.copy(dialog = Dialog.GroupIntoSeries(ids, existing.toImmutableList())) }
+    }
+
+    /**
+     * Assigns [ids] to the custom series [name] (creating it or adding to it).
+     */
+    fun groupIntoSeries(name: String, ids: List<Long>) {
+        if (name.isBlank() || ids.isEmpty()) return
+        val pref = libraryPreferences.seriesGroupingsManga()
+        pref.set(SeriesGrouping.assign(pref.get(), ids, name.trim()))
+        clearSelection()
+    }
+
+    /**
+     * Toggles the expanded/collapsed state of the custom series [name].
+     */
+    fun toggleSeriesExpanded(name: String?) {
+        name ?: return
+        mutableState.update {
+            it.copy(
+                seriesExpanded = if (name in it.seriesExpanded) {
+                    it.seriesExpanded - name
+                } else {
+                    it.seriesExpanded + name
+                },
+            )
+        }
+    }
+
+    /**
+     * Removes the current selection from any custom series.
+     */
+    fun ungroupSelection() {
+        val ids = state.value.selection.map { it.id }
+        if (ids.isEmpty()) return
+        val pref = libraryPreferences.seriesGroupingsManga()
+        pref.set(SeriesGrouping.remove(pref.get(), ids))
         clearSelection()
     }
 
@@ -743,6 +848,10 @@ class MangaLibraryScreenModel(
             val initialSelection: ImmutableList<CheckboxState<Category>>,
         ) : Dialog
         data class DeleteManga(val manga: List<Manga>) : Dialog
+        data class GroupIntoSeries(
+            val ids: List<Long>,
+            val existingNames: ImmutableList<String>,
+        ) : Dialog
     }
 
     @Immutable
@@ -774,6 +883,8 @@ class MangaLibraryScreenModel(
         val showMangaContinueButton: Boolean = false,
         val dialog: Dialog? = null,
         val pinnedIds: Set<String> = emptySet(),
+        val seriesExpanded: Set<String> = emptySet(),
+        val seriesIds: Set<Long> = emptySet(),
     ) {
         private val libraryCount by lazy {
             library.values
