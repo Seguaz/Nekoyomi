@@ -16,8 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import cafe.adriel.voyager.core.annotation.InternalVoyagerApi
@@ -84,56 +82,33 @@ fun AdaptiveSheet(
     content: @Composable () -> Unit,
 ) {
     val isTabletUi = isTabletUi()
-    // Sheet content must clear the system bars. A Compose Dialog's own window doesn't report
-    // system-bar insets reliably, and WindowInsets.systemBars can read as 0 when an ancestor
-    // Scaffold has consumed them (the tracking sheet). The raw Android root-window insets fix that,
-    // but they can come back null/empty on some ROMs (Samsung), which would leave EVERY sheet cut
-    // off. So take the larger of the two per edge — correct in consumed contexts and safe if the
-    // root insets are unavailable.
+    // The phone variant is a Material 3 ModalBottomSheet and handles its own insets. The tablet
+    // variant is a centered Compose Dialog, whose window doesn't report system-bar insets reliably
+    // (WindowInsets.systemBars can also read as 0 when an ancestor Scaffold consumed them). Capture
+    // the raw host-window insets here and pass them down; fall back to the Compose insets per edge
+    // so the padding is never worse than what Compose reports, even on ROMs where the root insets
+    // come back null (Samsung).
     val view = LocalView.current
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
     val composePadding = WindowInsets.systemBars.asPaddingValues()
-    val rootWindowInsets = ViewCompat.getRootWindowInsets(view)
-    val rootInsets = rootWindowInsets?.getInsets(WindowInsetsCompat.Type.systemBars())
-    // When the navigation bar is hidden (gesture nav / immersive), the system-bar bottom inset is
-    // 0, and with the edge-to-edge dialog below the sheet draws to the physical bottom edge — its
-    // buttons land in the home-gesture area and read as "cut off". Keep the sheet clear of that
-    // area too, so it works with or without a visible navigation bar.
-    val gestureInsets = rootWindowInsets?.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures())
-    val sheetPadding = with(density) {
+    val rootInsets = ViewCompat.getRootWindowInsets(view)?.getInsets(WindowInsetsCompat.Type.systemBars())
+    val tabletSheetPadding = with(density) {
         PaddingValues(
             start = maxOf(composePadding.calculateStartPadding(layoutDirection), (rootInsets?.left ?: 0).toDp()),
             top = maxOf(composePadding.calculateTopPadding(), (rootInsets?.top ?: 0).toDp()),
             end = maxOf(composePadding.calculateEndPadding(layoutDirection), (rootInsets?.right ?: 0).toDp()),
-            bottom = maxOf(
-                composePadding.calculateBottomPadding(),
-                (rootInsets?.bottom ?: 0).toDp(),
-                (gestureInsets?.bottom ?: 0).toDp(),
-            ),
+            bottom = maxOf(composePadding.calculateBottomPadding(), (rootInsets?.bottom ?: 0).toDp()),
         )
     }
 
-    Dialog(
+    AdaptiveSheetImpl(
+        modifier = modifier,
+        isTabletUi = isTabletUi,
+        enableSwipeDismiss = enableSwipeDismiss,
         onDismissRequest = onDismissRequest,
-        properties = dialogProperties,
+        tabletSheetPadding = tabletSheetPadding,
     ) {
-        AdaptiveSheetImpl(
-            modifier = modifier,
-            isTabletUi = isTabletUi,
-            enableSwipeDismiss = enableSwipeDismiss,
-            onDismissRequest = onDismissRequest,
-            sheetPadding = sheetPadding,
-        ) {
-            content()
-        }
+        content()
     }
 }
-
-private val dialogProperties = DialogProperties(
-    usePlatformDefaultWidth = false,
-    // Draw edge-to-edge so Compose dispatches window insets to the dialog. Android 15+ forces
-    // edge-to-edge and ignores decorFitsSystemWindows=true, which left navigationBarsPadding()
-    // reading 0 inside the sheet and buttons (e.g. "Apply") hidden behind the system bars.
-    decorFitsSystemWindows = false,
-)

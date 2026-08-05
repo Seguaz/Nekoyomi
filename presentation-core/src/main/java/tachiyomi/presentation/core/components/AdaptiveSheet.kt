@@ -4,64 +4,63 @@ import android.content.res.Configuration.ORIENTATION_LANDSCAPE
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.AnchoredDraggableState
-import androidx.compose.foundation.gestures.DraggableAnchors
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.anchoredDraggable
-import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidthIn
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.filter
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 private val sheetAnimationSpec = tween<Float>(durationMillis = 350)
 
+/**
+ * Sheet with adaptive position: a Material 3 [ModalBottomSheet] anchored to the bottom on phones,
+ * or a centered dialog on tablets (where it can't be dismissed with a swipe gesture).
+ *
+ * On phones the bottom sheet handles window insets natively, so its content always clears the
+ * system bars without any manual padding. Tablets still render inside a Compose [Dialog], whose
+ * window doesn't report insets reliably (Google issue 246909281), so the host insets are captured
+ * by the caller and passed in as [tabletSheetPadding].
+ *
+ * Max width of the content is set to 460 dp (600 dp in landscape).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdaptiveSheet(
     isTabletUi: Boolean,
     enableSwipeDismiss: Boolean,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
-    // Captured from the host window by the caller; Compose Dialog windows don't report system-bar
-    // insets reliably (buttons ended up behind the navigation bar on Android 15+).
-    sheetPadding: PaddingValues = PaddingValues(),
+    // Only used by the tablet (centered dialog) variant; the phone bottom sheet handles its own
+    // insets, so this is ignored there.
+    tabletSheetPadding: PaddingValues = PaddingValues(),
     content: @Composable () -> Unit,
 ) {
-    val density = LocalDensity.current
-    val scope = rememberCoroutineScope()
     val maxWidth = if (LocalConfiguration.current.orientation == ORIENTATION_LANDSCAPE) {
         600.dp
     } else {
@@ -69,192 +68,98 @@ fun AdaptiveSheet(
     }
 
     if (isTabletUi) {
-        var targetAlpha by remember { mutableFloatStateOf(0f) }
-        val alpha by animateFloatAsState(
-            targetValue = targetAlpha,
-            animationSpec = sheetAnimationSpec,
-            label = "alpha",
-        )
-        val internalOnDismissRequest: () -> Unit = {
-            scope.launch {
-                targetAlpha = 0f
-                onDismissRequest()
-            }
-        }
-        Box(
-            modifier = Modifier
-                .clickable(
-                    interactionSource = null,
-                    indication = null,
-                    onClick = internalOnDismissRequest,
-                )
-                .fillMaxSize()
-                .alpha(alpha),
-            contentAlignment = Alignment.Center,
+        val scope = rememberCoroutineScope()
+        Dialog(
+            onDismissRequest = onDismissRequest,
+            properties = TabletDialogProperties,
         ) {
-            Surface(
+            var targetAlpha by remember { mutableFloatStateOf(0f) }
+            val alpha by animateFloatAsState(
+                targetValue = targetAlpha,
+                animationSpec = sheetAnimationSpec,
+                label = "alpha",
+            )
+            val internalOnDismissRequest: () -> Unit = {
+                scope.launch {
+                    targetAlpha = 0f
+                    onDismissRequest()
+                }
+            }
+            Box(
                 modifier = Modifier
-                    .requiredWidthIn(max = maxWidth)
                     .clickable(
                         interactionSource = null,
                         indication = null,
-                        onClick = {},
+                        onClick = internalOnDismissRequest,
                     )
-                    .padding(sheetPadding)
-                    .padding(vertical = 16.dp)
-                    .then(modifier),
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                content = {
-                    BackHandler(enabled = alpha > 0f, onBack = internalOnDismissRequest)
-                    content()
-                },
-            )
+                    .fillMaxSize()
+                    .alpha(alpha),
+                contentAlignment = Alignment.Center,
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .requiredWidthIn(max = maxWidth)
+                        .clickable(
+                            interactionSource = null,
+                            indication = null,
+                            onClick = {},
+                        )
+                        .padding(tabletSheetPadding)
+                        .padding(vertical = 16.dp)
+                        .then(modifier),
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    content = {
+                        BackHandler(enabled = alpha > 0f, onBack = internalOnDismissRequest)
+                        content()
+                    },
+                )
 
-            LaunchedEffect(Unit) {
-                targetAlpha = 1f
+                LaunchedEffect(Unit) {
+                    targetAlpha = 1f
+                }
             }
         }
     } else {
-        val decayAnimationSpec = rememberSplineBasedDecay<Float>()
-        val anchoredDraggableState = remember {
-            AnchoredDraggableState(
-                initialValue = 1,
-                positionalThreshold = { with(density) { 56.dp.toPx() } },
-                velocityThreshold = { with(density) { 125.dp.toPx() } },
-                snapAnimationSpec = sheetAnimationSpec,
-                decayAnimationSpec = decayAnimationSpec,
-            )
-        }
-        val internalOnDismissRequest = {
-            if (anchoredDraggableState.settledValue == 0) {
-                scope.launch { anchoredDraggableState.animateTo(1) }
+        // enableSwipeDismiss can change while the sheet is open (e.g. the tracking sheet disables it
+        // when you drill into a sub-screen). rememberModalBottomSheetState only captures the
+        // confirmValueChange lambda once, so read the latest value through a stable state holder.
+        val swipeDismissEnabled = rememberUpdatedState(enableSwipeDismiss)
+        val sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            // Block the swipe/tap-outside dismissal when swipe-dismiss is off; programmatic hide
+            // (our own onDismissRequest) still goes through, so the sheet can always be closed.
+            confirmValueChange = { newValue ->
+                swipeDismissEnabled.value || newValue != SheetValue.Hidden
+            },
+        )
+        // Stop a fling on a scrollable sheet (source filters, long lists) from being handed to the
+        // sheet and dismissing it: if the content actually scrolled (consumed fling velocity),
+        // swallow the leftover so the sheet stays put. If the content didn't move (already at the
+        // edge), let the fling through so a deliberate fling-to-dismiss still works.
+        val flingDismissBlocker = remember {
+            object : NestedScrollConnection {
+                override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity =
+                    if (consumed.y != 0f) available else Velocity.Zero
             }
         }
-        Box(
-            modifier = Modifier
-                .clickable(
-                    interactionSource = null,
-                    indication = null,
-                    onClick = internalOnDismissRequest,
-                )
-                .fillMaxSize()
-                .onSizeChanged {
-                    val anchors = DraggableAnchors {
-                        0 at 0f
-                        1 at it.height.toFloat()
-                    }
-                    anchoredDraggableState.updateAnchors(anchors)
-                },
-            contentAlignment = Alignment.BottomCenter,
+        ModalBottomSheet(
+            onDismissRequest = onDismissRequest,
+            modifier = modifier,
+            sheetState = sheetState,
+            sheetMaxWidth = maxWidth,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
-            Surface(
-                modifier = Modifier
-                    .widthIn(max = maxWidth)
-                    .clickable(
-                        interactionSource = null,
-                        indication = null,
-                        onClick = {},
-                    )
-                    .then(
-                        if (enableSwipeDismiss) {
-                            Modifier.nestedScroll(
-                                remember(anchoredDraggableState) {
-                                    anchoredDraggableState.preUpPostDownNestedScrollConnection(
-                                        onFling = { scope.launch { anchoredDraggableState.settle(it) } },
-                                    )
-                                },
-                            )
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .then(modifier)
-                    .offset {
-                        IntOffset(
-                            0,
-                            anchoredDraggableState.offset
-                                .takeIf { it.isFinite() }
-                                ?.roundToInt()
-                                ?: 0,
-                        )
-                    }
-                    .anchoredDraggable(
-                        state = anchoredDraggableState,
-                        orientation = Orientation.Vertical,
-                        enabled = enableSwipeDismiss,
-                    )
-                    .padding(sheetPadding)
-                    .padding(bottom = 12.dp),
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                content = {
-                    BackHandler(
-                        enabled = anchoredDraggableState.targetValue == 0,
-                        onBack = internalOnDismissRequest,
-                    )
-                    content()
-                },
-            )
-
-            LaunchedEffect(anchoredDraggableState) {
-                scope.launch { anchoredDraggableState.animateTo(0) }
-                snapshotFlow { anchoredDraggableState.settledValue }
-                    .drop(1)
-                    .filter { it == 1 }
-                    .collectLatest {
-                        onDismissRequest()
-                    }
+            Box(Modifier.nestedScroll(flingDismissBlocker)) {
+                content()
             }
         }
     }
 }
 
-private fun <T> AnchoredDraggableState<T>.preUpPostDownNestedScrollConnection(
-    onFling: (velocity: Float) -> Unit,
-) = object : NestedScrollConnection {
-    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-        val delta = available.toFloat()
-        return if (delta < 0 && source == NestedScrollSource.UserInput) {
-            dispatchRawDelta(delta).toOffset()
-        } else {
-            Offset.Zero
-        }
-    }
-
-    override fun onPostScroll(
-        consumed: Offset,
-        available: Offset,
-        source: NestedScrollSource,
-    ): Offset {
-        return if (source == NestedScrollSource.UserInput) {
-            dispatchRawDelta(available.toFloat()).toOffset()
-        } else {
-            Offset.Zero
-        }
-    }
-
-    override suspend fun onPreFling(available: Velocity): Velocity {
-        val toFling = available.toFloat()
-        return if (toFling < 0 && offset > anchors.minAnchor()) {
-            onFling(toFling)
-            // since we go to the anchor with tween settling, consume all for the best UX
-            available
-        } else {
-            Velocity.Zero
-        }
-    }
-
-    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-        onFling(available.toFloat())
-        return available
-    }
-
-    private fun Float.toOffset(): Offset = Offset(0f, this)
-
-    @JvmName("velocityToFloat")
-    private fun Velocity.toFloat() = this.y
-
-    @JvmName("offsetToFloat")
-    private fun Offset.toFloat(): Float = this.y
-}
+private val TabletDialogProperties = DialogProperties(
+    usePlatformDefaultWidth = false,
+    // Draw edge-to-edge so Compose dispatches window insets to the dialog. Android 15+ forces
+    // edge-to-edge and ignores decorFitsSystemWindows=true.
+    decorFitsSystemWindows = false,
+)

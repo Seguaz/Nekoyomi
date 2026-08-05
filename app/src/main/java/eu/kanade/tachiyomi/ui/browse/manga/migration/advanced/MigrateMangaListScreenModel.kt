@@ -93,8 +93,11 @@ class MigrateMangaListScreenModel(
     private fun candidateSources(fromSourceId: Long): List<CatalogueSource> {
         val enabled = sourceManager.getCatalogueSources()
             .filter {
-                it.lang in enabledLanguages && "${it.id}" !in disabledSources && it.id != fromSourceId &&
-                    "${it.id}" !in excludedSources && it.lang !in excludedLanguages
+                it.lang in enabledLanguages &&
+                    "${it.id}" !in disabledSources &&
+                    it.id != fromSourceId &&
+                    "${it.id}" !in excludedSources &&
+                    it.lang !in excludedLanguages
             }
             .sortedWith(
                 compareBy(
