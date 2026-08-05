@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import mihon.domain.extensionrepo.manga.interactor.GetMangaExtensionRepo
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.i18n.MR
 import uy.kohesive.injekt.Injekt
@@ -39,15 +40,28 @@ class MangaExtensionsScreenModel(
     basePreferences: BasePreferences = Injekt.get(),
     private val extensionManager: MangaExtensionManager = Injekt.get(),
     private val getExtensions: GetMangaExtensionsByType = Injekt.get(),
+    private val getExtensionRepo: GetMangaExtensionRepo = Injekt.get(),
 ) : StateScreenModel<MangaExtensionsScreenModel.State>(State()) {
 
     private val currentDownloads = MutableStateFlow<Map<String, InstallStep>>(hashMapOf())
 
     init {
         val context = Injekt.get<Application>()
-        val extensionMapper: (Map<String, InstallStep>) -> ((MangaExtension) -> MangaExtensionUiModel.Item) = { map ->
-            {
-                MangaExtensionUiModel.Item(it, map[it.pkgName] ?: InstallStep.Idle)
+        val extensionMapper: (
+            Map<String, InstallStep>,
+            Map<String, String>,
+        ) -> ((MangaExtension) -> MangaExtensionUiModel.Item) = { downloads, repos ->
+            { extension ->
+                val repoUrl = when (extension) {
+                    is MangaExtension.Available -> extension.repoUrl
+                    is MangaExtension.Installed -> extension.repoUrl
+                    is MangaExtension.Untrusted -> null
+                }
+                MangaExtensionUiModel.Item(
+                    extension = extension,
+                    installStep = downloads[extension.pkgName] ?: InstallStep.Idle,
+                    repoName = repoUrl?.let { repos[it] },
+                )
             }
         }
         val queryFilter: (String) -> ((MangaExtension) -> Boolean) = { query ->
@@ -94,23 +108,25 @@ class MangaExtensionsScreenModel(
                 state.map { it.searchQuery }.distinctUntilChanged().debounce(SEARCH_DEBOUNCE_MILLIS),
                 currentDownloads,
                 getExtensions.subscribe(),
-            ) { query, downloads, (_updates, _installed, _available, _untrusted) ->
+                getExtensionRepo.subscribeAll(),
+            ) { query, downloads, (_updates, _installed, _available, _untrusted), repos ->
                 val searchQuery = query ?: ""
+                val reposMap = repos.associate { it.baseUrl to (it.shortName ?: it.name) }
 
                 val itemsGroups: ItemGroups = mutableMapOf()
 
                 val updates = _updates.filter(queryFilter(searchQuery)).map(
-                    extensionMapper(downloads),
+                    extensionMapper(downloads, reposMap),
                 )
                 if (updates.isNotEmpty()) {
                     itemsGroups[MangaExtensionUiModel.Header.Resource(MR.strings.ext_updates_pending)] = updates
                 }
 
                 val installed = _installed.filter(queryFilter(searchQuery)).map(
-                    extensionMapper(downloads),
+                    extensionMapper(downloads, reposMap),
                 )
                 val untrusted = _untrusted.filter(queryFilter(searchQuery)).map(
-                    extensionMapper(downloads),
+                    extensionMapper(downloads, reposMap),
                 )
                 if (installed.isNotEmpty() || untrusted.isNotEmpty()) {
                     itemsGroups[MangaExtensionUiModel.Header.Resource(MR.strings.ext_installed)] = installed + untrusted
@@ -123,7 +139,7 @@ class MangaExtensionsScreenModel(
                     .map { (lang, exts) ->
                         MangaExtensionUiModel.Header.Text(
                             LocaleHelper.getSourceDisplayName(lang, context),
-                        ) to exts.map(extensionMapper(downloads))
+                        ) to exts.map(extensionMapper(downloads, reposMap))
                     }
 
                 if (languagesWithExtensions.isNotEmpty()) {
@@ -246,5 +262,6 @@ object MangaExtensionUiModel {
     data class Item(
         val extension: MangaExtension,
         val installStep: InstallStep,
+        val repoName: String? = null,
     )
 }

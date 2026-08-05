@@ -181,60 +181,66 @@ class PlayerSettingsMainScreen(private val mainSettings: Boolean) : Screen() {
         val screen: VoyagerScreen,
     )
 
-    private val items = listOf(
-        Item(
-            titleRes = AYMR.strings.pref_player_internal,
-            subtitleRes = AYMR.strings.pref_player_internal_summary,
-            icon = Icons.Outlined.PlayCircleOutline,
-            screen = PlayerSettingsPlayerScreen,
-        ),
-        Item(
-            titleRes = AYMR.strings.pref_player_gestures,
-            subtitleRes = AYMR.strings.pref_player_gestures_summary,
-            icon = Icons.Outlined.Gesture,
-            screen = PlayerSettingsGesturesScreen,
-        ),
-        Item(
-            titleRes = AYMR.strings.pref_player_decoder,
-            subtitleRes = AYMR.strings.pref_player_decoder_summary,
-            icon = Icons.Outlined.Memory,
-            screen = PlayerSettingsDecoderScreen,
-        ),
-        Item(
-            titleRes = AYMR.strings.pref_player_subtitle,
-            subtitleRes = AYMR.strings.pref_player_subtitle_summary,
-            icon = Icons.Outlined.Subtitles,
-            screen = PlayerSettingsSubtitleScreen,
-        ),
-        Item(
-            titleRes = AYMR.strings.pref_player_audio,
-            subtitleRes = AYMR.strings.pref_player_audio_summary,
-            icon = Icons.Outlined.Audiotrack,
-            screen = PlayerSettingsAudioScreen,
-        ),
-        Item(
-            titleRes = AYMR.strings.pref_player_custom_button,
-            subtitleRes = AYMR.strings.pref_player_custom_button_summary,
-            icon = Icons.Outlined.Terminal,
-            screen = PlayerSettingsCustomButtonScreen,
-        ),
-        Item(
-            titleRes = AYMR.strings.pref_player_editor,
-            subtitleRes = AYMR.strings.pref_player_editor_summary,
-            icon = Icons.Outlined.EditNote,
-            screen = PlayerSettingsEditorScreen,
-        ),
-        Item(
-            titleRes = AYMR.strings.pref_player_torrents,
-            subtitleRes = AYMR.strings.pref_player_torrents_summary,
-            icon = CustomIcons.Magnet,
-            screen = PlayerSettingsTorrentScreen,
-        ),
-        Item(
-            titleRes = AYMR.strings.pref_player_advanced,
-            subtitleRes = AYMR.strings.pref_player_advanced_summary,
-            icon = Icons.Outlined.Code,
-            screen = PlayerSettingsAdvancedScreen,
-        ),
-    )
+    // Kept in the companion (not an instance field) so it is NOT part of the Screen's
+    // serialized saved-state. Item holds a non-serializable ImageVector + @Composable lambda,
+    // which otherwise crashes (NotSerializableException) when Android saves instance state on
+    // app-switch/process-death. See crash on OnePlus/Android 16.
+    companion object {
+        private val items = listOf(
+            Item(
+                titleRes = AYMR.strings.pref_player_internal,
+                subtitleRes = AYMR.strings.pref_player_internal_summary,
+                icon = Icons.Outlined.PlayCircleOutline,
+                screen = PlayerSettingsPlayerScreen,
+            ),
+            Item(
+                titleRes = AYMR.strings.pref_player_gestures,
+                subtitleRes = AYMR.strings.pref_player_gestures_summary,
+                icon = Icons.Outlined.Gesture,
+                screen = PlayerSettingsGesturesScreen,
+            ),
+            Item(
+                titleRes = AYMR.strings.pref_player_decoder,
+                subtitleRes = AYMR.strings.pref_player_decoder_summary,
+                icon = Icons.Outlined.Memory,
+                screen = PlayerSettingsDecoderScreen,
+            ),
+            Item(
+                titleRes = AYMR.strings.pref_player_subtitle,
+                subtitleRes = AYMR.strings.pref_player_subtitle_summary,
+                icon = Icons.Outlined.Subtitles,
+                screen = PlayerSettingsSubtitleScreen,
+            ),
+            Item(
+                titleRes = AYMR.strings.pref_player_audio,
+                subtitleRes = AYMR.strings.pref_player_audio_summary,
+                icon = Icons.Outlined.Audiotrack,
+                screen = PlayerSettingsAudioScreen,
+            ),
+            Item(
+                titleRes = AYMR.strings.pref_player_custom_button,
+                subtitleRes = AYMR.strings.pref_player_custom_button_summary,
+                icon = Icons.Outlined.Terminal,
+                screen = PlayerSettingsCustomButtonScreen,
+            ),
+            Item(
+                titleRes = AYMR.strings.pref_player_editor,
+                subtitleRes = AYMR.strings.pref_player_editor_summary,
+                icon = Icons.Outlined.EditNote,
+                screen = PlayerSettingsEditorScreen,
+            ),
+            Item(
+                titleRes = AYMR.strings.pref_player_torrents,
+                subtitleRes = AYMR.strings.pref_player_torrents_summary,
+                icon = CustomIcons.Magnet,
+                screen = PlayerSettingsTorrentScreen,
+            ),
+            Item(
+                titleRes = AYMR.strings.pref_player_advanced,
+                subtitleRes = AYMR.strings.pref_player_advanced_summary,
+                icon = Icons.Outlined.Code,
+                screen = PlayerSettingsAdvancedScreen,
+            ),
+        )
+    }
 }

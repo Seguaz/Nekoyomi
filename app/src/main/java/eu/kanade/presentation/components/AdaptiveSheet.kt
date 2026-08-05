@@ -94,13 +94,23 @@ fun AdaptiveSheet(
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
     val composePadding = WindowInsets.systemBars.asPaddingValues()
-    val rootInsets = ViewCompat.getRootWindowInsets(view)?.getInsets(WindowInsetsCompat.Type.systemBars())
+    val rootWindowInsets = ViewCompat.getRootWindowInsets(view)
+    val rootInsets = rootWindowInsets?.getInsets(WindowInsetsCompat.Type.systemBars())
+    // When the navigation bar is hidden (gesture nav / immersive), the system-bar bottom inset is
+    // 0, and with the edge-to-edge dialog below the sheet draws to the physical bottom edge — its
+    // buttons land in the home-gesture area and read as "cut off". Keep the sheet clear of that
+    // area too, so it works with or without a visible navigation bar.
+    val gestureInsets = rootWindowInsets?.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures())
     val sheetPadding = with(density) {
         PaddingValues(
             start = maxOf(composePadding.calculateStartPadding(layoutDirection), (rootInsets?.left ?: 0).toDp()),
             top = maxOf(composePadding.calculateTopPadding(), (rootInsets?.top ?: 0).toDp()),
             end = maxOf(composePadding.calculateEndPadding(layoutDirection), (rootInsets?.right ?: 0).toDp()),
-            bottom = maxOf(composePadding.calculateBottomPadding(), (rootInsets?.bottom ?: 0).toDp()),
+            bottom = maxOf(
+                composePadding.calculateBottomPadding(),
+                (rootInsets?.bottom ?: 0).toDp(),
+                (gestureInsets?.bottom ?: 0).toDp(),
+            ),
         )
     }
 

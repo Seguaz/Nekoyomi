@@ -11,7 +11,6 @@ import eu.kanade.tachiyomi.source.CatalogueSource
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
@@ -39,7 +38,9 @@ class MigrateMangaListScreenModel(
     private val enabledLanguages = sourcePreferences.enabledLanguages().get()
     private val disabledSources = sourcePreferences.disabledMangaSources().get()
     private val pinnedSources = sourcePreferences.pinnedMangaSources().get()
-    private var migrationPriority = parsePriority(sourcePreferences.migrationSourcePriorityManga().get())
+    private val migrationPriority = parsePriority(sourcePreferences.migrationSourcePriorityManga().get())
+    private val excludedSources = sourcePreferences.migrationExcludedSourcesManga().get()
+    private val excludedLanguages = sourcePreferences.migrationExcludedLanguagesManga().get()
 
     private fun parsePriority(raw: String): List<Long> =
         raw.split(",").mapNotNull { it.trim().toLongOrNull() }
@@ -59,16 +60,6 @@ class MigrateMangaListScreenModel(
             }
         }
         screenModelScope.launchIO { start() }
-        // Re-run the suggestions when the migration priority order is edited (e.g. from the toolbar).
-        screenModelScope.launch {
-            sourcePreferences.migrationSourcePriorityManga().changes().collectLatest { raw ->
-                val updated = parsePriority(raw)
-                if (updated != migrationPriority) {
-                    migrationPriority = updated
-                    start()
-                }
-            }
-        }
     }
 
     private suspend fun start() {
@@ -101,7 +92,10 @@ class MigrateMangaListScreenModel(
 
     private fun candidateSources(fromSourceId: Long): List<CatalogueSource> {
         val enabled = sourceManager.getCatalogueSources()
-            .filter { it.lang in enabledLanguages && "${it.id}" !in disabledSources && it.id != fromSourceId }
+            .filter {
+                it.lang in enabledLanguages && "${it.id}" !in disabledSources && it.id != fromSourceId &&
+                    "${it.id}" !in excludedSources && it.lang !in excludedLanguages
+            }
             .sortedWith(
                 compareBy(
                     { priorityRank(it.id) },
@@ -119,6 +113,9 @@ class MigrateMangaListScreenModel(
     private suspend fun findBestMatch(oldManga: Manga): SearchResult {
         val query = oldManga.title
         val normalizedQuery = query.normalizedForMatch()
+        // When the user has defined a priority order, trust it like picking a source by hand: the
+        // highest-priority source that returns ANYTHING for this title wins, even if the name differs.
+        val trustPriority = migrationPriority.isNotEmpty()
         var fallback: Pair<CatalogueSource, Manga>? = null
 
         for (source in candidateSources(oldManga.source)) {
@@ -129,13 +126,18 @@ class MigrateMangaListScreenModel(
             }
             if (results.isEmpty()) continue
 
+            // Within a source, prefer an exact title, then the CLOSEST-titled result (not just its
+            // top one), so a prioritized source picks the right entry even when it returns several.
             val exact = results.firstOrNull { it.title.normalizedForMatch() == normalizedQuery }
-            if (exact != null) {
-                val localManga = networkToLocalManga.await(exact.toDomainManga(source.id))
+            val closest = results.maxByOrNull { titleSimilarity(query, it.title) }
+            val match = exact ?: closest?.takeIf { titlesMatch(query, it.title) }
+            if (match != null || trustPriority) {
+                val chosen = match ?: closest ?: results.first()
+                val localManga = networkToLocalManga.await(chosen.toDomainManga(source.id))
                 return SearchResult.Found(localManga, source.name, fetchChapterCount(source, localManga))
             }
             if (fallback == null) {
-                val localManga = networkToLocalManga.await(results.first().toDomainManga(source.id))
+                val localManga = networkToLocalManga.await((closest ?: results.first()).toDomainManga(source.id))
                 fallback = source to localManga
             }
         }
@@ -265,3 +267,29 @@ private fun String.normalizedForMatch(): String {
         .replace('×', 'x')
         .replace(Regex("[^a-z0-9]"), "")
 }
+
+/**
+ * 0..1 title closeness so we can pick the best of a source's results (not just its top one) and
+ * decide if a prioritized source has the entry under a slightly different name.
+ */
+private fun titleSimilarity(query: String, candidate: String): Double {
+    val q = query.normalizedForMatch()
+    val c = candidate.normalizedForMatch()
+    if (q.isEmpty() || c.isEmpty()) return 0.0
+    if (q == c) return 1.0
+    if (c.contains(q) || q.contains(c)) return 0.9
+    val qt = query.matchTokens()
+    val ct = candidate.matchTokens()
+    if (qt.isEmpty() || ct.isEmpty()) return 0.0
+    return qt.intersect(ct).size.toDouble() / qt.union(ct).size
+}
+
+private fun titlesMatch(query: String, candidate: String): Boolean =
+    titleSimilarity(query, candidate) >= 0.6
+
+private fun String.matchTokens(): Set<String> =
+    java.text.Normalizer.normalize(this, java.text.Normalizer.Form.NFD)
+        .lowercase()
+        .split(Regex("[^a-z0-9]+"))
+        .filter { it.length > 1 }
+        .toSet()

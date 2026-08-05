@@ -33,6 +33,7 @@ data class AnimeLibrarySort(
         data object EpisodeFetchDate : Type(0b00011000)
         data object DateAdded : Type(0b00011100)
         data object TrackerMean : Type(0b000100000)
+        data object TimesWatched : Type(0b00100100)
         data object AiringTime : Type(0b00110000)
         data object Random : Type(0b00111100)
 
@@ -81,6 +82,7 @@ data class AnimeLibrarySort(
                 Type.EpisodeFetchDate,
                 Type.DateAdded,
                 Type.TrackerMean,
+                Type.TimesWatched,
                 Type.AiringTime,
                 Type.Random,
             )
@@ -110,6 +112,7 @@ data class AnimeLibrarySort(
                     "EPISODE_FETCH_DATE" -> Type.EpisodeFetchDate
                     "DATE_ADDED" -> Type.DateAdded
                     "TRACKER_MEAN" -> Type.TrackerMean
+                    "TIMES_WATCHED" -> Type.TimesWatched
                     "AIRING_TIME" -> Type.AiringTime
                     "RANDOM" -> Type.Random
                     else -> Type.Alphabetical
@@ -133,6 +136,7 @@ data class AnimeLibrarySort(
             Type.EpisodeFetchDate -> "EPISODE_FETCH_DATE"
             Type.DateAdded -> "DATE_ADDED"
             Type.TrackerMean -> "TRACKER_MEAN"
+            Type.TimesWatched -> "TIMES_WATCHED"
             Type.AiringTime -> "AIRING_TIME"
             Type.Random -> "RANDOM"
         }

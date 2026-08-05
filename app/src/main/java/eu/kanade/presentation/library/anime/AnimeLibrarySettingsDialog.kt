@@ -183,6 +183,7 @@ private fun ColumnScope.SortPage(
             AYMR.strings.action_sort_latest_episode to AnimeLibrarySort.Type.LatestEpisode,
             AYMR.strings.action_sort_episode_fetch_date to AnimeLibrarySort.Type.EpisodeFetchDate,
             MR.strings.action_sort_date_added to AnimeLibrarySort.Type.DateAdded,
+            AYMR.strings.action_sort_times_watched to AnimeLibrarySort.Type.TimesWatched,
             trackerMeanPair,
             AYMR.strings.action_sort_airing_time to AnimeLibrarySort.Type.AiringTime,
             MR.strings.action_sort_random to AnimeLibrarySort.Type.Random,

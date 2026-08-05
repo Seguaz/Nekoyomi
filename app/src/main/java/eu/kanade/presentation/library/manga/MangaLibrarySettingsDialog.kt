@@ -184,6 +184,7 @@ private fun ColumnScope.SortPage(
             MR.strings.action_sort_latest_chapter to MangaLibrarySort.Type.LatestChapter,
             MR.strings.action_sort_chapter_fetch_date to MangaLibrarySort.Type.ChapterFetchDate,
             MR.strings.action_sort_date_added to MangaLibrarySort.Type.DateAdded,
+            AYMR.strings.action_sort_times_read to MangaLibrarySort.Type.TimesRead,
             trackerMeanPair,
             MR.strings.action_sort_random to MangaLibrarySort.Type.Random,
         )

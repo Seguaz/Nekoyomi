@@ -23,6 +23,9 @@ class MigrateAnimeSearchScreenModel(
             .split(",")
             .mapNotNull { it.trim().toLongOrNull() }
 
+    private val excludedSources = sourcePreferences.migrationExcludedSourcesAnime().get()
+    private val excludedLanguages = sourcePreferences.migrationExcludedLanguagesAnime().get()
+
     init {
         extensionFilter = initialExtensionFilter
         screenModelScope.launch {
@@ -40,6 +43,7 @@ class MigrateAnimeSearchScreenModel(
 
     override fun getEnabledSources(): List<AnimeCatalogueSource> {
         return super.getEnabledSources()
+            .filter { "${it.id}" !in excludedSources && it.lang !in excludedLanguages }
             .filter {
                 state.value.sourceFilter != AnimeSourceFilter.PinnedOnly ||
                     pinnedSources.isEmpty() ||

@@ -17,6 +17,8 @@
     <string name="download_ahead_info">Only works if the current chapter/episode + the next one are already downloaded.</string>
     <string name="non_library_settings">All read/watched entries</string>
     <string name="action_sort_last_manga_update">Last manga update</string>
+    <string name="action_sort_times_read">Times read</string>
+    <string name="action_sort_times_watched">Times watched</string>
     <string name="action_show_manga">Show manga</string>
     <string name="action_display_show_continue_reading_button">Continue watching/reading button</string>
     <string name="pref_update_only_completely_read">Skip entries with unseen episode(s)/unread chapter(s)</string>
@@ -120,6 +122,9 @@
     <string name="pref_skip_disable">Disable</string>
     <string name="pref_player_smooth_seek">Enable precise seeking</string>
     <string name="pref_player_smooth_seek_summary">When enabled, seeking will not focus on keyframes, leading to slower but precise seeking</string>
+    <string name="pref_category_player_hold">Press and hold</string>
+    <string name="pref_player_hold_speed">Hold speed</string>
+    <string name="pref_player_hold_speed_info">Press and hold on the video to temporarily play at this speed.</string>
     <string name="pref_category_double_tap">Double tap</string>
     <string name="pref_left_double_tap">Double tap (left)</string>
     <string name="pref_center_double_tap">Double tap (center)</string>
@@ -434,7 +439,7 @@
     <string name="migration_chapter_count">%1$d chapters</string>
     <string name="migration_episode_count">%1$d episodes</string>
     <string name="migration_source_priority">Source priority</string>
-    <string name="migration_source_priority_hint">Sources at the top are searched first when migrating. Drag to reorder; the rest keep their default order.</string>
+    <string name="migration_source_priority_hint">Sources at the top are searched first when migrating. Drag to reorder, uncheck a source to skip it, and use the chips to filter by language.</string>
     <string name="notification_library_up_to_date">Library is up to date</string>
     <string name="notification_no_new_chapters">No new chapters</string>
     <string name="notification_no_new_episodes">No new episodes</string>

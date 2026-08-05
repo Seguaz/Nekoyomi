@@ -308,7 +308,15 @@ fun PlayerControls(
                     },
                 ) {
                     when (currentPlayerUpdate) {
-                        is PlayerUpdates.DoubleSpeed -> TextPlayerUpdate("2x »")
+                        is PlayerUpdates.DoubleSpeed -> {
+                            val holdSpeed = gesturePreferences.holdSpeed().get()
+                            val speedText = if (holdSpeed % 1f == 0f) {
+                                "${holdSpeed.toInt()}x"
+                            } else {
+                                "${holdSpeed}x"
+                            }
+                            TextPlayerUpdate("$speedText »")
+                        }
                         is PlayerUpdates.AspectRatio -> TextPlayerUpdate(stringResource(aspectRatio.titleRes))
                         is PlayerUpdates.ShowText -> TextPlayerUpdate(
                             (currentPlayerUpdate as PlayerUpdates.ShowText).value,

@@ -321,6 +321,9 @@ class MangaLibraryScreenModel(
                     val item2Score = trackerScores[i2.libraryManga.id] ?: defaultTrackerScoreSortValue
                     item1Score.compareTo(item2Score)
                 }
+                MangaLibrarySort.Type.TimesRead -> {
+                    i1.libraryManga.timesRead.compareTo(i2.libraryManga.timesRead)
+                }
                 MangaLibrarySort.Type.Random -> {
                     error("Why Are We Still Here? Just To Suffer?")
                 }

@@ -22,6 +22,10 @@ class GesturePreferences(
     fun skipLengthPreference() = preferenceStore.getInt("pref_skip_length_preference", 10)
     fun playerSmoothSeek() = preferenceStore.getBoolean("pref_player_smooth_seek", false)
 
+    // Press and hold
+
+    fun holdSpeed() = preferenceStore.getFloat("pref_player_hold_speed", 2f)
+
     // Double tap
 
     fun leftDoubleTapGesture() = preferenceStore.getEnum("pref_left_double_tap", SingleActionGesture.Seek)

@@ -324,6 +324,9 @@ class AnimeLibraryScreenModel(
                     val item2Score = trackerScores[i2.libraryAnime.id] ?: defaultTrackerScoreSortValue
                     item1Score.compareTo(item2Score)
                 }
+                AnimeLibrarySort.Type.TimesWatched -> {
+                    i1.libraryAnime.timesWatched.compareTo(i2.libraryAnime.timesWatched)
+                }
                 AnimeLibrarySort.Type.AiringTime -> when {
                     i1.libraryAnime.unseenCount != i2.libraryAnime.unseenCount ->
                         i1.libraryAnime.unseenCount.compareTo(i2.libraryAnime.unseenCount)

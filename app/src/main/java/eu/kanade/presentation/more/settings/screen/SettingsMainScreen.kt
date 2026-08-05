@@ -126,7 +126,7 @@ object SettingsMainScreen : Screen() {
                 ) {
                     itemsIndexed(
                         items = items,
-                        key = { _, item -> item.hashCode() },
+                        key = { _, item -> item.titleRes.hashCode() },
                     ) { index, item ->
                         val selected = indexSelected == index
                         var modifier: Modifier = Modifier
@@ -175,76 +175,80 @@ object SettingsMainScreen : Screen() {
         val screen: VoyagerScreen,
     )
 
-    private val items = listOf(
-        Item(
-            titleRes = MR.strings.pref_category_appearance,
-            subtitleRes = MR.strings.pref_appearance_summary,
-            icon = Icons.Outlined.Palette,
-            screen = SettingsAppearanceScreen,
-        ),
-        Item(
-            titleRes = MR.strings.pref_category_library,
-            subtitleRes = AYMR.strings.pref_library_summary,
-            icon = Icons.Outlined.CollectionsBookmark,
-            screen = SettingsLibraryScreen,
-        ),
-        Item(
-            titleRes = MR.strings.pref_category_reader,
-            subtitleRes = MR.strings.pref_reader_summary,
-            icon = Icons.AutoMirrored.Outlined.ChromeReaderMode,
-            screen = SettingsReaderScreen,
-        ),
-        Item(
-            titleRes = AYMR.strings.label_player,
-            subtitleRes = AYMR.strings.pref_player_settings_summary,
-            icon = Icons.Outlined.VideoSettings,
-            screen = PlayerSettingsScreen(mainSettings = true),
-        ),
-        Item(
-            titleRes = MR.strings.pref_category_downloads,
-            subtitleRes = MR.strings.pref_downloads_summary,
-            icon = Icons.Outlined.GetApp,
-            screen = SettingsDownloadScreen,
-        ),
-        Item(
-            titleRes = MR.strings.pref_category_tracking,
-            subtitleRes = MR.strings.pref_tracking_summary,
-            icon = Icons.Outlined.Sync,
-            screen = SettingsTrackingScreen,
-        ),
-        Item(
-            titleRes = MR.strings.browse,
-            subtitleRes = MR.strings.pref_browse_summary,
-            icon = Icons.Outlined.Explore,
-            screen = SettingsBrowseScreen,
-        ),
-        Item(
-            titleRes = MR.strings.label_data_storage,
-            subtitleRes = MR.strings.pref_backup_summary,
-            icon = Icons.Outlined.Storage,
-            screen = SettingsDataScreen,
-        ),
-        Item(
-            titleRes = MR.strings.pref_category_security,
-            subtitleRes = MR.strings.pref_security_summary,
-            icon = Icons.Outlined.Security,
-            screen = SettingsSecurityScreen,
-        ),
-        Item(
-            titleRes = MR.strings.pref_category_advanced,
-            subtitleRes = MR.strings.pref_advanced_summary,
-            icon = Icons.Outlined.Code,
-            screen = SettingsAdvancedScreen,
-        ),
-        Item(
-            titleRes = MR.strings.pref_category_about,
-            formatSubtitle = {
-                "${stringResource(MR.strings.app_name)} ${AboutScreen.getVersionName(
-                    withBuildDate = false,
-                )}"
-            },
-            icon = Icons.Outlined.Info,
-            screen = AboutScreen,
-        ),
-    )
+    // A computed getter (no backing field) so this list is NOT part of the Screen's serialized
+    // saved-state. Item holds a non-serializable ImageVector + @Composable lambda, which otherwise
+    // crashes (NotSerializableException) when Android saves instance state on app-switch/process-death.
+    private val items: List<Item>
+        get() = listOf(
+            Item(
+                titleRes = MR.strings.pref_category_appearance,
+                subtitleRes = MR.strings.pref_appearance_summary,
+                icon = Icons.Outlined.Palette,
+                screen = SettingsAppearanceScreen,
+            ),
+            Item(
+                titleRes = MR.strings.pref_category_library,
+                subtitleRes = AYMR.strings.pref_library_summary,
+                icon = Icons.Outlined.CollectionsBookmark,
+                screen = SettingsLibraryScreen,
+            ),
+            Item(
+                titleRes = MR.strings.pref_category_reader,
+                subtitleRes = MR.strings.pref_reader_summary,
+                icon = Icons.AutoMirrored.Outlined.ChromeReaderMode,
+                screen = SettingsReaderScreen,
+            ),
+            Item(
+                titleRes = AYMR.strings.label_player,
+                subtitleRes = AYMR.strings.pref_player_settings_summary,
+                icon = Icons.Outlined.VideoSettings,
+                screen = PlayerSettingsScreen(mainSettings = true),
+            ),
+            Item(
+                titleRes = MR.strings.pref_category_downloads,
+                subtitleRes = MR.strings.pref_downloads_summary,
+                icon = Icons.Outlined.GetApp,
+                screen = SettingsDownloadScreen,
+            ),
+            Item(
+                titleRes = MR.strings.pref_category_tracking,
+                subtitleRes = MR.strings.pref_tracking_summary,
+                icon = Icons.Outlined.Sync,
+                screen = SettingsTrackingScreen,
+            ),
+            Item(
+                titleRes = MR.strings.browse,
+                subtitleRes = MR.strings.pref_browse_summary,
+                icon = Icons.Outlined.Explore,
+                screen = SettingsBrowseScreen,
+            ),
+            Item(
+                titleRes = MR.strings.label_data_storage,
+                subtitleRes = MR.strings.pref_backup_summary,
+                icon = Icons.Outlined.Storage,
+                screen = SettingsDataScreen,
+            ),
+            Item(
+                titleRes = MR.strings.pref_category_security,
+                subtitleRes = MR.strings.pref_security_summary,
+                icon = Icons.Outlined.Security,
+                screen = SettingsSecurityScreen,
+            ),
+            Item(
+                titleRes = MR.strings.pref_category_advanced,
+                subtitleRes = MR.strings.pref_advanced_summary,
+                icon = Icons.Outlined.Code,
+                screen = SettingsAdvancedScreen,
+            ),
+            Item(
+                titleRes = MR.strings.pref_category_about,
+                formatSubtitle = {
+                    "${stringResource(MR.strings.app_name)} ${AboutScreen.getVersionName(
+                        withBuildDate = false,
+                    )}"
+                },
+                icon = Icons.Outlined.Info,
+                screen = AboutScreen,
+            ),
+        )
 }

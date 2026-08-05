@@ -326,6 +326,7 @@ private fun AnimeExtensionItem(
         AnimeExtensionItemContent(
             extension = extension,
             installStep = installStep,
+            repoName = item.repoName,
             modifier = Modifier.weight(1f),
         )
     }
@@ -335,6 +336,7 @@ private fun AnimeExtensionItem(
 private fun AnimeExtensionItemContent(
     extension: AnimeExtension,
     installStep: InstallStep,
+    repoName: String?,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -364,6 +366,13 @@ private fun AnimeExtensionItemContent(
                 if (extension.versionName.isNotEmpty()) {
                     Text(
                         text = extension.versionName,
+                    )
+                }
+
+                if (!repoName.isNullOrEmpty()) {
+                    Text(
+                        text = repoName,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
 

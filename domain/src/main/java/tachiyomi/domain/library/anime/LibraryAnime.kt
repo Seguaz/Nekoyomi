@@ -12,6 +12,7 @@ data class LibraryAnime(
     val latestUpload: Long,
     val episodeFetchedAt: Long,
     val lastSeen: Long,
+    val timesWatched: Long,
 ) {
     val id: Long = anime.id
 

@@ -328,6 +328,7 @@ private fun ExtensionItem(
         ExtensionItemContent(
             extension = extension,
             installStep = installStep,
+            repoName = item.repoName,
             modifier = Modifier.weight(1f),
         )
     }
@@ -337,6 +338,7 @@ private fun ExtensionItem(
 private fun ExtensionItemContent(
     extension: MangaExtension,
     installStep: InstallStep,
+    repoName: String?,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -366,6 +368,13 @@ private fun ExtensionItemContent(
                 if (extension.versionName.isNotEmpty()) {
                     Text(
                         text = extension.versionName,
+                    )
+                }
+
+                if (!repoName.isNullOrEmpty()) {
+                    Text(
+                        text = repoName,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
 

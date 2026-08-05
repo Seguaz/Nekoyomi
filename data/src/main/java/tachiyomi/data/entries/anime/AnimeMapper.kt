@@ -113,6 +113,7 @@ object AnimeMapper {
         lastSeen: Long,
         bookmarkCount: Double,
         fillermarkCount: Double,
+        timesWatched: Long,
         category: Long,
     ): LibraryAnime = LibraryAnime(
         anime = mapAnime(
@@ -156,6 +157,7 @@ object AnimeMapper {
         latestUpload = latestUpload,
         episodeFetchedAt = episodeFetchedAt,
         lastSeen = lastSeen,
+        timesWatched = timesWatched,
     )
 
     fun mapSeasonAnime(

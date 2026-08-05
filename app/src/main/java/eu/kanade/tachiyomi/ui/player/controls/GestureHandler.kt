@@ -173,7 +173,7 @@ fun GestureHandler(
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             isLongPressing = true
                             originalSpeed = viewModel.playbackSpeed.value
-                            MPVLib.setPropertyDouble("speed", 2.0)
+                            MPVLib.setPropertyDouble("speed", gesturePreferences.holdSpeed().get().toDouble())
                             viewModel.playerUpdate.update { PlayerUpdates.DoubleSpeed }
                         }
                     },

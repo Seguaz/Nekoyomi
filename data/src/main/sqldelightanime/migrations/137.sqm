@@ -1,3 +1,38 @@
+DROP VIEW IF EXISTS episodestatsView;
+CREATE VIEW episodestatsView AS
+SELECT
+    episodes.anime_id,
+    count(*) AS total,
+    sum(seen) AS seenCount,
+    coalesce(max(episodes.date_upload), 0) AS latestUpload,
+    coalesce(max(episodes.date_fetch), 0) AS fetchedAt,
+    sum(episodes.bookmark) AS bookmarkCount,
+    sum(episodes.fillermark) AS fillermarkCount,
+    coalesce(max(episodes.watch_count), 0) AS timesWatched
+FROM episodes
+GROUP BY episodes.anime_id;
+
+DROP VIEW IF EXISTS animeseasonstatsView;
+CREATE VIEW animeseasonstatsView AS
+SELECT
+    season.parent_id,
+    count(*) AS child_count,
+    sum(CASE WHEN season.fetch_type = 1 AND
+                 coalesce(ES.total, 0) = coalesce(ES.seenCount, 0)
+            THEN 1 ELSE 0 END) AS fully_seen_seasons,
+    max(coalesce(ES.latestUpload, 0)) AS max_latest_upload,
+    max(coalesce(ES.fetchedAt, 0)) AS max_fetched_at,
+    max(coalesce(AHS.lastSeen, 0)) AS max_last_seen,
+    sum(coalesce(ES.bookmarkCount, 0)) AS total_bookmarks,
+    sum(coalesce(ES.fillermarkCount, 0)) AS total_fillermarks,
+    max(coalesce(ES.timesWatched, 0)) AS max_times_watched
+FROM animes season
+LEFT JOIN episodestatsView ES ON season._id = ES.anime_id
+LEFT JOIN animehistorystatsView AHS ON season._id = AHS.anime_id
+WHERE season.parent_id IS NOT NULL
+GROUP BY season.parent_id;
+
+DROP VIEW IF EXISTS animelibView;
 CREATE VIEW animelibView AS
 SELECT
     M.*,
@@ -40,7 +75,3 @@ LEFT JOIN animehistorystatsView AS AHS ON M._id = AHS.anime_id
 LEFT JOIN animes_categories AS MC ON MC.anime_id = M._id
 LEFT JOIN animeseasonstatsView AS ASS ON M._id = ASS.parent_id
 WHERE M.favorite = 1;
-
-animelib:
-SELECT *
-FROM animelibView;

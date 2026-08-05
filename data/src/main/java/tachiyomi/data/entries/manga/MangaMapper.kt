@@ -88,6 +88,7 @@ object MangaMapper {
         chapterFetchedAt: Long,
         lastRead: Long,
         bookmarkCount: Double,
+        timesRead: Long,
         category: Long,
     ): LibraryManga = LibraryManga(
         manga = mapManga(
@@ -123,5 +124,6 @@ object MangaMapper {
         latestUpload = latestUpload,
         chapterFetchedAt = chapterFetchedAt,
         lastRead = lastRead,
+        timesRead = timesRead,
     )
 }

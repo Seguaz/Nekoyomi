@@ -66,6 +66,12 @@ class SourcePreferences(
     fun migrationSourcePriorityAnime() = preferenceStore.getString("migration_source_priority_anime", "")
     fun migrationSourcePriorityManga() = preferenceStore.getString("migration_source_priority_manga", "")
 
+    // Source ids and language codes to SKIP (not search) during migration.
+    fun migrationExcludedSourcesAnime() = preferenceStore.getStringSet("migration_excluded_anime", emptySet())
+    fun migrationExcludedSourcesManga() = preferenceStore.getStringSet("migration_excluded_manga", emptySet())
+    fun migrationExcludedLanguagesAnime() = preferenceStore.getStringSet("migration_excluded_lang_anime", emptySet())
+    fun migrationExcludedLanguagesManga() = preferenceStore.getStringSet("migration_excluded_lang_manga", emptySet())
+
     fun lastUsedAnimeSource() = preferenceStore.getLong(
         Preference.appStateKey("last_anime_catalogue_source"),
         -1,

@@ -40,6 +40,7 @@ data class SeasonAnime(
             latestUpload = latestUpload,
             episodeFetchedAt = fetchedAt,
             lastSeen = lastSeen,
+            timesWatched = 0L,
         )
     }
 }
