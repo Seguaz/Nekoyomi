@@ -2,4 +2,11 @@
 <resources>
     <color name="nekoyomi_icon_background">#1576CB</color>
     <color name="nekoyomi_icon_background_gray">#636363</color>
+    <color name="ic_launcher_invested_background">#C44F4C</color>
+    <color name="ic_launcher_nyaa_background">#5E88F4</color>
+    <color name="ic_launcher_radiactive_background">#52C707</color>
+    <color name="ic_launcher_bye_kitty_background">#0866C8</color>
+    <color name="ic_launcher_barry_allen_background">#262626</color>
+    <color name="ic_launcher_stylish_paws_background">#000000</color>
+    <color name="ic_launcher_chilling_background">#000000</color>
 </resources>

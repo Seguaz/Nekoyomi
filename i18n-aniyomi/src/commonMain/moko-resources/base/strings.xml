@@ -124,7 +124,7 @@
     <string name="pref_player_smooth_seek_summary">When enabled, seeking will not focus on keyframes, leading to slower but precise seeking</string>
     <string name="pref_category_player_hold">Press and hold</string>
     <string name="pref_player_hold_speed">Hold speed</string>
-    <string name="pref_player_hold_speed_info">Press and hold on the video to temporarily play at this speed.</string>
+    <string name="pref_player_hold_speed_info">Press and hold the video to fast-forward, then drag your finger to speed up or slow down.</string>
     <string name="pref_category_double_tap">Double tap</string>
     <string name="pref_left_double_tap">Double tap (left)</string>
     <string name="pref_center_double_tap">Double tap (center)</string>
@@ -426,6 +426,14 @@
     <string name="pref_app_icon">App icon</string>
     <string name="app_icon_default">Default</string>
     <string name="app_icon_grayscale">Grayscale</string>
+    <string name="app_icon_invested">Invested</string>
+    <string name="app_icon_nyaa">Nyaa</string>
+    <string name="app_icon_radiactive">Radioactive</string>
+    <string name="app_icon_bye_kitty">Bye Kitty</string>
+    <string name="app_icon_barry_allen">Barry Allen</string>
+    <string name="app_icon_stylish_paws">Stylish Paws</string>
+    <string name="app_icon_chilling">Chilling</string>
+    <string name="app_icon_credits">Community icons — special thanks to spacedouttosevenone, im.melancholy, weilong0689_52230 and jigglypug 💜</string>
     <string name="pref_category_cover_backdrop">Cover backdrop</string>
     <string name="pref_entry_backdrop_opacity">Blurred backdrop opacity</string>
     <string name="pref_entry_backdrop_blur">Blurred backdrop blur</string>

@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -42,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
@@ -569,7 +571,10 @@ private fun AppIconPreference(
             style = MaterialTheme.typography.titleMedium,
         )
         Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             AppIcon.entries.forEach { icon ->
                 AppIconItem(
                     icon = icon,
@@ -578,6 +583,12 @@ private fun AppIconPreference(
                 )
             }
         }
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = stringResource(AYMR.strings.app_icon_credits),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -591,6 +602,7 @@ private fun AppIconItem(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
+            .width(80.dp)
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(4.dp),
@@ -613,6 +625,8 @@ private fun AppIconItem(
         Text(
             text = stringResource(icon.titleRes),
             style = MaterialTheme.typography.labelMedium,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
             color = if (selected) {
                 MaterialTheme.colorScheme.primary
             } else {

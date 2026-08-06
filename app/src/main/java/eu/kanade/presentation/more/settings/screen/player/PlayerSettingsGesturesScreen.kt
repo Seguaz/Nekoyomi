@@ -1,23 +1,14 @@
 package eu.kanade.presentation.more.settings.screen.player
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -25,8 +16,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.screen.SearchableSettings
 import eu.kanade.tachiyomi.ui.player.SingleActionGesture
@@ -42,7 +31,6 @@ import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
-import kotlin.math.roundToInt
 
 object PlayerSettingsGesturesScreen : SearchableSettings {
 
@@ -147,60 +135,13 @@ object PlayerSettingsGesturesScreen : SearchableSettings {
         return Preference.PreferenceGroup(
             title = stringResource(AYMR.strings.pref_category_player_hold),
             preferenceItems = persistentListOf(
-                Preference.PreferenceItem.CustomPreference(
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = gesturePreferences.holdSpeedEnabled(),
                     title = stringResource(AYMR.strings.pref_player_hold_speed),
-                ) {
-                    HoldSpeedSlider(holdSpeedPreference = gesturePreferences.holdSpeed())
-                },
-                Preference.PreferenceItem.InfoPreference(
-                    title = stringResource(AYMR.strings.pref_player_hold_speed_info),
+                    subtitle = stringResource(AYMR.strings.pref_player_hold_speed_info),
                 ),
             ),
         )
-    }
-
-    /** Continuous, capsule-thumb slider matching the Appearance-screen style (no tick marks). */
-    @Composable
-    private fun HoldSpeedSlider(holdSpeedPreference: tachiyomi.core.common.preference.Preference<Float>) {
-        val savedSpeed by holdSpeedPreference.collectAsState()
-        // Follow the drag live; persist only when the user lets go.
-        var speed by remember(savedSpeed) { mutableFloatStateOf(savedSpeed) }
-        val accent = MaterialTheme.colorScheme.primary
-        val speedLabel = if (speed % 1f == 0f) "${speed.toInt()}x" else "${speed}x"
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 12.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(AYMR.strings.pref_player_hold_speed),
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = speedLabel,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = accent,
-                )
-            }
-            Slider(
-                value = speed,
-                // Snap to 0.1x increments while keeping the bar visually smooth (no steps/ticks).
-                onValueChange = { speed = (it * 10).roundToInt() / 10f },
-                onValueChangeFinished = { holdSpeedPreference.set(speed) },
-                valueRange = 1f..4f,
-                thumb = {
-                    Box(
-                        modifier = Modifier
-                            .size(width = 6.dp, height = 20.dp)
-                            .clip(CircleShape)
-                            .background(accent),
-                    )
-                },
-            )
-        }
     }
 
     @Composable

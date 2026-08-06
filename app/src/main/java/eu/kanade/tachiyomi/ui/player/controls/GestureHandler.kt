@@ -19,6 +19,7 @@ package eu.kanade.tachiyomi.ui.player.controls
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -73,6 +74,13 @@ import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
+private const val HOLD_SPEED_BASE = 2f
+private const val HOLD_SPEED_MIN = 0.25f
+private const val HOLD_SPEED_MAX = 4f
+
+// How much a horizontal drag (in px) changes the hold speed: ~1x per 100px.
+private const val HOLD_SPEED_DRAG_SENSITIVITY = 0.01f
+
 @Composable
 fun GestureHandler(
     viewModel: PlayerViewModel,
@@ -107,7 +115,7 @@ fun GestureHandler(
     val seekGesture by gesturePreferences.gestureHorizontalSeek().collectAsState()
     val preciseSeeking by gesturePreferences.playerSmoothSeek().collectAsState()
     val showSeekbar by gesturePreferences.showSeekBar().collectAsState()
-    var isLongPressing by remember { mutableStateOf(false) }
+    val holdSpeedEnabled by gesturePreferences.holdSpeedEnabled().collectAsState()
     val currentVolume by viewModel.currentVolume.collectAsState()
     val currentMPVVolume by viewModel.currentMPVVolume.collectAsState()
     val currentBrightness by viewModel.currentBrightness.collectAsState()
@@ -119,7 +127,6 @@ fun GestureHandler(
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeGestures)
             .pointerInput(Unit) {
-                var originalSpeed = viewModel.playbackSpeed.value
                 detectTapGestures(
                     onTap = {
                         if (controlsShown) viewModel.hideControls() else viewModel.showControls()
@@ -160,27 +167,45 @@ fun GestureHandler(
                         }
                         interactionSource.emit(press)
                         tryAwaitRelease()
-                        if (isLongPressing) {
-                            isLongPressing = false
-                            MPVLib.setPropertyDouble("speed", originalSpeed.toDouble())
-                            viewModel.playerUpdate.update { PlayerUpdates.None }
-                        }
                         interactionSource.emit(PressInteraction.Release(press))
                     },
-                    onLongPress = {
-                        if (areControlsLocked) return@detectTapGestures
-                        if (!isLongPressing) {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            isLongPressing = true
-                            originalSpeed = viewModel.playbackSpeed.value
-                            MPVLib.setPropertyDouble("speed", gesturePreferences.holdSpeed().get().toDouble())
-                            viewModel.playerUpdate.update { PlayerUpdates.DoubleSpeed }
-                        }
+                )
+            }
+            .pointerInput(areControlsLocked, holdSpeedEnabled) {
+                // Press-and-hold to fast-forward; drag the finger left/right to change speed live.
+                if (areControlsLocked || !holdSpeedEnabled) return@pointerInput
+                var originalSpeed = viewModel.playbackSpeed.value
+                var currentHoldSpeed = HOLD_SPEED_BASE
+                detectDragGesturesAfterLongPress(
+                    onDragStart = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        originalSpeed = viewModel.playbackSpeed.value
+                        currentHoldSpeed = HOLD_SPEED_BASE
+                        MPVLib.setPropertyDouble("speed", currentHoldSpeed.toDouble())
+                        viewModel.updateHoldSpeed(currentHoldSpeed)
+                        viewModel.playerUpdate.update { PlayerUpdates.DoubleSpeed }
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        currentHoldSpeed = (currentHoldSpeed + dragAmount.x * HOLD_SPEED_DRAG_SENSITIVITY)
+                            .coerceIn(HOLD_SPEED_MIN, HOLD_SPEED_MAX)
+                        MPVLib.setPropertyDouble("speed", currentHoldSpeed.toDouble())
+                        viewModel.updateHoldSpeed(currentHoldSpeed)
+                    },
+                    onDragEnd = {
+                        MPVLib.setPropertyDouble("speed", originalSpeed.toDouble())
+                        viewModel.updateHoldSpeed(null)
+                        viewModel.playerUpdate.update { PlayerUpdates.None }
+                    },
+                    onDragCancel = {
+                        MPVLib.setPropertyDouble("speed", originalSpeed.toDouble())
+                        viewModel.updateHoldSpeed(null)
+                        viewModel.playerUpdate.update { PlayerUpdates.None }
                     },
                 )
             }
             .pointerInput(areControlsLocked) {
-                // Two-finger press takes a screenshot (single-finger long-press is 2x speed).
+                // Two-finger press takes a screenshot (single-finger long-press fast-forwards).
                 if (areControlsLocked) return@pointerInput
                 awaitPointerEventScope {
                     var screenshotTriggered = false

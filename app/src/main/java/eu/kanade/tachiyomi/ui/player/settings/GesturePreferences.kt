@@ -24,7 +24,7 @@ class GesturePreferences(
 
     // Press and hold
 
-    fun holdSpeed() = preferenceStore.getFloat("pref_player_hold_speed", 2f)
+    fun holdSpeedEnabled() = preferenceStore.getBoolean("pref_player_hold_speed_enabled", true)
 
     // Double tap
 

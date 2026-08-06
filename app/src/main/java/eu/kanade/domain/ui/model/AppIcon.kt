@@ -16,4 +16,11 @@ enum class AppIcon(
 ) {
     Default("DefaultIcon", AYMR.strings.app_icon_default, R.mipmap.ic_launcher),
     Grayscale("GrayscaleIcon", AYMR.strings.app_icon_grayscale, R.mipmap.ic_launcher_gray),
+    Invested("InvestedIcon", AYMR.strings.app_icon_invested, R.mipmap.ic_launcher_invested),
+    Nyaa("NyaaIcon", AYMR.strings.app_icon_nyaa, R.mipmap.ic_launcher_nyaa),
+    Radiactive("RadiactiveIcon", AYMR.strings.app_icon_radiactive, R.mipmap.ic_launcher_radiactive),
+    ByeKitty("ByeKittyIcon", AYMR.strings.app_icon_bye_kitty, R.mipmap.ic_launcher_bye_kitty),
+    BarryAllen("BarryAllenIcon", AYMR.strings.app_icon_barry_allen, R.mipmap.ic_launcher_barry_allen),
+    StylishPaws("StylishPawsIcon", AYMR.strings.app_icon_stylish_paws, R.mipmap.ic_launcher_stylish_paws),
+    Chilling("ChillingIcon", AYMR.strings.app_icon_chilling, R.mipmap.ic_launcher_chilling),
 }

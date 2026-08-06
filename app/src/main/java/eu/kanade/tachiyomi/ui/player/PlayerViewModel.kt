@@ -250,6 +250,13 @@ class PlayerViewModel @JvmOverloads constructor(
     private val _skipIntroText = MutableStateFlow<String?>(null)
     val skipIntroText = _skipIntroText.asStateFlow()
 
+    // Live speed while the press-and-hold fast-forward gesture is active (null when not holding).
+    private val _holdSpeed = MutableStateFlow<Float?>(null)
+    val holdSpeed = _holdSpeed.asStateFlow()
+    fun updateHoldSpeed(speed: Float?) {
+        _holdSpeed.value = speed
+    }
+
     private val _pos = MutableStateFlow(0f)
     val pos = _pos.asStateFlow()
 

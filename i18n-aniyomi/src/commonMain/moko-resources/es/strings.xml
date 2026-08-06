@@ -68,7 +68,7 @@
     <string name="pref_player_smooth_seek_summary">Cuando está habilitado, la búsqueda no se enfocará en los fotogramas clave, lo que resulta en una búsqueda más lenta pero precisa</string>
     <string name="pref_category_player_hold">Mantener pulsado</string>
     <string name="pref_player_hold_speed">Velocidad al mantener</string>
-    <string name="pref_player_hold_speed_info">Mantén pulsado el vídeo para reproducir temporalmente a esta velocidad.</string>
+    <string name="pref_player_hold_speed_info">Mantén pulsado el vídeo para avanzar rápido y arrastra el dedo para subir o bajar la velocidad.</string>
     <string name="pref_category_double_tap">Pulsación doble</string>
     <string name="pref_left_double_tap">Doble toque (izquierda)</string>
     <string name="pref_center_double_tap">Doble toque (centro)</string>
@@ -240,6 +240,14 @@
     <string name="pref_app_icon">Icono de la aplicación</string>
     <string name="app_icon_default">Predeterminado</string>
     <string name="app_icon_grayscale">Escala de grises</string>
+    <string name="app_icon_invested">Invested</string>
+    <string name="app_icon_nyaa">Nyaa</string>
+    <string name="app_icon_radiactive">Radioactive</string>
+    <string name="app_icon_bye_kitty">Bye Kitty</string>
+    <string name="app_icon_barry_allen">Barry Allen</string>
+    <string name="app_icon_stylish_paws">Stylish Paws</string>
+    <string name="app_icon_chilling">Chilling</string>
+    <string name="app_icon_credits">Iconos de la comunidad — gracias especiales a spacedouttosevenone, im.melancholy, weilong0689_52230 y jigglypug 💜</string>
     <string name="pref_category_cover_backdrop">Fondo de portada</string>
     <string name="pref_entry_backdrop_opacity">Opacidad del fondo difuminado</string>
     <string name="pref_entry_backdrop_blur">Desenfoque del fondo difuminado</string>

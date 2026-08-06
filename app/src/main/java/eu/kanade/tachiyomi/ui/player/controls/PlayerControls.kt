@@ -290,6 +290,7 @@ fun PlayerControls(
                 }
 
                 val currentPlayerUpdate by viewModel.playerUpdate.collectAsState()
+                val liveHoldSpeed by viewModel.holdSpeed.collectAsState()
                 val aspectRatio by playerPreferences.aspectState().collectAsState()
                 LaunchedEffect(currentPlayerUpdate, aspectRatio) {
                     if (currentPlayerUpdate is PlayerUpdates.DoubleSpeed || currentPlayerUpdate is PlayerUpdates.None) {
@@ -309,11 +310,11 @@ fun PlayerControls(
                 ) {
                     when (currentPlayerUpdate) {
                         is PlayerUpdates.DoubleSpeed -> {
-                            val holdSpeed = gesturePreferences.holdSpeed().get()
-                            val speedText = if (holdSpeed % 1f == 0f) {
-                                "${holdSpeed.toInt()}x"
+                            val speed = liveHoldSpeed ?: 2f
+                            val speedText = if (speed % 1f == 0f) {
+                                "${speed.toInt()}x"
                             } else {
-                                "${holdSpeed}x"
+                                "%.1fx".format(speed)
                             }
                             TextPlayerUpdate("$speedText »")
                         }

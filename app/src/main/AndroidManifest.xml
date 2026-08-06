@@ -136,6 +136,90 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
+        <activity-alias
+            android:name=".ui.main.ChillingIcon"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_chilling"
+            android:roundIcon="@mipmap/ic_launcher_chilling_round"
+            android:targetActivity=".ui.main.MainActivity"
+            android:enabled="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".ui.main.InvestedIcon"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_invested"
+            android:roundIcon="@mipmap/ic_launcher_invested_round"
+            android:targetActivity=".ui.main.MainActivity"
+            android:enabled="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".ui.main.NyaaIcon"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_nyaa"
+            android:roundIcon="@mipmap/ic_launcher_nyaa_round"
+            android:targetActivity=".ui.main.MainActivity"
+            android:enabled="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".ui.main.RadiactiveIcon"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_radiactive"
+            android:roundIcon="@mipmap/ic_launcher_radiactive_round"
+            android:targetActivity=".ui.main.MainActivity"
+            android:enabled="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".ui.main.ByeKittyIcon"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_bye_kitty"
+            android:roundIcon="@mipmap/ic_launcher_bye_kitty_round"
+            android:targetActivity=".ui.main.MainActivity"
+            android:enabled="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".ui.main.BarryAllenIcon"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_barry_allen"
+            android:roundIcon="@mipmap/ic_launcher_barry_allen_round"
+            android:targetActivity=".ui.main.MainActivity"
+            android:enabled="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".ui.main.StylishPawsIcon"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_stylish_paws"
+            android:roundIcon="@mipmap/ic_launcher_stylish_paws_round"
+            android:targetActivity=".ui.main.MainActivity"
+            android:enabled="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <activity
             android:name=".crash.CrashActivity"
