@@ -37,9 +37,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.contentDescription
@@ -51,6 +53,10 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import cafe.adriel.voyager.navigator.tab.TabNavigator
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.domain.ui.model.NavTab
@@ -87,6 +93,9 @@ import uy.kohesive.injekt.injectLazy
 /** Scale factor applied to the navigation bar icons (1f = default), set from Appearance settings. */
 private val LocalNavBarIconScale = compositionLocalOf { 1f }
 
+/** Default height of the (floating) navigation bar; the height slider scales this. */
+private val NAV_BAR_BASE_HEIGHT = 80.dp
+
 object HomeScreen : Screen() {
 
     private val librarySearchEvent = Channel<String>()
@@ -102,14 +111,20 @@ object HomeScreen : Screen() {
     @Composable
     override fun Content() {
         val enabledTabs by uiPreferences.bottomNavTabs().collectAsState()
-        val shownTabs = NavTab.shownTabs(enabledTabs)
+        val tabOrder by uiPreferences.bottomNavOrder().collectAsState()
+        val shownTabs = NavTab.shownTabs(enabledTabs, tabOrder)
         val hiddenTabs = NavTab.hidden(enabledTabs).map { it.tab }
         // The start-screen tab may have been hidden; fall back to the first shown tab.
         val homeTab = defaultTab.takeIf { it in shownTabs } ?: shownTabs.first()
         val floatingNavBar by uiPreferences.bottomNavFloating().collectAsState()
         val floatingNavBarAlpha by uiPreferences.bottomNavFloatingAlpha().collectAsState()
+        val floatingNavBarBlur by uiPreferences.bottomNavFloatingBlur().collectAsState()
+        val floatingNavBarHeight by uiPreferences.bottomNavFloatingHeight().collectAsState()
         val hideNavBarLabels by uiPreferences.bottomNavHideLabels().collectAsState()
         val navBarIconScale by uiPreferences.bottomNavIconScale().collectAsState()
+        // Backdrop for the floating nav bar's optional frosted-glass blur.
+        val hazeState = remember { HazeState() }
+        val navBarBlurActive = floatingNavBar && floatingNavBarBlur > 0
         val navigator = LocalNavigator.currentOrThrow
         TabNavigator(
             tab = homeTab,
@@ -141,24 +156,45 @@ object HomeScreen : Screen() {
                                     LocalNavBarIconScale provides navBarIconScale / 100f,
                                 ) {
                                     if (floatingNavBar) {
+                                        // Translucent floating pill: a fill + subtle outline rather
+                                        // than an elevation shadow, which would show through the
+                                        // translucent surface as a grey band and clump at the corners.
+                                        val pillShape = RoundedCornerShape(28.dp)
+                                        val pillAlpha = floatingNavBarAlpha / 100f
+                                        val navBarBlurRadius = floatingNavBarBlur.dp
+                                        val navBarHeight = NAV_BAR_BASE_HEIGHT * (floatingNavBarHeight / 100f)
+                                        // Colors captured here; the Haze effect block is not composable.
+                                        // Blur off: a solid translucent fill at the chosen opacity.
+                                        // Blur on: a lighter tint so the frosted backdrop stays visible.
+                                        val solidTint = MaterialTheme.colorScheme.surfaceContainerHigh
+                                            .copy(alpha = pillAlpha)
+                                        val glassTint = MaterialTheme.colorScheme.surfaceContainerHigh
+                                            .copy(alpha = pillAlpha * 0.5f)
                                         Box(
                                             modifier = Modifier
                                                 .windowInsetsPadding(NavigationBarDefaults.windowInsets)
                                                 .padding(horizontal = 16.dp, vertical = 12.dp),
                                             contentAlignment = Alignment.Center,
                                         ) {
-                                            // Translucent floating pill: a fill + subtle outline rather
-                                            // than an elevation shadow, which would show through the
-                                            // translucent surface as a grey band and clump at the corners.
-                                            val pillShape = RoundedCornerShape(28.dp)
-                                            val pillAlpha = floatingNavBarAlpha / 100f
                                             Box(
                                                 modifier = Modifier
                                                     .matchParentSize()
-                                                    .background(
-                                                        color = MaterialTheme.colorScheme.surfaceContainerHigh
-                                                            .copy(alpha = pillAlpha),
-                                                        shape = pillShape,
+                                                    .clip(pillShape)
+                                                    .then(
+                                                        // Blur on: frost the content scrolling behind
+                                                        // the pill (the fill becomes the glass tint).
+                                                        // Blur off: a plain translucent fill.
+                                                        if (navBarBlurActive) {
+                                                            Modifier.hazeEffect(state = hazeState) {
+                                                                blurRadius = navBarBlurRadius
+                                                                backgroundColor = Color.Transparent
+                                                                tints = listOf(HazeTint(glassTint))
+                                                                fallbackTint = HazeTint(glassTint)
+                                                                noiseFactor = 0f
+                                                            }
+                                                        } else {
+                                                            Modifier.background(color = solidTint)
+                                                        },
                                                     )
                                                     .border(
                                                         width = 1.dp,
@@ -171,6 +207,7 @@ object HomeScreen : Screen() {
                                                 containerColor = Color.Transparent,
                                                 tonalElevation = 0.dp,
                                                 windowInsets = WindowInsets(0),
+                                                barHeight = navBarHeight,
                                             ) {
                                                 shownTabs.fastForEach {
                                                     NavigationBarItem(it, showLabel = !hideNavBarLabels)
@@ -216,7 +253,10 @@ object HomeScreen : Screen() {
                         Box(
                             modifier = Modifier
                                 .padding(boxPadding)
-                                .consumeWindowInsets(boxPadding),
+                                .consumeWindowInsets(boxPadding)
+                                // Source for the floating nav bar's frosted-glass blur; only
+                                // recorded into a layer while the blur is actually enabled.
+                                .then(if (navBarBlurActive) Modifier.hazeSource(hazeState) else Modifier),
                         ) {
                             AnimatedContent(
                                 targetState = tabNavigator.current,

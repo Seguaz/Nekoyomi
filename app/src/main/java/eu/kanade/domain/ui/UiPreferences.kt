@@ -41,12 +41,21 @@ class UiPreferences(
 
     fun bottomNavTabs() = preferenceStore.getStringSet("bottom_nav_tabs", NavTab.DEFAULT)
 
+    // Order of the bottom nav tabs, as a comma-separated list of NavTab prefKeys. Empty = enum order.
+    fun bottomNavOrder() = preferenceStore.getString("bottom_nav_order", "")
+
     fun bottomNavFloating() = preferenceStore.getBoolean("pref_bottom_nav_floating", true)
 
     fun bottomNavHideLabels() = preferenceStore.getBoolean("pref_bottom_nav_hide_labels", true)
 
     // Opacity of the floating nav bar, as a percentage (0 = fully translucent, 100 = solid).
     fun bottomNavFloatingAlpha() = preferenceStore.getInt("pref_bottom_nav_floating_alpha", 81)
+
+    // Backdrop blur radius of the floating nav bar, in dp (0 = off / no blur).
+    fun bottomNavFloatingBlur() = preferenceStore.getInt("pref_bottom_nav_floating_blur", 0)
+
+    // Height of the floating nav bar, as a percentage of the default (100 = default).
+    fun bottomNavFloatingHeight() = preferenceStore.getInt("pref_bottom_nav_floating_height", 100)
 
     // Size of the navigation bar icons, as a percentage (100 = default).
     fun bottomNavIconScale() = preferenceStore.getInt("pref_bottom_nav_icon_scale", 100)

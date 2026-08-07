@@ -236,6 +236,8 @@
     <string name="pref_floating_nav_bar">Barra de navegación flotante</string>
     <string name="pref_floating_nav_bar_summary">Deja que el contenido pase por detrás de una barra de navegación translúcida</string>
     <string name="pref_floating_nav_bar_opacity">Opacidad de la barra de navegación flotante</string>
+    <string name="pref_floating_nav_bar_blur">Desenfoque de la barra de navegación flotante</string>
+    <string name="pref_floating_nav_bar_height">Altura de la barra de navegación flotante</string>
     <string name="pref_nav_bar_icon_size">Tamaño de los iconos de navegación</string>
     <string name="pref_app_icon">Icono de la aplicación</string>
     <string name="app_icon_default">Predeterminado</string>
@@ -276,6 +278,8 @@
     <string name="pref_show_download_size">Mostrar tamaño de descarga</string>
     <string name="pref_show_download_size_summary">Muestra el tamaño en disco de cada capítulo o episodio descargado</string>
     <string name="pref_navigation_style">Estilo de navegación</string>
+    <string name="pref_navigation_style_summary">Elige y reordena las pestañas de la barra inferior</string>
+    <string name="pref_navigation_style_hint">Arrastra para reordenar. Desmarca para mover una pestaña al menú Más. La pestaña Más siempre va al final.</string>
     <string name="pref_library_manga_columns">Manga por fila</string>
     <string name="pref_library_anime_columns">Elementos del anime por fila</string>
     <string name="pref_bottom_nav_no_history">Mover historial a la pestaña Más</string>

@@ -50,15 +50,19 @@ import androidx.core.app.ActivityCompat
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import coil3.compose.AsyncImage
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.domain.ui.model.AppIcon
-import eu.kanade.domain.ui.model.NavTab
 import eu.kanade.domain.ui.model.StartScreen
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
 import eu.kanade.domain.ui.model.setAppCompatDelegateThemeMode
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.screen.appearance.AppLanguageScreen
+import eu.kanade.presentation.more.settings.screen.appearance.NavBarOrderScreen
 import eu.kanade.presentation.more.settings.widget.AppThemeModePreferenceWidget
 import eu.kanade.presentation.more.settings.widget.AppThemePreferenceWidget
 import eu.kanade.tachiyomi.R
@@ -205,12 +209,10 @@ object SettingsAppearanceScreen : SearchableSettings {
                         true
                     },
                 ),
-                Preference.PreferenceItem.MultiSelectListPreference(
-                    preference = uiPreferences.bottomNavTabs(),
-                    entries = NavTab.entries
-                        .associate { it.prefKey to stringResource(it.titleRes) }
-                        .toImmutableMap(),
+                Preference.PreferenceItem.TextPreference(
                     title = stringResource(AYMR.strings.pref_navigation_style),
+                    subtitle = stringResource(AYMR.strings.pref_navigation_style_summary),
+                    onClick = { navigator.push(NavBarOrderScreen()) },
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = uiPreferences.bottomNavFloating(),
@@ -222,9 +224,13 @@ object SettingsAppearanceScreen : SearchableSettings {
                 ) {
                     FloatingNavBarPreference(
                         opacityPreference = floatingNavBarAlphaPref,
+                        blurPreference = uiPreferences.bottomNavFloatingBlur(),
+                        heightPreference = uiPreferences.bottomNavFloatingHeight(),
                         scalePreference = uiPreferences.bottomNavIconScale(),
-                        opacityEnabled = floatingNavBar,
+                        floatingEnabled = floatingNavBar,
                         opacityTitle = stringResource(AYMR.strings.pref_floating_nav_bar_opacity),
+                        blurTitle = stringResource(AYMR.strings.pref_floating_nav_bar_blur),
+                        heightTitle = stringResource(AYMR.strings.pref_floating_nav_bar_height),
                         sizeTitle = stringResource(AYMR.strings.pref_nav_bar_icon_size),
                     )
                 },
@@ -286,15 +292,23 @@ private val DateFormats = listOf(
 @Composable
 private fun FloatingNavBarPreference(
     opacityPreference: tachiyomi.core.common.preference.Preference<Int>,
+    blurPreference: tachiyomi.core.common.preference.Preference<Int>,
+    heightPreference: tachiyomi.core.common.preference.Preference<Int>,
     scalePreference: tachiyomi.core.common.preference.Preference<Int>,
-    opacityEnabled: Boolean,
+    floatingEnabled: Boolean,
     opacityTitle: String,
+    blurTitle: String,
+    heightTitle: String,
     sizeTitle: String,
 ) {
     val savedOpacity by opacityPreference.collectAsState()
+    val savedBlur by blurPreference.collectAsState()
+    val savedHeight by heightPreference.collectAsState()
     val savedScale by scalePreference.collectAsState()
     // Follow the drag live for the preview; persist only when the user lets go.
     var opacity by remember(savedOpacity) { mutableFloatStateOf(savedOpacity.toFloat()) }
+    var blur by remember(savedBlur) { mutableFloatStateOf(savedBlur.toFloat()) }
+    var height by remember(savedHeight) { mutableFloatStateOf(savedHeight.toFloat()) }
     var scale by remember(savedScale) { mutableFloatStateOf(savedScale.toFloat()) }
 
     Column(
@@ -302,7 +316,12 @@ private fun FloatingNavBarPreference(
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 12.dp),
     ) {
-        NavBarOpacityPreview(alpha = opacity / 100f, iconScale = scale / 100f)
+        NavBarOpacityPreview(
+            alpha = opacity / 100f,
+            blur = blur.dp,
+            iconScale = scale / 100f,
+            heightScale = height / 100f,
+        )
 
         Spacer(Modifier.height(16.dp))
 
@@ -311,9 +330,31 @@ private fun FloatingNavBarPreference(
             value = opacity,
             valueRange = 0f..100f,
             valueLabel = "${opacity.roundToInt()}%",
-            enabled = opacityEnabled,
+            enabled = floatingEnabled,
             onValueChange = { opacity = it },
             onValueChangeFinished = { opacityPreference.set(opacity.roundToInt()) },
+        )
+        BackdropSliderRow(
+            title = blurTitle,
+            value = blur,
+            valueRange = 0f..30f,
+            valueLabel = if (blur.roundToInt() == 0) {
+                stringResource(MR.strings.off)
+            } else {
+                "${blur.roundToInt()} dp"
+            },
+            enabled = floatingEnabled,
+            onValueChange = { blur = it },
+            onValueChangeFinished = { blurPreference.set(blur.roundToInt()) },
+        )
+        BackdropSliderRow(
+            title = heightTitle,
+            value = height,
+            valueRange = 70f..130f,
+            valueLabel = "${height.roundToInt()}%",
+            enabled = floatingEnabled,
+            onValueChange = { height = it },
+            onValueChangeFinished = { heightPreference.set(height.roundToInt()) },
         )
         BackdropSliderRow(
             title = sizeTitle,
@@ -487,50 +528,74 @@ private fun BackdropSliderRow(
     )
 }
 
-/** A small live preview of the floating nav bar over faux content, so its opacity + icon size read. */
+/** A small live preview of the floating nav bar over faux content, so its opacity, blur, size + height read. */
 @Composable
-private fun NavBarOpacityPreview(alpha: Float, iconScale: Float) {
+private fun NavBarOpacityPreview(alpha: Float, blur: Dp, iconScale: Float, heightScale: Float) {
     val pillShape = RoundedCornerShape(24.dp)
+    val hazeState = remember { HazeState() }
+    val blurActive = blur > 0.dp
+    // Colors captured here; the Haze effect block below is not composable.
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val solidTint = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = alpha)
+    val glassTint = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = alpha * 0.5f)
+    val borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = alpha)
+    val tileColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(116.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .clip(RoundedCornerShape(16.dp)),
     ) {
-        // Faux library tiles so the pill's translucency reads against real-looking content.
-        Row(
+        // Opaque backdrop + faux library tiles, marked as the blur source so the frosted pill always
+        // has solid content to sample (a transparent source would make the pill vanish).
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .matchParentSize()
+                .then(if (blurActive) Modifier.hazeSource(hazeState) else Modifier)
+                .background(surfaceVariant),
         ) {
-            val tileColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-            repeat(4) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(tileColor),
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                repeat(4) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(tileColor),
+                    )
+                }
             }
         }
 
-        // The floating pill, rendered exactly like the real one (translucent fill + subtle border).
+        // The floating pill: frosted when blur is on (samples the backdrop above), else translucent.
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(12.dp)
                 .fillMaxWidth()
-                .height(48.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = alpha),
-                    shape = pillShape,
+                .height(48.dp * heightScale)
+                .clip(pillShape)
+                .then(
+                    if (blurActive) {
+                        Modifier.hazeEffect(state = hazeState) {
+                            blurRadius = blur
+                            backgroundColor = surfaceVariant
+                            tints = listOf(HazeTint(glassTint))
+                            fallbackTint = HazeTint(solidTint)
+                            noiseFactor = 0f
+                        }
+                    } else {
+                        Modifier.background(color = solidTint)
+                    },
                 )
                 .border(
                     width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = alpha),
+                    color = borderColor,
                     shape = pillShape,
                 ),
             horizontalArrangement = Arrangement.SpaceEvenly,

@@ -50,9 +50,18 @@ enum class NavTab(
         // Matches the previous default (history is moved into the More tab).
         val DEFAULT: Set<String> = setOf(Anime.prefKey, Manga.prefKey, Updates.prefKey, Browse.prefKey)
 
-        /** Tabs shown in the bottom bar, in order, for the given [enabled] set (More is always last). */
-        fun shownTabs(enabled: Set<String>): List<Tab> = buildList {
-            entries.forEach { if (it.prefKey in enabled) add(it.tab) }
+        /**
+         * All tabs sorted by the user's saved [order] (a comma-separated list of prefKeys). Tabs
+         * missing from [order] keep their enum order at the end, so new tabs appear predictably.
+         */
+        fun ordered(order: String): List<NavTab> {
+            val keys = order.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+            return entries.sortedBy { keys.indexOf(it.prefKey).let { i -> if (i < 0) Int.MAX_VALUE else i } }
+        }
+
+        /** Tabs shown in the bottom bar, in the user's [order], for the [enabled] set (More is always last). */
+        fun shownTabs(enabled: Set<String>, order: String): List<Tab> = buildList {
+            ordered(order).forEach { if (it.prefKey in enabled) add(it.tab) }
             add(MoreTab)
         }
 
