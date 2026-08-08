@@ -214,6 +214,7 @@
     <string name="trackers_updated_summary_anime">Rastreadores actualizados al episodio %d</string>
     <string name="download_notifier_download_finish">Descarga finalizada</string>
     <string name="action_hide">Ocultar</string>
+    <string name="action_auto_hide_category">Auto-ocultar al cerrar la app (privada)</string>
     <string name="label_all">Todo</string>
     <string name="label_category">Categoría</string>
     <string name="manga_categories">Categorías de los mangas</string>

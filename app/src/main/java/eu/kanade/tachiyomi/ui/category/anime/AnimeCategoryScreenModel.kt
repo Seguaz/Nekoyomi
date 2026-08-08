@@ -5,9 +5,12 @@ import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.icerock.moko.resources.StringResource
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -46,14 +49,34 @@ class AnimeCategoryScreenModel(
                 getAllCategories.subscribe()
             }
 
-            allCategories.collectLatest { categories ->
-                mutableState.update {
-                    AnimeCategoryScreenState.Success(
-                        categories = categories
-                            .filterNot(Category::isSystemCategory)
-                            .toImmutableList(),
-                    )
-                }
+            combine(
+                allCategories,
+                libraryPreferences.autoHideAnimeCategories().changes(),
+            ) { categories, autoHideIds ->
+                AnimeCategoryScreenState.Success(
+                    categories = categories
+                        .filterNot(Category::isSystemCategory)
+                        .toImmutableList(),
+                    autoHideCategoryIds = autoHideIds
+                        .mapNotNull(String::toLongOrNull)
+                        .toImmutableSet(),
+                )
+            }.collectLatest { newState ->
+                mutableState.update { newState }
+            }
+        }
+    }
+
+    fun toggleAutoHide(category: Category) {
+        screenModelScope.launch {
+            val pref = libraryPreferences.autoHideAnimeCategories()
+            val key = category.id.toString()
+            val current = pref.get()
+            val nowPrivate = key !in current
+            pref.set(if (nowPrivate) current + key else current - key)
+            // Making a category private hides it right away, so it starts hidden.
+            if (nowPrivate && !category.hidden) {
+                hideCategory.await(category)
             }
         }
     }
@@ -152,6 +175,7 @@ sealed interface AnimeCategoryScreenState {
     @Immutable
     data class Success(
         val categories: ImmutableList<Category>,
+        val autoHideCategoryIds: ImmutableSet<Long>,
         val dialog: AnimeCategoryDialog? = null,
     ) : AnimeCategoryScreenState {
 

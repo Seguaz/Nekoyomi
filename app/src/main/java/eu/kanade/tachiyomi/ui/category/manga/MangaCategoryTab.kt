@@ -37,6 +37,7 @@ fun Screen.mangaCategoryTab(): TabContent {
                     state = successState,
                     onClickCreate = { screenModel.showDialog(MangaCategoryDialog.Create) },
                     onClickRename = { screenModel.showDialog(MangaCategoryDialog.Rename(it)) },
+                    onClickToggleAutoHide = screenModel::toggleAutoHide,
                     onClickHide = screenModel::hideCategory,
                     onClickDelete = { screenModel.showDialog(MangaCategoryDialog.Delete(it)) },
                     onChangeOrder = screenModel::changeOrder,

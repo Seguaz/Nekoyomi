@@ -8,6 +8,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ElevatedCard
@@ -28,7 +30,9 @@ import tachiyomi.presentation.core.i18n.stringResource
 @Composable
 fun ReorderableCollectionItemScope.CategoryListItem(
     category: Category,
+    autoHide: Boolean,
     onRename: () -> Unit,
+    onToggleAutoHide: () -> Unit,
     onHide: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -62,6 +66,15 @@ fun ReorderableCollectionItemScope.CategoryListItem(
                     contentDescription = stringResource(MR.strings.action_rename_category),
                 )
             }
+            IconButton(
+                onClick = onToggleAutoHide,
+                content = {
+                    Icon(
+                        imageVector = if (autoHide) Icons.Outlined.Lock else Icons.Outlined.LockOpen,
+                        contentDescription = stringResource(AYMR.strings.action_auto_hide_category),
+                    )
+                },
+            )
             IconButton(
                 onClick = onHide,
                 content = {

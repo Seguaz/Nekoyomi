@@ -71,6 +71,12 @@ class LibraryPreferences(
 
     fun hideHiddenCategoriesSettings() = preferenceStore.getBoolean("hidden_categories", false)
 
+    // "Private" category IDs that are re-hidden whenever the app goes to the background. Anime and
+    // manga categories have separate id spaces, so they're stored separately.
+    fun autoHideAnimeCategories() = preferenceStore.getStringSet("auto_hide_anime_categories", emptySet())
+
+    fun autoHideMangaCategories() = preferenceStore.getStringSet("auto_hide_manga_categories", emptySet())
+
     fun filterIntervalCustom() = preferenceStore.getEnum(
         "pref_filter_library_interval_custom",
         TriState.DISABLED,

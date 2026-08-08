@@ -30,6 +30,7 @@ fun AnimeCategoryScreen(
     state: AnimeCategoryScreenState.Success,
     onClickCreate: () -> Unit,
     onClickRename: (Category) -> Unit,
+    onClickToggleAutoHide: (Category) -> Unit,
     onClickHide: (Category) -> Unit,
     onClickDelete: (Category) -> Unit,
     onChangeOrder: (Category, Int) -> Unit,
@@ -53,9 +54,11 @@ fun AnimeCategoryScreen(
 
         CategoryContent(
             categories = state.categories,
+            autoHideCategoryIds = state.autoHideCategoryIds,
             lazyListState = lazyListState,
             paddingValues = paddingValues,
             onClickRename = onClickRename,
+            onClickToggleAutoHide = onClickToggleAutoHide,
             onClickHide = onClickHide,
             onClickDelete = onClickDelete,
             onChangeOrder = onChangeOrder,
@@ -66,9 +69,11 @@ fun AnimeCategoryScreen(
 @Composable
 private fun CategoryContent(
     categories: List<Category>,
+    autoHideCategoryIds: Set<Long>,
     lazyListState: LazyListState,
     paddingValues: PaddingValues,
     onClickRename: (Category) -> Unit,
+    onClickToggleAutoHide: (Category) -> Unit,
     onClickHide: (Category) -> Unit,
     onClickDelete: (Category) -> Unit,
     onChangeOrder: (Category, Int) -> Unit,
@@ -101,7 +106,9 @@ private fun CategoryContent(
                 CategoryListItem(
                     modifier = Modifier.animateItem(),
                     category = category,
+                    autoHide = category.id in autoHideCategoryIds,
                     onRename = { onClickRename(category) },
+                    onToggleAutoHide = { onClickToggleAutoHide(category) },
                     onHide = { onClickHide(category) },
                     onDelete = { onClickDelete(category) },
                 )

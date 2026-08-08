@@ -1,3 +1,4 @@
+DROP VIEW IF EXISTS animeupdatesView;
 CREATE VIEW animeupdatesView AS
 SELECT
     animes._id AS animeId,
@@ -29,17 +30,3 @@ AND (
     )
 )
 ORDER BY date_fetch DESC;
-
-getRecentAnimeUpdates:
-SELECT *
-FROM animeupdatesView
-WHERE dateUpload > :after
-LIMIT :limit;
-
-getUpdatesBySeenStatus:
-SELECT *
-FROM animeupdatesView
-WHERE seen = :seen
-AND dateUpload > :after
-
-LIMIT :limit;

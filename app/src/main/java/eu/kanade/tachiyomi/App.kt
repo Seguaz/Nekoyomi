@@ -53,6 +53,7 @@ import eu.kanade.tachiyomi.util.system.notify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import logcat.AndroidLogcatLogger
 import logcat.LogPriority
 import logcat.LogcatLogger
@@ -64,6 +65,10 @@ import tachiyomi.core.common.preference.Preference
 import tachiyomi.core.common.preference.PreferenceStore
 import tachiyomi.core.common.util.system.ImageUtil
 import tachiyomi.core.common.util.system.logcat
+import tachiyomi.domain.category.anime.repository.AnimeCategoryRepository
+import tachiyomi.domain.category.manga.repository.MangaCategoryRepository
+import tachiyomi.domain.category.model.CategoryUpdate
+import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.widget.entries.anime.AnimeWidgetManager
 import tachiyomi.presentation.widget.entries.manga.MangaWidgetManager
@@ -76,6 +81,9 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
 
     private val basePreferences: BasePreferences by injectLazy()
     private val networkPreferences: NetworkPreferences by injectLazy()
+    private val libraryPreferences: LibraryPreferences by injectLazy()
+    private val animeCategoryRepository: AnimeCategoryRepository by injectLazy()
+    private val mangaCategoryRepository: MangaCategoryRepository by injectLazy()
 
     private val disableIncognitoReceiver = DisableIncognitoReceiver()
 
@@ -222,6 +230,29 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
 
     override fun onStop(owner: LifecycleOwner) {
         SecureActivityDelegate.onApplicationStopped()
+        reHideAutoHiddenCategories()
+    }
+
+    /**
+     * Re-hides the categories the user marked as "private" whenever the app goes to the background,
+     * so a category that was temporarily revealed is hidden again next time the app is opened.
+     */
+    private fun reHideAutoHiddenCategories() {
+        val animeIds = libraryPreferences.autoHideAnimeCategories().get().mapNotNull(String::toLongOrNull)
+        val mangaIds = libraryPreferences.autoHideMangaCategories().get().mapNotNull(String::toLongOrNull)
+        if (animeIds.isEmpty() && mangaIds.isEmpty()) return
+        ProcessLifecycleOwner.get().lifecycleScope.launch(Dispatchers.IO) {
+            if (animeIds.isNotEmpty()) {
+                animeCategoryRepository.updatePartialAnimeCategories(
+                    animeIds.map { CategoryUpdate(id = it, hidden = true) },
+                )
+            }
+            if (mangaIds.isNotEmpty()) {
+                mangaCategoryRepository.updatePartialMangaCategories(
+                    mangaIds.map { CategoryUpdate(id = it, hidden = true) },
+                )
+            }
+        }
     }
 
     override fun getPackageName(): String {
