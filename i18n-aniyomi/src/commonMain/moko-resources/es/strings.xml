@@ -229,6 +229,7 @@
     <string name="label_anime">Anime</string>
     <string name="label_manga">Manga</string>
     <string name="label_recent_anime_updates">Actualizaciones del anime</string>
+    <string name="label_recent_anime_updates_list">Actualizaciones del anime (lista)</string>
     <string name="label_manga_sources">Fuentes de Manga</string>
     <string name="label_anime_sources">Fuentes de Anime</string>
     <string name="label_watched_duration">Duración de la reproducción</string>
@@ -240,6 +241,8 @@
     <string name="pref_floating_nav_bar_blur">Desenfoque de la barra de navegación flotante</string>
     <string name="pref_floating_nav_bar_height">Altura de la barra de navegación flotante</string>
     <string name="pref_nav_bar_icon_size">Tamaño de los iconos de navegación</string>
+    <string name="pref_library_update_at_time">Actualizar a una hora concreta</string>
+    <string name="pref_library_update_at_time_off">Automática</string>
     <string name="pref_app_icon">Icono de la aplicación</string>
     <string name="app_icon_default">Predeterminado</string>
     <string name="app_icon_grayscale">Escala de grises</string>
@@ -250,6 +253,12 @@
     <string name="app_icon_barry_allen">Barry Allen</string>
     <string name="app_icon_stylish_paws">Stylish Paws</string>
     <string name="app_icon_chilling">Chilling</string>
+    <string name="app_icon_happy">Happy</string>
+    <string name="app_icon_stretch">Stretch</string>
+    <string name="app_icon_ai_notice">Algunos iconos han sido mejorados con IA</string>
+    <string name="app_icon_restart_message">Reinicia la app para ver el nuevo icono.</string>
+    <string name="action_restart_now">Reiniciar ahora</string>
+    <string name="action_restart_later">Más tarde</string>
     <string name="app_icon_credits">Iconos de la comunidad — gracias especiales a spacedouttosevenone, im.melancholy, weilong0689_52230 y jigglypug 💜</string>
     <string name="pref_category_cover_backdrop">Fondo de portada</string>
     <string name="pref_entry_backdrop_opacity">Opacidad del fondo difuminado</string>
@@ -582,4 +591,5 @@
     <string name="pref_download_fillermarked_items">Permitir la descarga de episodios de relleno</string>
     <string name="show_episode_previews">Miniaturas de episodio</string>
     <string name="show_episode_summaries">Resúmenes de episodio</string>
+    <string name="display_grid_view">Vista en cuadrícula (2 columnas)</string>
 </resources>

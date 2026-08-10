@@ -66,6 +66,7 @@ import tachiyomi.i18n.MR
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.File
+import java.time.Duration
 import java.time.Instant
 import java.time.ZonedDateTime
 import java.util.concurrent.CopyOnWriteArrayList
@@ -483,7 +484,10 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
                     .setRequiresBatteryNotLow(true)
                     .build()
 
-                val request = PeriodicWorkRequestBuilder<MangaLibraryUpdateJob>(
+                // Pin the run to a fixed time of day only for 12h-or-longer intervals.
+                val fixedTime = preferences.autoUpdateAtTime().get().takeIf { it in 0..1439 && interval >= 12 }
+
+                val requestBuilder = PeriodicWorkRequestBuilder<MangaLibraryUpdateJob>(
                     interval.toLong(),
                     TimeUnit.HOURS,
                     10,
@@ -493,16 +497,37 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
                     .addTag(WORK_NAME_AUTO)
                     .setConstraints(constraints)
                     .setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.MINUTES)
-                    .build()
+
+                if (fixedTime != null) {
+                    requestBuilder.setInitialDelay(delayUntilTimeOfDay(fixedTime), TimeUnit.MILLISECONDS)
+                }
 
                 context.workManager.enqueueUniquePeriodicWork(
                     WORK_NAME_AUTO,
-                    ExistingPeriodicWorkPolicy.UPDATE,
-                    request,
+                    // Reschedule from scratch when pinned to a time so the initial delay applies;
+                    // otherwise keep the existing schedule to avoid resetting the period each time.
+                    if (fixedTime != null) {
+                        ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE
+                    } else {
+                        ExistingPeriodicWorkPolicy.UPDATE
+                    },
+                    requestBuilder.build(),
                 )
             } else {
                 context.workManager.cancelUniqueWork(WORK_NAME_AUTO)
             }
+        }
+
+        /**
+         * Milliseconds from now until the next occurrence of the given minute of day (0..1439).
+         */
+        private fun delayUntilTimeOfDay(minuteOfDay: Int): Long {
+            val now = ZonedDateTime.now()
+            var next = now.toLocalDate().atStartOfDay(now.zone).plusMinutes(minuteOfDay.toLong())
+            if (!next.isAfter(now)) {
+                next = next.plusDays(1)
+            }
+            return Duration.between(now, next).toMillis()
         }
 
         fun startNow(

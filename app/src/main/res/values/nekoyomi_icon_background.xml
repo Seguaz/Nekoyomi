@@ -9,4 +9,6 @@
     <color name="ic_launcher_barry_allen_background">#262626</color>
     <color name="ic_launcher_stylish_paws_background">#000000</color>
     <color name="ic_launcher_chilling_background">#000000</color>
+    <color name="ic_launcher_happy_background">#0866C8</color>
+    <color name="ic_launcher_stretch_background">#FFFFFF</color>
 </resources>

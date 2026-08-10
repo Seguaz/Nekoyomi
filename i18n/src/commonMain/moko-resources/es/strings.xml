@@ -6,6 +6,7 @@
     <string name="label_library">Biblioteca</string>
     <string name="label_recent_manga">Historial</string>
     <string name="label_recent_updates">Actualizaciones</string>
+    <string name="label_recent_updates_list">Actualizaciones (lista)</string>
     <string name="label_backup">Copia de seguridad y restauración</string>
     <string name="action_settings">Ajustes</string>
     <string name="action_filter">Filtrar</string>

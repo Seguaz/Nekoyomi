@@ -220,6 +220,30 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
+        <activity-alias
+            android:name=".ui.main.HappyIcon"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_happy"
+            android:roundIcon="@mipmap/ic_launcher_happy_round"
+            android:targetActivity=".ui.main.MainActivity"
+            android:enabled="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".ui.main.StretchIcon"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_stretch"
+            android:roundIcon="@mipmap/ic_launcher_stretch_round"
+            android:targetActivity=".ui.main.MainActivity"
+            android:enabled="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <activity
             android:name=".crash.CrashActivity"

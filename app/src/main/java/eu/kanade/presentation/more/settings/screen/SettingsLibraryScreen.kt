@@ -1,5 +1,6 @@
 package eu.kanade.presentation.more.settings.screen
 
+import android.text.format.DateFormat
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
@@ -49,6 +50,8 @@ import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 object SettingsLibraryScreen : SearchableSettings {
 
@@ -165,6 +168,12 @@ object SettingsLibraryScreen : SearchableSettings {
         val autoUpdateIntervalPref = libraryPreferences.autoUpdateInterval()
         val autoUpdateInterval by autoUpdateIntervalPref.collectAsState()
 
+        // Show the fixed-update-time entries in the device's 12h/24h clock format.
+        val is24HourClock = DateFormat.is24HourFormat(context)
+        val updateTimeFormatter = remember(is24HourClock) {
+            DateTimeFormatter.ofPattern(if (is24HourClock) "HH:mm" else "h:mm a")
+        }
+
         val animeAutoUpdateCategoriesPref = libraryPreferences.animeUpdateCategories()
         val animeAutoUpdateCategoriesExcludePref =
             libraryPreferences.animeUpdateCategoriesExclude()
@@ -238,6 +247,27 @@ object SettingsLibraryScreen : SearchableSettings {
                     onValueChanged = {
                         MangaLibraryUpdateJob.setupTask(context, it)
                         AnimeLibraryUpdateJob.setupTask(context, it)
+                        true
+                    },
+                ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = libraryPreferences.autoUpdateAtTime(),
+                    entries = persistentMapOf(
+                        -1 to stringResource(AYMR.strings.pref_library_update_at_time_off),
+                    ).putAll(
+                        (0..23).associate { hour ->
+                            hour * 60 to LocalTime.of(hour, 0).format(updateTimeFormatter)
+                        },
+                    ),
+                    title = stringResource(AYMR.strings.pref_library_update_at_time),
+                    // A specific time of day only makes sense for 12h-or-longer intervals.
+                    enabled = autoUpdateInterval >= 12,
+                    onValueChanged = {
+                        // Post to event looper so the preference is committed before we reschedule.
+                        ContextCompat.getMainExecutor(context).execute {
+                            MangaLibraryUpdateJob.setupTask(context)
+                            AnimeLibraryUpdateJob.setupTask(context)
+                        }
                         true
                     },
                 ),

@@ -36,6 +36,7 @@ import tachiyomi.core.common.preference.TriState
 import tachiyomi.domain.entries.manga.model.Manga
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
+import tachiyomi.presentation.core.components.CheckboxItem
 import tachiyomi.presentation.core.components.LabeledCheckbox
 import tachiyomi.presentation.core.components.RadioItem
 import tachiyomi.presentation.core.components.SortItem
@@ -56,6 +57,7 @@ fun ChapterSettingsDialog(
     onScanlatorFilterClicked: (() -> Unit),
     onSortModeChanged: (Long) -> Unit,
     onDisplayModeChanged: (Long) -> Unit,
+    onChapterGridViewChanged: (Long) -> Unit,
     onSetAsDefault: (applyToExistingManga: Boolean) -> Unit,
     onResetToDefault: () -> Unit,
 ) {
@@ -123,6 +125,8 @@ fun ChapterSettingsDialog(
                     DisplayPage(
                         displayMode = manga?.displayMode ?: 0,
                         onItemSelected = onDisplayModeChanged,
+                        chapterGridView = manga?.chapterGridView() ?: false,
+                        onChapterGridViewChanged = onChapterGridViewChanged,
                     )
                 }
             }
@@ -215,7 +219,15 @@ private fun ColumnScope.SortPage(
 private fun ColumnScope.DisplayPage(
     displayMode: Long,
     onItemSelected: (Long) -> Unit,
+    chapterGridView: Boolean,
+    onChapterGridViewChanged: (Long) -> Unit,
 ) {
+    val gridViewFlag = if (chapterGridView) Manga.CHAPTER_DISPLAY_LIST else Manga.CHAPTER_DISPLAY_GRID
+    CheckboxItem(
+        label = stringResource(AYMR.strings.display_grid_view),
+        checked = chapterGridView,
+        onClick = { onChapterGridViewChanged(gridViewFlag) },
+    )
     listOf(
         MR.strings.show_title to Manga.CHAPTER_DISPLAY_NAME,
         MR.strings.show_chapter_number to Manga.CHAPTER_DISPLAY_NUMBER,

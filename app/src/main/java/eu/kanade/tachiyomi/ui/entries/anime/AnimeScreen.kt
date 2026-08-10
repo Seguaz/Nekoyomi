@@ -285,6 +285,7 @@ class AnimeScreen(
                 onDisplayModeChanged = screenModel::setDisplayMode,
                 onShowPreviewsEnabled = screenModel::showEpisodePreviews,
                 onShowSummariesEnabled = screenModel::showEpisodeSummaries,
+                onEpisodeGridViewChanged = screenModel::setEpisodeGridView,
                 onSetAsDefault = screenModel::setCurrentSettingsAsDefault,
             )
             AnimeScreenModel.Dialog.SeasonSettingsSheet -> SeasonSettingsDialog(

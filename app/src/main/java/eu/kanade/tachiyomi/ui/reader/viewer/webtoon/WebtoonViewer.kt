@@ -103,11 +103,8 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
                         }
                     }
 
-                    val lastIndex = layoutManager.findLastEndVisibleItemPosition()
-                    val lastItem = adapter.items.getOrNull(lastIndex)
-                    if (lastItem is ChapterTransition.Next && lastItem.to == null) {
-                        activity.showMenu()
-                    }
+                    // Reaching the last chapter (to == null) no longer force-shows the menu:
+                    // the system bars popping in shifted the content and felt like a jump.
                 }
             },
         )

@@ -33,6 +33,7 @@ class AnimeWidgetManager(
                 try {
                     AnimeUpdatesGridGlanceWidget().updateAll(this)
                     AnimeUpdatesGridCoverScreenGlanceWidget().updateAll(this)
+                    AnimeUpdatesListGlanceWidget().updateAll(this)
                 } catch (e: Exception) {
                     logcat(LogPriority.ERROR, e) { "Failed to update widget" }
                 }

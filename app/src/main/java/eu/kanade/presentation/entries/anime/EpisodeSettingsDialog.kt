@@ -48,6 +48,7 @@ fun EpisodeSettingsDialog(
     onDisplayModeChanged: (Long) -> Unit,
     onShowPreviewsEnabled: (Long) -> Unit,
     onShowSummariesEnabled: (Long) -> Unit,
+    onEpisodeGridViewChanged: (Long) -> Unit,
     onSetAsDefault: (applyToExistingAnime: Boolean) -> Unit,
 ) {
     var showSetAsDefaultDialog by rememberSaveable { mutableStateOf(false) }
@@ -111,6 +112,8 @@ fun EpisodeSettingsDialog(
                         onShowPreviewsEnabled = onShowPreviewsEnabled,
                         showSummaries = anime?.showSummaries() ?: true,
                         onShowSummariesEnabled = onShowSummariesEnabled,
+                        episodeGridView = anime?.episodeGridView() ?: false,
+                        onEpisodeGridViewChanged = onEpisodeGridViewChanged,
                     )
                 }
             }
@@ -179,7 +182,15 @@ private fun ColumnScope.DisplayPage(
     onShowPreviewsEnabled: (Long) -> Unit,
     showSummaries: Boolean,
     onShowSummariesEnabled: (Long) -> Unit,
+    episodeGridView: Boolean,
+    onEpisodeGridViewChanged: (Long) -> Unit,
 ) {
+    val gridViewFlag = if (episodeGridView) Anime.EPISODE_DISPLAY_LIST else Anime.EPISODE_DISPLAY_GRID
+    CheckboxItem(
+        label = stringResource(AYMR.strings.display_grid_view),
+        checked = episodeGridView,
+        onClick = { onEpisodeGridViewChanged(gridViewFlag) },
+    )
     listOf(
         MR.strings.show_title to Anime.EPISODE_DISPLAY_NAME,
         AYMR.strings.show_episode_number to Anime.EPISODE_DISPLAY_NUMBER,

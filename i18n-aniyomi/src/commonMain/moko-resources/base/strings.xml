@@ -415,6 +415,7 @@
     <string name="label_anime">Anime</string>
     <string name="label_manga">Manga</string>
     <string name="label_recent_anime_updates">Anime Updates</string>
+    <string name="label_recent_anime_updates_list">Anime Updates (list)</string>
     <string name="label_manga_sources">Manga Sources</string>
     <string name="label_anime_sources">Anime Sources</string>
     <string name="label_watched_duration">Watched duration</string>
@@ -426,6 +427,8 @@
     <string name="pref_floating_nav_bar_blur">Floating navigation bar blur</string>
     <string name="pref_floating_nav_bar_height">Floating navigation bar height</string>
     <string name="pref_nav_bar_icon_size">Navigation bar icon size</string>
+    <string name="pref_library_update_at_time">Update at a specific time</string>
+    <string name="pref_library_update_at_time_off">Automatic</string>
     <string name="pref_app_icon">App icon</string>
     <string name="app_icon_default">Default</string>
     <string name="app_icon_grayscale">Grayscale</string>
@@ -436,6 +439,12 @@
     <string name="app_icon_barry_allen">Barry Allen</string>
     <string name="app_icon_stylish_paws">Stylish Paws</string>
     <string name="app_icon_chilling">Chilling</string>
+    <string name="app_icon_happy">Happy</string>
+    <string name="app_icon_stretch">Stretch</string>
+    <string name="app_icon_ai_notice">Some icons were enhanced with AI</string>
+    <string name="app_icon_restart_message">Restart the app to see the new icon.</string>
+    <string name="action_restart_now">Restart now</string>
+    <string name="action_restart_later">Later</string>
     <string name="app_icon_credits">Community icons — special thanks to spacedouttosevenone, im.melancholy, weilong0689_52230 and jigglypug 💜</string>
     <string name="pref_category_cover_backdrop">Cover backdrop</string>
     <string name="pref_entry_backdrop_opacity">Blurred backdrop opacity</string>
@@ -662,4 +671,5 @@
     <string name="pref_download_fillermarked_items">Allow downloading of fillermarked episodes</string>
     <string name="show_episode_previews">Episode thumbnails</string>
     <string name="show_episode_summaries">Episode summaries</string>
+    <string name="display_grid_view">Grid view (2 columns)</string>
 </resources>

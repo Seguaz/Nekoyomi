@@ -253,10 +253,9 @@ abstract class PagerViewer(val activity: ReaderActivity) : Viewer {
         if (toChapter != null) {
             logcat { "Request preload destination chapter because we're on the transition" }
             activity.requestPreloadChapter(toChapter)
-        } else if (transition is ChapterTransition.Next) {
-            // No more chapters, show menu because the user is probably going to close the reader
-            activity.showMenu()
         }
+        // Reaching the last chapter (to == null) no longer force-shows the menu: doing so made
+        // the system bars pop in and shifted the page, which felt like a jump at the very end.
     }
 
     /**

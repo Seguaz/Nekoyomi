@@ -65,6 +65,7 @@ import eu.kanade.presentation.components.relativeDateTimeText
 import eu.kanade.presentation.entries.DownloadAction
 import eu.kanade.presentation.entries.EntryScreenItem
 import eu.kanade.presentation.entries.anime.components.AnimeActionRow
+import eu.kanade.presentation.entries.anime.components.AnimeEpisodeGridItem
 import eu.kanade.presentation.entries.anime.components.AnimeEpisodeListItem
 import eu.kanade.presentation.entries.anime.components.AnimeInfoBox
 import eu.kanade.presentation.entries.anime.components.AnimeSeasonListItem
@@ -322,6 +323,9 @@ private fun AnimeScreenSmallImpl(
     val density = LocalDensity.current
     val offsetGridPaddingPx = with(density) { GRID_PADDING.roundToPx() }
     val gridSize = remember(state.anime) { state.anime.seasonDisplayGridSize }
+    val episodeGridView = remember(state.anime) {
+        state.anime.fetchType == FetchType.Episodes && state.anime.episodeGridView()
+    }
 
     val itemListState = rememberLazyGridState()
 
@@ -457,7 +461,11 @@ private fun AnimeScreenSmallImpl(
                 FastScrollLazyVerticalGrid(
                     modifier = Modifier.fillMaxHeight(),
                     state = itemListState,
-                    columns = if (gridSize == 0) GridCells.Adaptive(128.dp) else GridCells.Fixed(gridSize),
+                    columns = when {
+                        episodeGridView -> GridCells.Fixed(2)
+                        gridSize == 0 -> GridCells.Adaptive(128.dp)
+                        else -> GridCells.Fixed(gridSize)
+                    },
                     contentPadding = PaddingValues(
                         start = GRID_PADDING + contentPadding.calculateStartPadding(layoutDirection),
                         end = GRID_PADDING + contentPadding.calculateEndPadding(layoutDirection),
@@ -590,6 +598,7 @@ private fun AnimeScreenSmallImpl(
                                 isAnyEpisodeSelected = episodes.fastAny { it.selected },
                                 showSummaries = state.showSummaries,
                                 showPreviews = state.showPreviews,
+                                episodeGridView = episodeGridView,
                                 episodeSwipeStartAction = episodeSwipeStartAction,
                                 episodeSwipeEndAction = episodeSwipeEndAction,
                                 onEpisodeClicked = onEpisodeClicked,
@@ -681,6 +690,9 @@ fun AnimeScreenLargeImpl(
     var topBarHeight by remember { mutableIntStateOf(0) }
     val offsetGridPaddingPx = with(density) { GRID_PADDING.roundToPx() }
     val gridSize = remember(state.anime) { state.anime.seasonDisplayGridSize }
+    val episodeGridView = remember(state.anime) {
+        state.anime.fetchType == FetchType.Episodes && state.anime.episodeGridView()
+    }
 
     val itemListState = rememberLazyGridState()
     val hasFilters = remember(state) {
@@ -833,7 +845,11 @@ fun AnimeScreenLargeImpl(
                         FastScrollLazyVerticalGrid(
                             modifier = Modifier.fillMaxHeight(),
                             state = itemListState,
-                            columns = if (gridSize == 0) GridCells.Adaptive(128.dp) else GridCells.Fixed(gridSize),
+                            columns = when {
+                                episodeGridView -> GridCells.Fixed(2)
+                                gridSize == 0 -> GridCells.Adaptive(128.dp)
+                                else -> GridCells.Fixed(gridSize)
+                            },
                             contentPadding = PaddingValues(
                                 start = GRID_PADDING,
                                 end = GRID_PADDING,
@@ -914,6 +930,7 @@ fun AnimeScreenLargeImpl(
                                         isAnyEpisodeSelected = episodes.fastAny { it.selected },
                                         showSummaries = state.showSummaries,
                                         showPreviews = state.showPreviews,
+                                        episodeGridView = episodeGridView,
                                         episodeSwipeStartAction = episodeSwipeStartAction,
                                         episodeSwipeEndAction = episodeSwipeEndAction,
                                         onEpisodeClicked = onEpisodeClicked,
@@ -1020,6 +1037,7 @@ private fun LazyGridScope.sharedEpisodeItems(
     isAnyEpisodeSelected: Boolean,
     showSummaries: Boolean,
     showPreviews: Boolean,
+    episodeGridView: Boolean,
     episodeSwipeStartAction: LibraryPreferences.EpisodeSwipeAction,
     episodeSwipeEndAction: LibraryPreferences.EpisodeSwipeAction,
     onEpisodeClicked: (Episode, Boolean) -> Unit,
@@ -1037,7 +1055,10 @@ private fun LazyGridScope.sharedEpisodeItems(
             }
         },
         contentType = { EntryScreenItem.ITEM },
-        span = { GridItemSpan(maxLineSpan) },
+        // Missing-count rows always span the full width; episodes span a single cell in grid mode.
+        span = { episodeItem ->
+            GridItemSpan(if (episodeGridView && episodeItem is EpisodeList.Item) 1 else maxLineSpan)
+        },
     ) { episodeItem ->
         val haptic = LocalHapticFeedback.current
 
@@ -1049,16 +1070,55 @@ private fun LazyGridScope.sharedEpisodeItems(
                 )
             }
             is EpisodeList.Item -> {
+                val title = if (anime.displayMode == Anime.EPISODE_DISPLAY_NUMBER) {
+                    stringResource(
+                        AYMR.strings.display_mode_episode,
+                        formatEpisodeNumber(episodeItem.episode.episodeNumber),
+                    )
+                } else {
+                    episodeItem.episode.name
+                }
+                val date = relativeDateTimeText(episodeItem.episode.dateUpload)
+                val onItemLongClick: () -> Unit = {
+                    onEpisodeSelected(episodeItem, !episodeItem.selected, true, true)
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                }
+                val onItemClick: () -> Unit = {
+                    onEpisodeItemClick(
+                        episodeItem = episodeItem,
+                        isAnyEpisodeSelected = isAnyEpisodeSelected,
+                        onToggleSelection = { onEpisodeSelected(episodeItem, !episodeItem.selected, true, false) },
+                        onEpisodeClicked = onEpisodeClicked,
+                    )
+                }
+                val onItemDownloadClick: ((EpisodeDownloadAction) -> Unit)? = if (onDownloadEpisode != null) {
+                    { onDownloadEpisode(listOf(episodeItem), it) }
+                } else {
+                    null
+                }
+                if (episodeGridView) {
+                    // Note: no itemModifier here — its negative ignorePadding is for full-width list
+                    // rows and would make the grid cards overlap each other.
+                    AnimeEpisodeGridItem(
+                        title = title,
+                        date = date,
+                        previewUrl = episodeItem.episode.previewUrl,
+                        seen = episodeItem.episode.seen,
+                        bookmark = episodeItem.episode.bookmark,
+                        fillermark = episodeItem.episode.fillermark,
+                        selected = episodeItem.selected,
+                        downloadIndicatorEnabled = !isAnyEpisodeSelected && !anime.isLocal(),
+                        downloadStateProvider = { episodeItem.downloadState },
+                        downloadProgressProvider = { episodeItem.downloadProgress },
+                        onLongClick = onItemLongClick,
+                        onClick = onItemClick,
+                        onDownloadClick = onItemDownloadClick,
+                    )
+                    return@items
+                }
                 AnimeEpisodeListItem(
-                    title = if (anime.displayMode == Anime.EPISODE_DISPLAY_NUMBER) {
-                        stringResource(
-                            AYMR.strings.display_mode_episode,
-                            formatEpisodeNumber(episodeItem.episode.episodeNumber),
-                        )
-                    } else {
-                        episodeItem.episode.name
-                    },
-                    date = relativeDateTimeText(episodeItem.episode.dateUpload),
+                    title = title,
+                    date = date,
                     watchProgress = episodeItem.episode.lastSecondSeen
                         .takeIf { !episodeItem.episode.seen && it > 0L }
                         ?.let {

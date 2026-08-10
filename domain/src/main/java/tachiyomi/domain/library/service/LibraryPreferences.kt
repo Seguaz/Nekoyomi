@@ -39,6 +39,10 @@ class LibraryPreferences(
     fun lastUpdatedTimestamp() = preferenceStore.getLong(Preference.appStateKey("library_update_last_timestamp"), 0L)
     fun autoUpdateInterval() = preferenceStore.getInt("pref_library_update_interval_key", 0)
 
+    // Minute of day (0..1439) at which the auto-update should start, or -1 to let
+    // WorkManager pick the time freely. Only meaningful when the interval is 12h or longer.
+    fun autoUpdateAtTime() = preferenceStore.getInt("pref_library_update_at_time_key", -1)
+
     fun autoUpdateDeviceRestrictions() = preferenceStore.getStringSet(
         "library_update_restriction",
         setOf(

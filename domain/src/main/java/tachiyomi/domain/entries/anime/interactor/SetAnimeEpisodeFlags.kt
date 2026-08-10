@@ -96,6 +96,15 @@ class SetAnimeEpisodeFlags(
         )
     }
 
+    suspend fun awaitSetEpisodeGridView(anime: Anime, flag: Long): Boolean {
+        return animeRepository.updateAnime(
+            AnimeUpdate(
+                id = anime.id,
+                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_DISPLAY_GRID_MASK),
+            ),
+        )
+    }
+
     suspend fun awaitSetAllFlags(
         animeId: Long,
         unseenFilter: Long,

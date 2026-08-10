@@ -36,6 +36,7 @@ class MangaWidgetManager(
                 try {
                     MangaUpdatesGridGlanceWidget().updateAll(this)
                     MangaUpdatesGridCoverScreenGlanceWidget().updateAll(this)
+                    MangaUpdatesListGlanceWidget().updateAll(this)
                 } catch (e: Exception) {
                     logcat(LogPriority.ERROR, e) { "Failed to update widget" }
                 }

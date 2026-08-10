@@ -118,6 +118,13 @@ data class Anime(
         return episodeFlags and EPISODE_SUMMARIES_MASK == EPISODE_SHOW_SUMMARIES
     }
 
+    val episodeGridViewRaw: Long
+        get() = episodeFlags and EPISODE_DISPLAY_GRID_MASK
+
+    fun episodeGridView(): Boolean {
+        return episodeFlags and EPISODE_DISPLAY_GRID_MASK == EPISODE_DISPLAY_GRID
+    }
+
     val seasonDownloadedFilterRaw: Long
         get() = seasonFlags and SEASON_DOWNLOADED_MASK
 
@@ -246,6 +253,10 @@ data class Anime(
         const val EPISODE_SHOW_SUMMARIES = 0x00000000L
         const val EPISODE_SHOW_NOT_SUMMARIES = 0x00001000L
         const val EPISODE_SUMMARIES_MASK = 0x00001000L
+
+        const val EPISODE_DISPLAY_LIST = 0x00000000L
+        const val EPISODE_DISPLAY_GRID = 0x00002000L
+        const val EPISODE_DISPLAY_GRID_MASK = 0x00002000L
 
         const val EPISODE_DISPLAY_NAME = 0x00000000L
         const val EPISODE_DISPLAY_NUMBER = 0x00100000L

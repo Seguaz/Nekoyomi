@@ -23,4 +23,6 @@ enum class AppIcon(
     BarryAllen("BarryAllenIcon", AYMR.strings.app_icon_barry_allen, R.mipmap.ic_launcher_barry_allen),
     StylishPaws("StylishPawsIcon", AYMR.strings.app_icon_stylish_paws, R.mipmap.ic_launcher_stylish_paws),
     Chilling("ChillingIcon", AYMR.strings.app_icon_chilling, R.mipmap.ic_launcher_chilling),
+    Happy("HappyIcon", AYMR.strings.app_icon_happy, R.mipmap.ic_launcher_happy),
+    Stretch("StretchIcon", AYMR.strings.app_icon_stretch, R.mipmap.ic_launcher_stretch),
 }

@@ -72,6 +72,10 @@ data class Manga(
         return chapterFlags and CHAPTER_SORT_DIR_MASK == CHAPTER_SORT_DESC
     }
 
+    fun chapterGridView(): Boolean {
+        return chapterFlags and CHAPTER_DISPLAY_GRID_MASK == CHAPTER_DISPLAY_GRID
+    }
+
     companion object {
         // Generic filter that does not filter anything
         const val SHOW_ALL = 0x00000000L
@@ -101,6 +105,10 @@ data class Manga(
         const val CHAPTER_DISPLAY_NAME = 0x00000000L
         const val CHAPTER_DISPLAY_NUMBER = 0x00100000L
         const val CHAPTER_DISPLAY_MASK = 0x00100000L
+
+        const val CHAPTER_DISPLAY_LIST = 0x00000000L
+        const val CHAPTER_DISPLAY_GRID = 0x00000400L
+        const val CHAPTER_DISPLAY_GRID_MASK = 0x00000400L
 
         fun create() = Manga(
             id = -1L,

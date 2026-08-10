@@ -44,6 +44,15 @@ class SetMangaChapterFlags(
         )
     }
 
+    suspend fun awaitSetChapterGridView(manga: Manga, flag: Long): Boolean {
+        return mangaRepository.updateManga(
+            MangaUpdate(
+                id = manga.id,
+                chapterFlags = manga.chapterFlags.setFlag(flag, Manga.CHAPTER_DISPLAY_GRID_MASK),
+            ),
+        )
+    }
+
     suspend fun awaitSetSortingModeOrFlipOrder(manga: Manga, flag: Long): Boolean {
         val newFlags = manga.chapterFlags.let {
             if (manga.sorting == flag) {

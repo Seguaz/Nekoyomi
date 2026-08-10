@@ -1210,6 +1210,18 @@ class AnimeScreenModel(
         }
     }
 
+    /**
+     * Sets whether the episode list is shown as a grid of cards or a vertical list.
+     * @param flag grid/list display flag.
+     */
+    fun setEpisodeGridView(flag: Long) {
+        val anime = successState?.anime ?: return
+
+        screenModelScope.launchNonCancellable {
+            setAnimeEpisodeFlags.awaitSetEpisodeGridView(anime, flag)
+        }
+    }
+
     fun setCurrentSettingsAsDefault(applyToExisting: Boolean) {
         val anime = successState?.anime ?: return
         screenModelScope.launchNonCancellable {

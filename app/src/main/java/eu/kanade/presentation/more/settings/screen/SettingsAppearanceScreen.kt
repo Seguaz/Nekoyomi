@@ -1,6 +1,7 @@
 package eu.kanade.presentation.more.settings.screen
 
 import android.app.Activity
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,14 +26,17 @@ import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.NewReleases
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,6 +77,7 @@ import kotlinx.collections.immutable.toImmutableMap
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
+import tachiyomi.presentation.core.components.material.SECONDARY_ALPHA
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
@@ -250,9 +255,26 @@ object SettingsAppearanceScreen : SearchableSettings {
                     AppIconPreference(
                         preference = uiPreferences.appIcon(),
                         title = stringResource(AYMR.strings.pref_app_icon),
-                        onIconSelected = { icon ->
+                        onIconSelected = { icon, restartNow ->
+                            // Save the choice; App.onCreate applies it on the next start. Applying
+                            // the alias closes the app (the alias the current task launched from
+                            // gets disabled), so we only do it now when the user asks to restart.
                             uiPreferences.appIcon().set(icon)
-                            AppIconManager.apply(context, icon)
+                            if (restartNow) {
+                                AppIconManager.apply(context, icon)
+                                context.packageManager
+                                    .getLaunchIntentForPackage(context.packageName)
+                                    ?.let {
+                                        it.addFlags(
+                                            Intent.FLAG_ACTIVITY_NEW_TASK or
+                                                Intent.FLAG_ACTIVITY_CLEAR_TASK,
+                                        )
+                                        context.startActivity(it)
+                                        Runtime.getRuntime().exit(0)
+                                    }
+                            } else {
+                                context.toast(MR.strings.requires_app_restart)
+                            }
                         },
                     )
                 },
@@ -623,9 +645,10 @@ private fun NavBarOpacityPreview(alpha: Float, blur: Dp, iconScale: Float, heigh
 private fun AppIconPreference(
     preference: tachiyomi.core.common.preference.Preference<AppIcon>,
     title: String,
-    onIconSelected: (AppIcon) -> Unit,
+    onIconSelected: (AppIcon, restartNow: Boolean) -> Unit,
 ) {
     val selected by preference.collectAsState()
+    var pendingIcon by remember { mutableStateOf<AppIcon?>(null) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -644,7 +667,7 @@ private fun AppIconPreference(
                 AppIconItem(
                     icon = icon,
                     selected = icon == selected,
-                    onClick = { onIconSelected(icon) },
+                    onClick = { pendingIcon = icon },
                 )
             }
         }
@@ -653,6 +676,39 @@ private fun AppIconPreference(
             text = stringResource(AYMR.strings.app_icon_credits),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(AYMR.strings.app_icon_ai_notice),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = SECONDARY_ALPHA),
+        )
+    }
+
+    pendingIcon?.let { icon ->
+        AlertDialog(
+            onDismissRequest = { pendingIcon = null },
+            title = { Text(text = stringResource(icon.titleRes)) },
+            text = { Text(text = stringResource(AYMR.strings.app_icon_restart_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onIconSelected(icon, true)
+                        pendingIcon = null
+                    },
+                ) {
+                    Text(text = stringResource(AYMR.strings.action_restart_now))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        onIconSelected(icon, false)
+                        pendingIcon = null
+                    },
+                ) {
+                    Text(text = stringResource(AYMR.strings.action_restart_later))
+                }
+            },
         )
     }
 }

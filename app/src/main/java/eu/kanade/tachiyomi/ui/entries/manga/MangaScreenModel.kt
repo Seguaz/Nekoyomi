@@ -990,6 +990,18 @@ class MangaScreenModel(
     }
 
     /**
+     * Sets whether the chapter list is shown as a grid of cards or a vertical list.
+     * @param flag grid/list display flag.
+     */
+    fun setChapterGridView(flag: Long) {
+        val manga = successState?.manga ?: return
+
+        screenModelScope.launchNonCancellable {
+            setMangaChapterFlags.awaitSetChapterGridView(manga, flag)
+        }
+    }
+
+    /**
      * Sets the sorting method and requests an UI update.
      * @param sort the sorting mode.
      */

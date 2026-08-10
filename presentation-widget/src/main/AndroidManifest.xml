@@ -30,6 +30,34 @@
         </receiver>
 
         <receiver
+            android:name="tachiyomi.presentation.widget.entries.manga.MangaUpdatesListGlanceReceiver"
+            android:enabled="@bool/glance_appwidget_available"
+            android:exported="false"
+            android:label="@string/label_recent_updates_list">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/updates_list_homescreen_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name="tachiyomi.presentation.widget.entries.anime.AnimeUpdatesListGlanceReceiver"
+            android:enabled="@bool/glance_appwidget_available"
+            android:exported="false"
+            android:label="@string/label_recent_anime_updates_list">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/updates_list_homescreen_widget_info" />
+        </receiver>
+
+        <receiver
             android:name="tachiyomi.presentation.widget.entries.manga.MangaUpdatesGridCoverScreenGlanceReceiver"
             android:enabled="@bool/glance_appwidget_available"
             android:exported="false"

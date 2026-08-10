@@ -1,0 +1,15 @@
+package tachiyomi.presentation.widget.entries.anime
+
+import android.annotation.SuppressLint
+import androidx.compose.ui.unit.dp
+import androidx.glance.ImageProvider
+import androidx.glance.unit.ColorProvider
+import tachiyomi.presentation.widget.R
+
+class AnimeUpdatesListGlanceWidget : BaseAnimeUpdatesListGlanceWidget() {
+    @SuppressLint("RestrictedApi")
+    override val foreground = ColorProvider(R.color.appwidget_on_secondary_container)
+    override val background = ImageProvider(R.drawable.appwidget_background)
+    override val topPadding = 8.dp
+    override val bottomPadding = 8.dp
+}
