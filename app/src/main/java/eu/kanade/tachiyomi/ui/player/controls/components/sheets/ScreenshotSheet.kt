@@ -45,6 +45,9 @@ fun ScreenshotSheet(
     modifier: Modifier = Modifier,
 ) {
     var setArtTypeAs: ArtType? by remember { mutableStateOf(null) }
+    // Shown (instead of a crash / "unknown error") when mpv can't capture a frame — e.g. the video
+    // isn't rendering. takeScreenshot returns null then, so guard the !! with a clear message.
+    val screenshotError = stringResource(AYMR.strings.error_take_screenshot)
 
     PlayerSheet(
         onDismissRequest = onDismissRequest,
@@ -80,7 +83,10 @@ fun ScreenshotSheet(
                     title = stringResource(MR.strings.action_share),
                     icon = Icons.Outlined.Share,
                     onClick = {
-                        onShare { takeScreenshot(cachePath, showSubtitles)!! }
+                        onShare {
+                            takeScreenshot(cachePath, showSubtitles)
+                                ?: throw NullPointerException(screenshotError)
+                        }
                     },
                 )
                 ActionButton(
@@ -88,7 +94,9 @@ fun ScreenshotSheet(
                     title = stringResource(MR.strings.action_save),
                     icon = Icons.Outlined.Save,
                     onClick = {
-                        onSave { takeScreenshot(cachePath, showSubtitles)!! }
+                        onSave {
+                            takeScreenshot(cachePath, showSubtitles) ?: throw NullPointerException(screenshotError)
+                        }
                     },
                 )
             }
@@ -116,10 +124,8 @@ fun ScreenshotSheet(
             modifier = Modifier.fillMaxWidth(fraction = 0.6F).padding(MaterialTheme.padding.medium),
             onConfirmRequest = {
                 onSetAsArt(setArtTypeAs!!) {
-                    takeScreenshot(
-                        cachePath,
-                        showSubtitles,
-                    )!!
+                    takeScreenshot(cachePath, showSubtitles)
+                        ?: throw NullPointerException(screenshotError)
                 }
             },
             onDismissRequest = { setArtTypeAs = null },

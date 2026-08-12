@@ -849,6 +849,7 @@ class ReaderViewModel @JvmOverloads constructor(
                     eventChannel.send(Event.SavedImage(SaveImageResult.Success(uri)))
                 }
             } catch (e: Throwable) {
+                logcat(LogPriority.ERROR, e) { "Failed to save page image" }
                 notifier.onError(e.message)
                 eventChannel.send(Event.SavedImage(SaveImageResult.Error(e)))
             }
