@@ -1,7 +1,6 @@
 package eu.kanade.presentation.more.settings.screen
 
 import android.app.Activity
-import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -256,22 +255,17 @@ object SettingsAppearanceScreen : SearchableSettings {
                         preference = uiPreferences.appIcon(),
                         title = stringResource(AYMR.strings.pref_app_icon),
                         onIconSelected = { icon, restartNow ->
-                            // Save the choice; App.onCreate applies it on the next start. Applying
-                            // the alias closes the app (the alias the current task launched from
-                            // gets disabled), so we only do it now when the user asks to restart.
+                            // Only save the choice here; App.onCreate applies the alias on the next
+                            // start. Applying it now would both close the app (the alias the current
+                            // task launched from gets disabled) and leave getLaunchIntentForPackage
+                            // momentarily null, so the relaunch below wouldn't fire.
                             uiPreferences.appIcon().set(icon)
                             if (restartNow) {
+                                // Switch the launcher alias now. This is the original mechanism that
+                                // actually changes the icon; on some launchers (Samsung) the app
+                                // closes when its alias changes, and App.onCreate re-applies the
+                                // saved icon on the next start regardless.
                                 AppIconManager.apply(context, icon)
-                                context.packageManager
-                                    .getLaunchIntentForPackage(context.packageName)
-                                    ?.let {
-                                        it.addFlags(
-                                            Intent.FLAG_ACTIVITY_NEW_TASK or
-                                                Intent.FLAG_ACTIVITY_CLEAR_TASK,
-                                        )
-                                        context.startActivity(it)
-                                        Runtime.getRuntime().exit(0)
-                                    }
                             } else {
                                 context.toast(MR.strings.requires_app_restart)
                             }
