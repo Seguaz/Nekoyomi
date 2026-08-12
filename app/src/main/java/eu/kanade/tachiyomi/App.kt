@@ -53,7 +53,7 @@ import eu.kanade.tachiyomi.util.system.notify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import logcat.AndroidLogcatLogger
 import logcat.LogPriority
 import logcat.LogcatLogger
@@ -241,7 +241,10 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         val animeIds = libraryPreferences.autoHideAnimeCategories().get().mapNotNull(String::toLongOrNull)
         val mangaIds = libraryPreferences.autoHideMangaCategories().get().mapNotNull(String::toLongOrNull)
         if (animeIds.isEmpty() && mangaIds.isEmpty()) return
-        ProcessLifecycleOwner.get().lifecycleScope.launch(Dispatchers.IO) {
+        // Run synchronously: launching an async IO coroutine here is racy because the process can be
+        // killed right after onStop before the write commits (that's the "sometimes doesn't work").
+        // It's only a few category rows, so the brief main-thread block on backgrounding is fine.
+        runBlocking {
             if (animeIds.isNotEmpty()) {
                 animeCategoryRepository.updatePartialAnimeCategories(
                     animeIds.map { CategoryUpdate(id = it, hidden = true) },
