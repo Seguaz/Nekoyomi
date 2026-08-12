@@ -58,6 +58,10 @@ removeResettedHistory:
 DELETE FROM history
 WHERE last_read = 0;
 
+removeHistoryBefore:
+DELETE FROM history
+WHERE last_read < :threshold AND last_read != 0;
+
 upsert:
 INSERT INTO history(chapter_id, last_read, time_read)
 VALUES (:chapterId, :readAt, :time_read)

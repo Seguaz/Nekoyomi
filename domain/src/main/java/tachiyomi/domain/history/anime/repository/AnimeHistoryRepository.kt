@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import tachiyomi.domain.history.anime.model.AnimeHistory
 import tachiyomi.domain.history.anime.model.AnimeHistoryUpdate
 import tachiyomi.domain.history.anime.model.AnimeHistoryWithRelations
+import java.util.Date
 
 interface AnimeHistoryRepository {
 
@@ -18,6 +19,8 @@ interface AnimeHistoryRepository {
     suspend fun resetHistoryByAnimeId(animeId: Long)
 
     suspend fun deleteAllAnimeHistory(): Boolean
+
+    suspend fun deleteAnimeHistoryBefore(threshold: Date)
 
     suspend fun upsertAnimeHistory(historyUpdate: AnimeHistoryUpdate)
 }

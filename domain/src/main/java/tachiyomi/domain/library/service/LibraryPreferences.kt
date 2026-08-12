@@ -62,6 +62,10 @@ class LibraryPreferences(
 
     fun autoUpdateMetadata() = preferenceStore.getBoolean("auto_update_metadata", false)
 
+    // Number of days after which reading/watching history entries are auto-deleted on startup.
+    // 0 = never (keep history forever).
+    fun autoClearHistoryPeriod() = preferenceStore.getInt("pref_auto_clear_history_period", 0)
+
     fun showContinueViewingButton() =
         preferenceStore.getBoolean("display_continue_reading_button", false)
 

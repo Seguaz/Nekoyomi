@@ -80,6 +80,7 @@ import tachiyomi.domain.storage.service.StoragePreferences
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.TextButton
+import tachiyomi.presentation.core.i18n.pluralStringResource
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
@@ -356,6 +357,18 @@ object SettingsDataScreen : SearchableSettings {
                 Preference.PreferenceItem.SwitchPreference(
                     preference = libraryPreferences.autoClearItemCache(),
                     title = stringResource(AYMR.strings.pref_auto_clear_chapter_cache),
+                ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = libraryPreferences.autoClearHistoryPeriod(),
+                    entries = persistentMapOf(
+                        0 to stringResource(MR.strings.off),
+                        7 to pluralStringResource(MR.plurals.day, 7, 7),
+                        30 to pluralStringResource(MR.plurals.day, 30, 30),
+                        90 to pluralStringResource(MR.plurals.day, 90, 90),
+                        180 to pluralStringResource(MR.plurals.day, 180, 180),
+                        365 to pluralStringResource(MR.plurals.day, 365, 365),
+                    ),
+                    title = stringResource(AYMR.strings.pref_auto_clear_history),
                 ),
             ),
         )

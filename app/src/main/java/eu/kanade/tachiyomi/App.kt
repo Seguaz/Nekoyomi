@@ -63,11 +63,14 @@ import org.conscrypt.Conscrypt
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.preference.Preference
 import tachiyomi.core.common.preference.PreferenceStore
+import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.system.ImageUtil
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.anime.repository.AnimeCategoryRepository
 import tachiyomi.domain.category.manga.repository.MangaCategoryRepository
 import tachiyomi.domain.category.model.CategoryUpdate
+import tachiyomi.domain.history.anime.repository.AnimeHistoryRepository
+import tachiyomi.domain.history.manga.repository.MangaHistoryRepository
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.widget.entries.anime.AnimeWidgetManager
@@ -76,6 +79,7 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
 import java.security.Security
+import java.util.Date
 
 class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factory {
 
@@ -84,6 +88,8 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
     private val libraryPreferences: LibraryPreferences by injectLazy()
     private val animeCategoryRepository: AnimeCategoryRepository by injectLazy()
     private val mangaCategoryRepository: MangaCategoryRepository by injectLazy()
+    private val animeHistoryRepository: AnimeHistoryRepository by injectLazy()
+    private val mangaHistoryRepository: MangaHistoryRepository by injectLazy()
 
     private val disableIncognitoReceiver = DisableIncognitoReceiver()
 
@@ -117,6 +123,8 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         AppIconManager.apply(this, Injekt.get<UiPreferences>().appIcon().get())
 
         setupNotificationChannels()
+
+        clearOldHistory()
 
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
 
@@ -258,6 +266,20 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         }
     }
 
+    /**
+     * On startup, deletes reading/watching history entries older than the user-chosen retention
+     * period (0 = keep forever). Runs off the main thread; failures are non-fatal.
+     */
+    private fun clearOldHistory() {
+        val days = libraryPreferences.autoClearHistoryPeriod().get()
+        if (days <= 0) return
+        ProcessLifecycleOwner.get().lifecycleScope.launchIO {
+            val threshold = Date(System.currentTimeMillis() - days.toLong() * MILLIS_IN_A_DAY)
+            animeHistoryRepository.deleteAnimeHistoryBefore(threshold)
+            mangaHistoryRepository.deleteMangaHistoryBefore(threshold)
+        }
+    }
+
     override fun getPackageName(): String {
         try {
             // Override the value passed as X-Requested-With in WebView requests
@@ -311,3 +333,5 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
 }
 
 private const val ACTION_DISABLE_INCOGNITO_MODE = "tachi.action.DISABLE_INCOGNITO_MODE"
+
+private const val MILLIS_IN_A_DAY = 86_400_000L

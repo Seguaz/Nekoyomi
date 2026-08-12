@@ -8,6 +8,7 @@ import tachiyomi.domain.history.manga.model.MangaHistory
 import tachiyomi.domain.history.manga.model.MangaHistoryUpdate
 import tachiyomi.domain.history.manga.model.MangaHistoryWithRelations
 import tachiyomi.domain.history.manga.repository.MangaHistoryRepository
+import java.util.Date
 
 class MangaHistoryRepositoryImpl(
     private val handler: MangaDatabaseHandler,
@@ -56,6 +57,14 @@ class MangaHistoryRepositoryImpl(
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, throwable = e)
             false
+        }
+    }
+
+    override suspend fun deleteMangaHistoryBefore(threshold: Date) {
+        try {
+            handler.await { historyQueries.removeHistoryBefore(threshold) }
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, throwable = e)
         }
     }
 

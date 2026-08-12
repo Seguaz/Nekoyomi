@@ -55,6 +55,10 @@ removeResettedHistory:
 DELETE FROM animehistory
 WHERE last_seen = 0;
 
+removeHistoryBefore:
+DELETE FROM animehistory
+WHERE last_seen < :threshold AND last_seen != 0;
+
 upsert:
 INSERT INTO animehistory(episode_id, last_seen)
 VALUES (:episodeId, :seenAt)

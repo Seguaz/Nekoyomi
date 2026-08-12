@@ -8,6 +8,7 @@ import tachiyomi.domain.history.anime.model.AnimeHistory
 import tachiyomi.domain.history.anime.model.AnimeHistoryUpdate
 import tachiyomi.domain.history.anime.model.AnimeHistoryWithRelations
 import tachiyomi.domain.history.anime.repository.AnimeHistoryRepository
+import java.util.Date
 
 class AnimeHistoryRepositoryImpl(
     private val handler: AnimeDatabaseHandler,
@@ -57,6 +58,14 @@ class AnimeHistoryRepositoryImpl(
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, throwable = e)
             false
+        }
+    }
+
+    override suspend fun deleteAnimeHistoryBefore(threshold: Date) {
+        try {
+            handler.await { animehistoryQueries.removeHistoryBefore(threshold) }
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, throwable = e)
         }
     }
 
