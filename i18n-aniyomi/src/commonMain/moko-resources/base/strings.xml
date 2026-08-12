@@ -441,6 +441,7 @@
     <string name="app_icon_chilling">Chilling</string>
     <string name="app_icon_happy">Happy</string>
     <string name="app_icon_stretch">Stretch</string>
+    <string name="app_icon_napping">Napping</string>
     <string name="app_icon_ai_notice">Some icons were enhanced with AI</string>
     <string name="app_icon_restart_message">Restart the app to see the new icon.</string>
     <string name="action_restart_now">Restart now</string>

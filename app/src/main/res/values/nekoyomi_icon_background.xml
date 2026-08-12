@@ -11,4 +11,5 @@
     <color name="ic_launcher_chilling_background">#000000</color>
     <color name="ic_launcher_happy_background">#0866C8</color>
     <color name="ic_launcher_stretch_background">#FFFFFF</color>
+    <color name="ic_launcher_napping_background">#000000</color>
 </resources>

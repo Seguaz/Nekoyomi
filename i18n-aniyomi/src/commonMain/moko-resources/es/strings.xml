@@ -255,6 +255,7 @@
     <string name="app_icon_chilling">Chilling</string>
     <string name="app_icon_happy">Happy</string>
     <string name="app_icon_stretch">Stretch</string>
+    <string name="app_icon_napping">Napping</string>
     <string name="app_icon_ai_notice">Algunos iconos han sido mejorados con IA</string>
     <string name="app_icon_restart_message">Reinicia la app para ver el nuevo icono.</string>
     <string name="action_restart_now">Reiniciar ahora</string>

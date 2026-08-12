@@ -25,4 +25,5 @@ enum class AppIcon(
     Chilling("ChillingIcon", AYMR.strings.app_icon_chilling, R.mipmap.ic_launcher_chilling),
     Happy("HappyIcon", AYMR.strings.app_icon_happy, R.mipmap.ic_launcher_happy),
     Stretch("StretchIcon", AYMR.strings.app_icon_stretch, R.mipmap.ic_launcher_stretch),
+    Napping("NappingIcon", AYMR.strings.app_icon_napping, R.mipmap.ic_launcher_napping),
 }
