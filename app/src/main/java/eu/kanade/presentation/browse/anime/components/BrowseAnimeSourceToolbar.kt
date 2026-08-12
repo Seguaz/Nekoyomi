@@ -36,6 +36,8 @@ fun BrowseAnimeSourceToolbar(
     onHelpClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onSearch: (String) -> Unit,
+    incognitoMode: Boolean = false,
+    onToggleIncognito: (() -> Unit)? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
     // Avoid capturing unstable source in actions lambda
@@ -87,6 +89,17 @@ fun BrowseAnimeSourceToolbar(
                                 AppBar.OverflowAction(
                                     title = stringResource(MR.strings.action_settings),
                                     onClick = onSettingsClick,
+                                ),
+                            )
+                        }
+                        if (onToggleIncognito != null) {
+                            add(
+                                AppBar.OverflowAction(
+                                    // Leading check marks it as active, since overflow items can't
+                                    // show a real checkbox.
+                                    title = (if (incognitoMode) "✓ " else "") +
+                                        stringResource(MR.strings.pref_incognito_mode),
+                                    onClick = onToggleIncognito,
                                 ),
                             )
                         }

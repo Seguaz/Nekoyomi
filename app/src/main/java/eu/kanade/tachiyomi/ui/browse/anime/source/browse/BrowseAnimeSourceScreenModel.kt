@@ -17,6 +17,7 @@ import eu.kanade.core.preference.asState
 import eu.kanade.domain.entries.anime.interactor.UpdateAnime
 import eu.kanade.domain.entries.anime.model.toDomainAnime
 import eu.kanade.domain.source.anime.interactor.GetAnimeIncognitoState
+import eu.kanade.domain.source.anime.interactor.ToggleAnimeIncognito
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.track.anime.interactor.AddAnimeTracks
 import eu.kanade.presentation.util.ioCoroutineScope
@@ -24,6 +25,7 @@ import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
 import eu.kanade.tachiyomi.data.cache.AnimeBackgroundCache
 import eu.kanade.tachiyomi.data.cache.AnimeCoverCache
+import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
 import eu.kanade.tachiyomi.util.removeBackgrounds
 import eu.kanade.tachiyomi.util.removeCovers
 import kotlinx.collections.immutable.ImmutableList
@@ -33,7 +35,9 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -77,7 +81,7 @@ class BrowseAnimeSourceScreenModel(
     private val sourceId: Long,
     listingQuery: String?,
     sourceManager: AnimeSourceManager = Injekt.get(),
-    sourcePreferences: SourcePreferences = Injekt.get(),
+    private val sourcePreferences: SourcePreferences = Injekt.get(),
     private val libraryPreferences: LibraryPreferences = Injekt.get(),
     private val coverCache: AnimeCoverCache = Injekt.get(),
     private val backgroundCache: AnimeBackgroundCache = Injekt.get(),
@@ -91,11 +95,16 @@ class BrowseAnimeSourceScreenModel(
     private val updateAnime: UpdateAnime = Injekt.get(),
     private val addTracks: AddAnimeTracks = Injekt.get(),
     private val getIncognitoState: GetAnimeIncognitoState = Injekt.get(),
+    private val toggleIncognitoInteractor: ToggleAnimeIncognito = Injekt.get(),
+    private val extensionManager: AnimeExtensionManager = Injekt.get(),
 ) : StateScreenModel<BrowseAnimeSourceScreenModel.State>(State(Listing.valueOf(listingQuery))) {
 
     var displayMode by sourcePreferences.sourceDisplayMode().asState(screenModelScope)
 
     val source = sourceManager.getOrStub(sourceId)
+
+    /** Extension package of this source, or null (local/stub) — needed to toggle per-source incognito. */
+    val extensionPackage = extensionManager.getExtensionPackage(sourceId)
 
     init {
         if (source is AnimeCatalogueSource) {
@@ -119,6 +128,20 @@ class BrowseAnimeSourceScreenModel(
         if (!getIncognitoState.await(source.id)) {
             sourcePreferences.lastUsedAnimeSource().set(source.id)
         }
+
+        getIncognitoState.subscribe(source.id)
+            .onEach { incognito -> mutableState.update { it.copy(incognitoMode = incognito) } }
+            .launchIn(screenModelScope)
+    }
+
+    /**
+     * Toggles incognito mode for THIS source's extension (adds/removes it from the incognito set),
+     * so it can be flipped straight from the browse toolbar. No-op for sources without an extension.
+     */
+    fun toggleIncognito() {
+        val extensionPackage = extensionPackage ?: return
+        val enabled = extensionPackage in sourcePreferences.incognitoAnimeExtensions().get()
+        toggleIncognitoInteractor.await(extensionPackage, !enabled)
     }
 
     /**
@@ -388,6 +411,7 @@ class BrowseAnimeSourceScreenModel(
         val filters: AnimeFilterList = AnimeFilterList(),
         val toolbarQuery: String? = null,
         val dialog: Dialog? = null,
+        val incognitoMode: Boolean = false,
     ) {
         val isUserQuery get() = listing is Listing.Search && !listing.query.isNullOrEmpty()
     }

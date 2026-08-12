@@ -17,10 +17,12 @@ import eu.kanade.core.preference.asState
 import eu.kanade.domain.entries.manga.interactor.UpdateManga
 import eu.kanade.domain.entries.manga.model.toDomainManga
 import eu.kanade.domain.source.manga.interactor.GetMangaIncognitoState
+import eu.kanade.domain.source.manga.interactor.ToggleMangaIncognito
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.track.manga.interactor.AddMangaTracks
 import eu.kanade.presentation.util.ioCoroutineScope
 import eu.kanade.tachiyomi.data.cache.MangaCoverCache
+import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import eu.kanade.tachiyomi.source.CatalogueSource
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.util.removeCovers
@@ -31,7 +33,9 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -75,7 +79,7 @@ class BrowseMangaSourceScreenModel(
     private val sourceId: Long,
     listingQuery: String?,
     sourceManager: MangaSourceManager = Injekt.get(),
-    sourcePreferences: SourcePreferences = Injekt.get(),
+    private val sourcePreferences: SourcePreferences = Injekt.get(),
     private val libraryPreferences: LibraryPreferences = Injekt.get(),
     private val coverCache: MangaCoverCache = Injekt.get(),
     private val getRemoteManga: GetRemoteManga = Injekt.get(),
@@ -88,11 +92,16 @@ class BrowseMangaSourceScreenModel(
     private val updateManga: UpdateManga = Injekt.get(),
     private val addTracks: AddMangaTracks = Injekt.get(),
     private val getIncognitoState: GetMangaIncognitoState = Injekt.get(),
+    private val toggleIncognitoInteractor: ToggleMangaIncognito = Injekt.get(),
+    private val extensionManager: MangaExtensionManager = Injekt.get(),
 ) : StateScreenModel<BrowseMangaSourceScreenModel.State>(State(Listing.valueOf(listingQuery))) {
 
     var displayMode by sourcePreferences.sourceDisplayMode().asState(screenModelScope)
 
     val source = sourceManager.getOrStub(sourceId)
+
+    /** Extension package of this source, or null (local/stub) — needed to toggle per-source incognito. */
+    val extensionPackage = extensionManager.getExtensionPackage(sourceId)
 
     init {
         if (source is CatalogueSource) {
@@ -116,6 +125,20 @@ class BrowseMangaSourceScreenModel(
         if (!getIncognitoState.await(source.id)) {
             sourcePreferences.lastUsedMangaSource().set(source.id)
         }
+
+        getIncognitoState.subscribe(source.id)
+            .onEach { incognito -> mutableState.update { it.copy(incognitoMode = incognito) } }
+            .launchIn(screenModelScope)
+    }
+
+    /**
+     * Toggles incognito mode for THIS source's extension (adds/removes it from the incognito set),
+     * so it can be flipped straight from the browse toolbar. No-op for sources without an extension.
+     */
+    fun toggleIncognito() {
+        val extensionPackage = extensionPackage ?: return
+        val enabled = extensionPackage in sourcePreferences.incognitoMangaExtensions().get()
+        toggleIncognitoInteractor.await(extensionPackage, !enabled)
     }
 
     /**
@@ -380,6 +403,7 @@ class BrowseMangaSourceScreenModel(
         val filters: FilterList = FilterList(),
         val toolbarQuery: String? = null,
         val dialog: Dialog? = null,
+        val incognitoMode: Boolean = false,
     ) {
         val isUserQuery get() = listing is Listing.Search && !listing.query.isNullOrEmpty()
     }

@@ -146,6 +146,9 @@ data class BrowseMangaSourceScreen(
                         onHelpClick = onHelpClick,
                         onSettingsClick = { navigator.push(MangaSourcePreferencesScreen(sourceId)) },
                         onSearch = screenModel::search,
+                        incognitoMode = state.incognitoMode,
+                        onToggleIncognito = screenModel::toggleIncognito
+                            .takeIf { screenModel.extensionPackage != null },
                     )
 
                     Row(

@@ -147,6 +147,9 @@ data class BrowseAnimeSourceScreen(
                         onHelpClick = onHelpClick,
                         onSettingsClick = { navigator.push(AnimeSourcePreferencesScreen(sourceId)) },
                         onSearch = screenModel::search,
+                        incognitoMode = state.incognitoMode,
+                        onToggleIncognito = screenModel::toggleIncognito
+                            .takeIf { screenModel.extensionPackage != null },
                     )
 
                     Row(
