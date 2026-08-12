@@ -8,6 +8,8 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.browse.anime.MigrateAnimeSearchScreen
 import eu.kanade.presentation.util.Screen
+import eu.kanade.tachiyomi.ui.browse.anime.migration.search.AnimeMigrateSearchScreenDialogScreenModel
+import eu.kanade.tachiyomi.ui.browse.anime.migration.search.AnimeSourceSearchScreen
 import eu.kanade.tachiyomi.ui.browse.anime.migration.search.MigrateAnimeSearchScreenModel
 import eu.kanade.tachiyomi.ui.browse.migration.MigrationSourcePriorityScreen
 import eu.kanade.tachiyomi.ui.entries.anime.AnimeScreen
@@ -26,6 +28,9 @@ class MigrateAnimeSearchSelectScreen(private val oldAnimeId: Long) : Screen() {
         val screenModel = rememberScreenModel { MigrateAnimeSearchScreenModel(animeId = oldAnimeId) }
         val state by screenModel.state.collectAsState()
 
+        val dialogScreenModel = rememberScreenModel { AnimeMigrateSearchScreenDialogScreenModel(animeId = oldAnimeId) }
+        val dialogState by dialogScreenModel.state.collectAsState()
+
         MigrateAnimeSearchScreen(
             state = state,
             fromSourceId = state.fromSourceId,
@@ -36,8 +41,13 @@ class MigrateAnimeSearchSelectScreen(private val oldAnimeId: Long) : Screen() {
             onChangeSearchFilter = screenModel::setSourceFilter,
             onToggleResults = screenModel::toggleFilterResults,
             onClickSource = {
-                // Drilling into a full source browse isn't supported in select mode; results shown
-                // in the global search rows cover the common case and the query can be refined.
+                // Open the full browse for that source in "select" mode: picking a result there
+                // reports back to the migration list via the bus (see AnimeSourceSearchScreen).
+                dialogState.anime?.let { anime ->
+                    navigator.push(
+                        AnimeSourceSearchScreen(anime, it.id, state.searchQuery, selectMode = true),
+                    )
+                }
             },
             onClickItem = { anime ->
                 AnimeMigrationSelectionBus.select(oldAnimeId, anime)

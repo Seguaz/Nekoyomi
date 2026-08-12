@@ -23,6 +23,8 @@ import eu.kanade.presentation.components.SearchToolbar
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.core.common.Constants
 import eu.kanade.tachiyomi.source.online.HttpSource
+import eu.kanade.tachiyomi.ui.browse.manga.migration.advanced.MangaMigrationSelectionBus
+import eu.kanade.tachiyomi.ui.browse.manga.migration.advanced.MigrateMangaListScreen
 import eu.kanade.tachiyomi.ui.browse.manga.source.browse.BrowseMangaSourceScreenModel
 import eu.kanade.tachiyomi.ui.browse.manga.source.browse.SourceFilterMangaDialog
 import eu.kanade.tachiyomi.ui.entries.manga.MangaScreen
@@ -42,6 +44,9 @@ data class MangaSourceSearchScreen(
     private val oldManga: Manga,
     private val sourceId: Long,
     private val query: String?,
+    // When true (mass-migration "select" flow), picking an entry reports it back to the migration
+    // list via [MangaMigrationSelectionBus] instead of migrating immediately.
+    private val selectMode: Boolean = false,
 ) : Screen() {
 
     @Composable
@@ -84,6 +89,14 @@ data class MangaSourceSearchScreen(
             val openMigrateDialog: (Manga) -> Unit = {
                 screenModel.setDialog(BrowseMangaSourceScreenModel.Dialog.Migrate(newManga = it, oldManga = oldManga))
             }
+            val onClickManga: (Manga) -> Unit = if (selectMode) {
+                { manga ->
+                    MangaMigrationSelectionBus.select(oldManga.id, manga)
+                    navigator.popUntil { it is MigrateMangaListScreen }
+                }
+            } else {
+                openMigrateDialog
+            }
             BrowseSourceContent(
                 source = screenModel.source,
                 mangaList = screenModel.mangaPagerFlowFlow.collectAsLazyPagingItems(),
@@ -103,7 +116,7 @@ data class MangaSourceSearchScreen(
                 },
                 onHelpClick = { uriHandler.openUri(Constants.URL_HELP) },
                 onLocalSourceHelpClick = { uriHandler.openUri(LocalMangaSource.HELP_URL) },
-                onMangaClick = openMigrateDialog,
+                onMangaClick = onClickManga,
                 onMangaLongClick = { navigator.push(MangaScreen(it.id, true)) },
             )
         }

@@ -23,6 +23,8 @@ import eu.kanade.presentation.components.SearchToolbar
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.core.common.Constants
+import eu.kanade.tachiyomi.ui.browse.anime.migration.advanced.AnimeMigrationSelectionBus
+import eu.kanade.tachiyomi.ui.browse.anime.migration.advanced.MigrateAnimeListScreen
 import eu.kanade.tachiyomi.ui.browse.anime.migration.anime.season.MigrateSeasonSelectScreen
 import eu.kanade.tachiyomi.ui.browse.anime.source.browse.BrowseAnimeSourceScreenModel
 import eu.kanade.tachiyomi.ui.browse.anime.source.browse.SourceFilterAnimeDialog
@@ -43,6 +45,9 @@ data class AnimeSourceSearchScreen(
     private val oldAnime: Anime,
     private val sourceId: Long,
     private val query: String?,
+    // When true (mass-migration "select" flow), picking an entry reports it back to the migration
+    // list via [AnimeMigrationSelectionBus] instead of migrating immediately.
+    private val selectMode: Boolean = false,
 ) : Screen() {
 
     @Composable
@@ -85,6 +90,14 @@ data class AnimeSourceSearchScreen(
             val openMigrateDialog: (Anime) -> Unit = {
                 screenModel.setDialog(BrowseAnimeSourceScreenModel.Dialog.Migrate(newAnime = it, oldAnime = oldAnime))
             }
+            val onClickAnime: (Anime) -> Unit = if (selectMode) {
+                { anime ->
+                    AnimeMigrationSelectionBus.select(oldAnime.id, anime)
+                    navigator.popUntil { it is MigrateAnimeListScreen }
+                }
+            } else {
+                openMigrateDialog
+            }
             BrowseAnimeSourceContent(
                 source = screenModel.source,
                 animeList = screenModel.animePagerFlowFlow.collectAsLazyPagingItems(),
@@ -104,7 +117,7 @@ data class AnimeSourceSearchScreen(
                 },
                 onHelpClick = { uriHandler.openUri(Constants.URL_HELP) },
                 onLocalAnimeSourceHelpClick = { uriHandler.openUri(LocalAnimeSource.HELP_URL) },
-                onAnimeClick = openMigrateDialog,
+                onAnimeClick = onClickAnime,
                 onAnimeLongClick = { navigator.push(AnimeScreen(it.id, true)) },
             )
         }
