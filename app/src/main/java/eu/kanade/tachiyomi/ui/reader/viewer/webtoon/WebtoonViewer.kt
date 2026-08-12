@@ -103,8 +103,11 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
                         }
                     }
 
-                    // Reaching the last chapter (to == null) no longer force-shows the menu:
-                    // the system bars popping in shifted the content and felt like a jump.
+                    val lastIndex = layoutManager.findLastEndVisibleItemPosition()
+                    val lastItem = adapter.items.getOrNull(lastIndex)
+                    if (lastItem is ChapterTransition.Next && lastItem.to == null) {
+                        activity.showMenu()
+                    }
                 }
             },
         )
