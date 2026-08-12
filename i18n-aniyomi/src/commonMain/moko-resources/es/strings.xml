@@ -277,7 +277,7 @@
     <string name="migration_chapter_count">%1$d capítulos</string>
     <string name="migration_episode_count">%1$d episodios</string>
     <string name="migration_source_priority">Prioridad de fuentes</string>
-    <string name="migration_source_priority_hint">Las fuentes de arriba se buscan primero al migrar. Arrastra para reordenar, desmarca una fuente para saltarla y usa los chips para filtrar por idioma.</string>
+    <string name="migration_source_priority_hint">Las fuentes de arriba se buscan primero al migrar o al cambiar automáticamente a una fuente alternativa. Arrastra para reordenar, desmarca una fuente para saltarla y usa los chips para filtrar por idioma.</string>
     <string name="notification_library_up_to_date">Biblioteca al día</string>
     <string name="notification_no_new_chapters">Sin capítulos nuevos</string>
     <string name="notification_no_new_episodes">Sin episodios nuevos</string>
@@ -495,6 +495,11 @@
     <string name="pref_hosters">Hosters</string>
     <string name="pref_hosters_show_failure">Mostrar hosts fallidos</string>
     <string name="pref_hosters_show_empty">Mostrar hosts vacíos</string>
+    <string name="pref_auto_source_fallback">Fuente alternativa automática</string>
+    <string name="pref_auto_source_fallback_summary">Cuando una fuente no tiene vídeo para un episodio, prueba automáticamente el mismo episodio en otra fuente instalada</string>
+    <string name="player_source_fallback_toast">Reproduciendo desde %1$s</string>
+    <string name="player_source_fallback_searching">Esta fuente no reproduce, buscando otra…</string>
+    <string name="pref_source_priority_summary">Elige el orden en que se prueban las fuentes (compartido con migrar)</string>
     <string name="pref_category_intro_skip">Omitir introducción</string>
     <string name="pref_enable_intro_skip">Habilitar \"Omitir introducción\"</string>
     <string name="pref_disable_aniskip_chapter">Desactivar AniSkip si el vídeo ya contiene capítulos</string>

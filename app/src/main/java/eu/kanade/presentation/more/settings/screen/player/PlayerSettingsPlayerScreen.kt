@@ -5,9 +5,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.screen.SearchableSettings
+import eu.kanade.tachiyomi.ui.browse.migration.MigrationSourcePriorityScreen
 import eu.kanade.tachiyomi.ui.player.JUST_PLAYER
 import eu.kanade.tachiyomi.ui.player.MPV_KT
 import eu.kanade.tachiyomi.ui.player.MPV_KT_PREVIEW
@@ -120,8 +123,11 @@ object PlayerSettingsPlayerScreen : SearchableSettings {
 
     @Composable
     private fun getHosterGroup(playerPreferences: PlayerPreferences): Preference.PreferenceGroup {
+        val navigator = LocalNavigator.currentOrThrow
         val showFailure = playerPreferences.showFailedHosters()
         val showEmpty = playerPreferences.showEmptyHosters()
+        val autoSourceFallback = playerPreferences.autoSourceFallback()
+        val fallbackEnabled by autoSourceFallback.collectAsState()
 
         return Preference.PreferenceGroup(
             title = stringResource(AYMR.strings.pref_hosters),
@@ -133,6 +139,19 @@ object PlayerSettingsPlayerScreen : SearchableSettings {
                 Preference.PreferenceItem.SwitchPreference(
                     preference = showEmpty,
                     title = stringResource(AYMR.strings.pref_hosters_show_empty),
+                ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = autoSourceFallback,
+                    title = stringResource(AYMR.strings.pref_auto_source_fallback),
+                    subtitle = stringResource(AYMR.strings.pref_auto_source_fallback_summary),
+                ),
+                // Same source-priority list used by migration, so the user can set the fallback order
+                // right here instead of hunting through the migration screens.
+                Preference.PreferenceItem.TextPreference(
+                    title = stringResource(AYMR.strings.migration_source_priority),
+                    subtitle = stringResource(AYMR.strings.pref_source_priority_summary),
+                    enabled = fallbackEnabled,
+                    onClick = { navigator.push(MigrationSourcePriorityScreen(isManga = false)) },
                 ),
             ),
         )

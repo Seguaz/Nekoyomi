@@ -175,6 +175,10 @@ class PlayerActivity : BaseActivity() {
         private const val MPV_SCRIPTS_DIR = "scripts"
         private const val MPV_SCRIPTS_OPTS_DIR = "script-opts"
         private const val MPV_SHADERS_DIR = "shaders"
+
+        // In a source-fallback session, mpv reporting eof within this many seconds of the (claimed) end
+        // while the episode is still "loading" means the stream never really played — advance sources.
+        private const val FALLBACK_END_TOLERANCE_SECONDS = 5f
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -1377,7 +1381,26 @@ class PlayerActivity : BaseActivity() {
     }
 
     private fun endFile(eofReached: Boolean) {
-        if (!eofReached || !playerPreferences.autoplayEnabled().get()) return
+        if (!eofReached) return
+        // A fallback source that ends almost immediately never really played (it decoded to nothing,
+        // e.g. a broken stream). Move on to the next candidate source instead of sitting on a black
+        // screen. Scoped to fallback sessions so normal playback is untouched.
+        if (viewModel.isPlayingFallback()) {
+            val pos = viewModel.pos.value
+            val dur = viewModel.duration.value
+            val loading = viewModel.isLoadingEpisode.value
+            logcat { "F1 fallback: eof in fallback session (pos=$pos dur=$dur loading=$loading)" }
+            // A broken stream makes mpv report eof at (or near) the end while the episode never actually
+            // finished loading/playing (loading is still true). A genuinely watched video ends with
+            // loading=false, and a spurious mid-load eof sits at pos≈0 — neither matches this. When it
+            // does, move on to the next candidate source.
+            val brokenStream = loading && dur >= 1f && pos >= dur - FALLBACK_END_TOLERANCE_SECONDS
+            if (brokenStream) {
+                viewModel.onFallbackPlaybackFailed()
+                return
+            }
+        }
+        if (!playerPreferences.autoplayEnabled().get()) return
         // mpv flags eof-reached=true spuriously while an episode is still loading or during
         // file transitions (position far from the end). Acting on those would instantly skip
         // to the next episode and loop through the whole list. Only auto-advance once playback

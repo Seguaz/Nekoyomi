@@ -73,6 +73,11 @@
     <string name="pref_hosters">Hosters</string>
     <string name="pref_hosters_show_failure">Display failed hosters</string>
     <string name="pref_hosters_show_empty">Display empty hosters</string>
+    <string name="pref_auto_source_fallback">Automatic source fallback</string>
+    <string name="pref_auto_source_fallback_summary">When a source has no video for an episode, automatically try the same episode from another installed source</string>
+    <string name="player_source_fallback_toast">Playing from %1$s</string>
+    <string name="player_source_fallback_searching">Source has no video, trying another…</string>
+    <string name="pref_source_priority_summary">Set the order sources are tried in (shared with migration)</string>
     <string name="pref_player_fullscreen">Show content in display cutout</string>
     <string name="pref_player_hide_controls">Hide player controls when opening the player</string>
     <string name="pref_show_system_bar">Show system status bar with controls</string>
@@ -464,7 +469,7 @@
     <string name="migration_chapter_count">%1$d chapters</string>
     <string name="migration_episode_count">%1$d episodes</string>
     <string name="migration_source_priority">Source priority</string>
-    <string name="migration_source_priority_hint">Sources at the top are searched first when migrating. Drag to reorder, uncheck a source to skip it, and use the chips to filter by language.</string>
+    <string name="migration_source_priority_hint">Sources at the top are searched first when migrating or auto-switching to a fallback source. Drag to reorder, uncheck a source to skip it, and use the chips to filter by language.</string>
     <string name="notification_library_up_to_date">Library is up to date</string>
     <string name="notification_no_new_chapters">No new chapters</string>
     <string name="notification_no_new_episodes">No new episodes</string>

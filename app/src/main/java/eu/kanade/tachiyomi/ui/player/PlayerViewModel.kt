@@ -51,6 +51,7 @@ import eu.kanade.domain.track.service.TrackPreferences
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.more.settings.screen.player.custombutton.CustomButtonFetchState
 import eu.kanade.presentation.more.settings.screen.player.custombutton.getButtons
+import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.ChapterType
 import eu.kanade.tachiyomi.animesource.model.Hoster
@@ -75,6 +76,7 @@ import eu.kanade.tachiyomi.ui.player.controls.components.IndexedSegment
 import eu.kanade.tachiyomi.ui.player.controls.components.sheets.HosterState
 import eu.kanade.tachiyomi.ui.player.controls.components.sheets.getChangedAt
 import eu.kanade.tachiyomi.ui.player.loader.EpisodeLoader
+import eu.kanade.tachiyomi.ui.player.loader.EpisodeSourceFallback
 import eu.kanade.tachiyomi.ui.player.loader.HosterLoader
 import eu.kanade.tachiyomi.ui.player.settings.GesturePreferences
 import eu.kanade.tachiyomi.ui.player.settings.PlayerPreferences
@@ -111,6 +113,8 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import logcat.LogPriority
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.launchIO
@@ -1376,6 +1380,97 @@ class PlayerViewModel @JvmOverloads constructor(
 
     private var currentHosterList: List<Hoster>? = null
 
+    // Opt-in fallback: when the current source can't provide a PLAYABLE video, try the same episode from
+    // other installed sources, one at a time, advancing to the next if the chosen one won't actually
+    // play (see [onFallbackPlaybackFailed]). The queue is the remaining candidates for this episode.
+    private val episodeSourceFallback = EpisodeSourceFallback()
+    private val fallbackMutex = Mutex()
+    private var fallbackQueue: ArrayDeque<AnimeCatalogueSource>? = null
+    private var fallbackAnime: Anime? = null
+    private var fallbackEpisode: tachiyomi.domain.items.episode.model.Episode? = null
+    private var playingFallback = false
+    private var advancingFallback = false
+
+    /** True while playback is coming from a fallback source (so the player can retry on failure). */
+    fun isPlayingFallback(): Boolean = playingFallback
+
+    private fun resetFallbackSession() {
+        fallbackQueue = null
+        fallbackAnime = null
+        fallbackEpisode = null
+        playingFallback = false
+    }
+
+    /**
+     * When the current source can't provide a playable video for [episode], start (or continue) trying
+     * the same episode from other installed sources. On success, swaps [_currentSource] and sets
+     * [currentHosterList] to the fallback's hosters and returns true; otherwise returns false.
+     */
+    private suspend fun tryPlayFromFallbackSource(
+        anime: Anime,
+        episode: tachiyomi.domain.items.episode.model.Episode,
+    ): Boolean {
+        if (!playerPreferences.autoSourceFallback().get()) return false
+        if (fallbackQueue == null) {
+            fallbackAnime = anime
+            fallbackEpisode = episode
+            fallbackQueue = ArrayDeque(episodeSourceFallback.orderedCandidates(anime))
+        }
+        return loadNextFallbackFromQueue()
+    }
+
+    /**
+     * Pops candidate sources until one yields playable hosters (state is swapped to it), else false.
+     * Guarded by [fallbackMutex] so a load-time failure and a playback-time failure can't consume the
+     * queue at the same time.
+     */
+    private suspend fun loadNextFallbackFromQueue(): Boolean = fallbackMutex.withLock {
+        val queue = fallbackQueue ?: return@withLock false
+        val anime = fallbackAnime ?: return@withLock false
+        val episode = fallbackEpisode ?: return@withLock false
+        if (queue.isNotEmpty()) {
+            updateIsLoadingEpisode(true)
+            activity.showToast(activity.stringResource(AYMR.strings.player_source_fallback_searching))
+        }
+        while (true) {
+            val source = queue.removeFirstOrNull() ?: break
+            val result = episodeSourceFallback.tryOne(source, anime, episode) ?: continue
+            currentHosterList = result.hosters
+            _currentSource.update { _ -> result.source }
+            playingFallback = true
+            activity.showToast(
+                activity.stringResource(AYMR.strings.player_source_fallback_toast, result.source.name),
+            )
+            return@withLock true
+        }
+        playingFallback = false
+        return@withLock false
+    }
+
+    /**
+     * Called when a fallback source's video failed to actually play (e.g. it loaded but decoded to
+     * nothing). Advances to the next candidate source and reloads, or surfaces the error if exhausted.
+     */
+    fun onFallbackPlaybackFailed() {
+        if (advancingFallback || fallbackQueue.isNullOrEmpty()) return
+        advancingFallback = true
+        // Stop intercepting further eof events for the failed source until the next one is loaded.
+        playingFallback = false
+        logcat { "F1 fallback: current source failed to play, advancing to next candidate" }
+        viewModelScope.launchIO {
+            try {
+                if (loadNextFallbackFromQueue()) {
+                    loadHosters(currentSource.value!!, currentHosterList.orEmpty(), -1, 0)
+                } else {
+                    logcat { "F1 fallback: no more candidate sources to try" }
+                    activity.showToast(activity.stringResource(AYMR.strings.no_available_videos))
+                }
+            } finally {
+                advancingFallback = false
+            }
+        }
+    }
+
     class ExceptionWithStringResource(
         message: String,
         val stringResource: StringResource,
@@ -1390,6 +1485,7 @@ class PlayerViewModel @JvmOverloads constructor(
     ): Pair<InitResult, Result<Boolean>> {
         val defaultResult = InitResult(currentHosterList, qualityIndex, null)
         if (!needsInit(animeId, initialEpisodeId)) return Pair(defaultResult, Result.success(true))
+        resetFallbackSession()
         return try {
             val anime = getAnime.await(animeId)
             if (anime != null) {
@@ -1439,8 +1535,13 @@ class PlayerViewModel @JvmOverloads constructor(
                         .takeIf { it.isNotEmpty() }
                         ?.also { currentHosterList = it }
                         ?: run {
-                            currentHosterList = null
-                            throw ExceptionWithStringResource("Hoster list is empty", AYMR.strings.no_hosters)
+                            // Primary source returned no hosters for this episode. If the user opted in, try
+                            // the same episode from another installed source before giving up.
+                            logcat { "F1 fallback: primary source returned empty hosters" }
+                            if (!tryPlayFromFallbackSource(anime, currentEp.toDomainEpisode()!!)) {
+                                currentHosterList = null
+                                throw ExceptionWithStringResource("Hoster list is empty", AYMR.strings.no_hosters)
+                            }
                         }
                 }
 
@@ -1496,6 +1597,18 @@ class PlayerViewModel @JvmOverloads constructor(
      * Set the video list for hosters.
      */
     fun loadHosters(source: AnimeSource, hosterList: List<Hoster>, hosterIndex: Int, videoIndex: Int) {
+        getHosterVideoLinksJob?.cancel()
+        getHosterVideoLinksJob = viewModelScope.launchIO {
+            runHosterVideoLinks(source, hosterList, hosterIndex, videoIndex)
+        }
+    }
+
+    private suspend fun runHosterVideoLinks(
+        source: AnimeSource,
+        hosterList: List<Hoster>,
+        hosterIndex: Int,
+        videoIndex: Int,
+    ) {
         val hasFoundPreferredVideo = AtomicBoolean(false)
 
         _hosterList.update { _ -> hosterList }
@@ -1503,83 +1616,92 @@ class PlayerViewModel @JvmOverloads constructor(
             List(hosterList.size) { true }
         }
 
-        getHosterVideoLinksJob?.cancel()
-        getHosterVideoLinksJob = viewModelScope.launchIO {
-            _hosterState.update { _ ->
-                hosterList.map { hoster ->
-                    if (hoster.lazy) {
-                        HosterState.Idle(hoster.hosterName)
-                    } else if (hoster.videoList == null) {
-                        HosterState.Loading(hoster.hosterName)
-                    } else {
-                        val videoList = hoster.videoList!!
-                        HosterState.Ready(
-                            hoster.hosterName,
-                            videoList,
-                            List(videoList.size) { Video.State.QUEUE },
-                        )
-                    }
+        _hosterState.update { _ ->
+            hosterList.map { hoster ->
+                if (hoster.lazy) {
+                    HosterState.Idle(hoster.hosterName)
+                } else if (hoster.videoList == null) {
+                    HosterState.Loading(hoster.hosterName)
+                } else {
+                    val videoList = hoster.videoList!!
+                    HosterState.Ready(
+                        hoster.hosterName,
+                        videoList,
+                        List(videoList.size) { Video.State.QUEUE },
+                    )
                 }
             }
+        }
 
-            try {
-                coroutineScope {
-                    hosterList.mapIndexed { hosterIdx, hoster ->
-                        async {
-                            val hosterState = EpisodeLoader.loadHosterVideos(source, hoster)
+        try {
+            coroutineScope {
+                hosterList.mapIndexed { hosterIdx, hoster ->
+                    async {
+                        val hosterState = EpisodeLoader.loadHosterVideos(source, hoster)
 
-                            _hosterState.updateAt(hosterIdx, hosterState)
+                        _hosterState.updateAt(hosterIdx, hosterState)
 
-                            if (hosterState is HosterState.Ready) {
-                                if (hosterIdx == hosterIndex) {
-                                    hosterState.videoList.getOrNull(videoIndex)?.let {
-                                        hasFoundPreferredVideo.set(true)
-                                        val success = loadVideo(source, it, hosterIndex, videoIndex)
+                        if (hosterState is HosterState.Ready) {
+                            if (hosterIdx == hosterIndex) {
+                                hosterState.videoList.getOrNull(videoIndex)?.let {
+                                    hasFoundPreferredVideo.set(true)
+                                    val success = loadVideo(source, it, hosterIndex, videoIndex)
+                                    if (!success) {
+                                        hasFoundPreferredVideo.set(false)
+                                    }
+                                }
+                            }
+
+                            val prefIndex = hosterState.videoList.indexOfFirst { it.preferred }
+                            if (prefIndex != -1 && hosterIndex == -1) {
+                                if (hasFoundPreferredVideo.compareAndSet(false, true)) {
+                                    if (selectedHosterVideoIndex.value == Pair(-1, -1)) {
+                                        val success =
+                                            loadVideo(
+                                                source,
+                                                hosterState.videoList[prefIndex],
+                                                hosterIdx,
+                                                prefIndex,
+                                            )
                                         if (!success) {
                                             hasFoundPreferredVideo.set(false)
                                         }
                                     }
                                 }
-
-                                val prefIndex = hosterState.videoList.indexOfFirst { it.preferred }
-                                if (prefIndex != -1 && hosterIndex == -1) {
-                                    if (hasFoundPreferredVideo.compareAndSet(false, true)) {
-                                        if (selectedHosterVideoIndex.value == Pair(-1, -1)) {
-                                            val success =
-                                                loadVideo(
-                                                    source,
-                                                    hosterState.videoList[prefIndex],
-                                                    hosterIdx,
-                                                    prefIndex,
-                                                )
-                                            if (!success) {
-                                                hasFoundPreferredVideo.set(false)
-                                            }
-                                        }
-                                    }
-                                }
                             }
                         }
-                    }.awaitAll()
-
-                    if (hasFoundPreferredVideo.compareAndSet(false, true)) {
-                        val (hosterIdx, videoIdx) = HosterLoader.selectBestVideo(hosterState.value)
-                        if (hosterIdx == -1) {
-                            throw ExceptionWithStringResource("No available videos", AYMR.strings.no_available_videos)
-                        }
-
-                        val video = (hosterState.value[hosterIdx] as HosterState.Ready).videoList[videoIdx]
-
-                        loadVideo(source, video, hosterIdx, videoIdx)
                     }
-                }
-            } catch (e: CancellationException) {
-                _hosterState.update { _ ->
-                    hosterList.map { HosterState.Idle(it.hosterName) }
-                }
+                }.awaitAll()
 
-                throw e
+                if (hasFoundPreferredVideo.compareAndSet(false, true)) {
+                    val (hosterIdx, videoIdx) = HosterLoader.selectBestVideo(hosterState.value)
+                    if (hosterIdx == -1) {
+                        // Every hoster failed to yield a playable video. Try the same episode from
+                        // another installed source before giving up (opt-in fallback).
+                        val fallbackAnime = currentAnime.value
+                        val fallbackEpisode = currentEpisode.value?.toDomainEpisode()
+                        if (fallbackAnime != null &&
+                            fallbackEpisode != null &&
+                            tryPlayFromFallbackSource(fallbackAnime, fallbackEpisode)
+                        ) {
+                            logcat { "F1 fallback: no available videos, reloading from another source" }
+                            runHosterVideoLinks(currentSource.value!!, currentHosterList.orEmpty(), -1, 0)
+                            return@coroutineScope
+                        }
+                        throw ExceptionWithStringResource("No available videos", AYMR.strings.no_available_videos)
+                    }
+
+                    val video = (hosterState.value[hosterIdx] as HosterState.Ready).videoList[videoIdx]
+
+                    loadVideo(source, video, hosterIdx, videoIdx)
+                }
             }
+        } catch (e: CancellationException) {
+            _hosterState.update { _ ->
+                hosterList.map { HosterState.Idle(it.hosterName) }
+            }
+
+            throw e
         }
     }
 
@@ -1743,7 +1865,8 @@ class PlayerViewModel @JvmOverloads constructor(
 
     suspend fun loadEpisode(episodeId: Long?): EpisodeLoadResult? {
         val anime = currentAnime.value ?: return null
-        val source = sourceManager.getOrStub(anime.source)
+        // May be swapped for an alternative source if the primary one has no video (opt-in fallback).
+        var source = sourceManager.getOrStub(anime.source)
 
         val chosenEpisode = currentPlaylist.value.firstOrNull { ep -> ep.id == episodeId } ?: return null
 
@@ -1751,17 +1874,23 @@ class PlayerViewModel @JvmOverloads constructor(
         // A fresh open of this episode may count towards the watch counter again.
         countedEpisodeId = null
         updateEpisode(chosenEpisode)
+        resetFallbackSession()
 
         return withIOContext {
             try {
                 val currentEpisode =
                     currentEpisode.value
                         ?: throw ExceptionWithStringResource("No episode loaded", AYMR.strings.no_episode_loaded)
-                currentHosterList = EpisodeLoader.getHosters(
-                    currentEpisode.toDomainEpisode()!!,
-                    anime,
-                    source,
-                )
+                val domainEpisode = currentEpisode.toDomainEpisode()!!
+                val primaryHosters = EpisodeLoader.getHosters(domainEpisode, anime, source)
+                if (primaryHosters.isNotEmpty()) {
+                    currentHosterList = primaryHosters
+                } else if (tryPlayFromFallbackSource(anime, domainEpisode)) {
+                    // Helper already set currentHosterList + swapped _currentSource; use the new source.
+                    source = currentSource.value ?: source
+                } else {
+                    currentHosterList = emptyList()
+                }
 
                 this@PlayerViewModel.episodeId = currentEpisode.id!!
             } catch (e: Exception) {
