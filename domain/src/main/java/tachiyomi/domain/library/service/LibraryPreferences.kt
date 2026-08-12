@@ -85,6 +85,10 @@ class LibraryPreferences(
 
     fun autoHideMangaCategories() = preferenceStore.getStringSet("auto_hide_manga_categories", emptySet())
 
+    // Default reading mode per manga category, as a set of "categoryId:readingModeFlagValue". A manga
+    // left on the default reading mode inherits its category's mode when opened in the reader.
+    fun categoryReadingModes() = preferenceStore.getStringSet("category_reading_modes", emptySet())
+
     fun filterIntervalCustom() = preferenceStore.getEnum(
         "pref_filter_library_interval_custom",
         TriState.DISABLED,

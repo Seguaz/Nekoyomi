@@ -403,6 +403,8 @@
     <string name="download_notifier_download_finish">Download completed</string>
     <string name="action_hide">Hide</string>
     <string name="action_auto_hide_category">Auto-hide when the app closes (private)</string>
+    <string name="action_category_reading_mode">Default reading mode for this category</string>
+    <string name="category_reading_mode_title">Reading mode for \"%1$s\"</string>
     <string name="label_all">All</string>
     <string name="label_category">Category</string>
     <string name="manga_categories">Manga Categories</string>

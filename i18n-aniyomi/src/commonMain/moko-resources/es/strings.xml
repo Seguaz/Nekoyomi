@@ -216,6 +216,8 @@
     <string name="download_notifier_download_finish">Descarga finalizada</string>
     <string name="action_hide">Ocultar</string>
     <string name="action_auto_hide_category">Auto-ocultar al cerrar la app (privada)</string>
+    <string name="action_category_reading_mode">Modo de lectura por defecto de esta categoría</string>
+    <string name="category_reading_mode_title">Modo de lectura para \"%1$s\"</string>
     <string name="label_all">Todo</string>
     <string name="label_category">Categoría</string>
     <string name="manga_categories">Categorías de los mangas</string>

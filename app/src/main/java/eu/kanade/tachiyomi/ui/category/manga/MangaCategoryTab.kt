@@ -41,6 +41,7 @@ fun Screen.mangaCategoryTab(): TabContent {
                     onClickHide = screenModel::hideCategory,
                     onClickDelete = { screenModel.showDialog(MangaCategoryDialog.Delete(it)) },
                     onChangeOrder = screenModel::changeOrder,
+                    onSetReadingMode = screenModel::setCategoryReadingMode,
                 )
 
                 when (val dialog = successState.dialog) {

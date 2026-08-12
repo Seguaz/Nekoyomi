@@ -63,6 +63,7 @@ import tachiyomi.core.common.util.lang.launchNonCancellable
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
+import tachiyomi.domain.category.manga.interactor.GetMangaCategories
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.entries.manga.interactor.GetManga
 import tachiyomi.domain.entries.manga.model.Manga
@@ -96,6 +97,7 @@ class ReaderViewModel @JvmOverloads constructor(
     private val trackPreferences: TrackPreferences = Injekt.get(),
     private val trackChapter: TrackChapter = Injekt.get(),
     private val getManga: GetManga = Injekt.get(),
+    private val getCategories: GetMangaCategories = Injekt.get(),
     private val getChaptersByMangaId: GetChaptersByMangaId = Injekt.get(),
     private val getNextChapters: GetNextChapters = Injekt.get(),
     private val upsertHistory: UpsertMangaHistory = Injekt.get(),
@@ -282,6 +284,7 @@ class ReaderViewModel @JvmOverloads constructor(
                 if (manga != null) {
                     sourceManager.isInitialized.first { it }
                     mutableState.update { it.copy(manga = manga) }
+                    categoryReadingMode = resolveCategoryReadingMode(mangaId)
                     if (chapterId == -1L) chapterId = initialChapterId
 
                     val context = Injekt.get<Application>()
@@ -680,11 +683,29 @@ class ReaderViewModel @JvmOverloads constructor(
     /**
      * Returns the viewer position used by this manga or the default one.
      */
+    /**
+     * Reading mode assigned to one of this manga's categories (null if none). Resolved once when the
+     * manga is loaded, so a manga left on the default mode inherits its category's mode.
+     */
+    private var categoryReadingMode: Int? = null
+
+    private suspend fun resolveCategoryReadingMode(mangaId: Long): Int? {
+        val byCategory = libraryPreferences.categoryReadingModes().get()
+            .mapNotNull { entry ->
+                val (categoryId, mode) = entry.split(":", limit = 2).takeIf { it.size == 2 } ?: return@mapNotNull null
+                (categoryId.toLongOrNull() ?: return@mapNotNull null) to (mode.toIntOrNull() ?: return@mapNotNull null)
+            }
+            .toMap()
+        if (byCategory.isEmpty()) return null
+        return getCategories.await(mangaId).firstNotNullOfOrNull { byCategory[it.id] }
+    }
+
     fun getMangaReadingMode(resolveDefault: Boolean = true): Int {
         val default = readerPreferences.defaultReadingMode().get()
         val readingMode = ReadingMode.fromPreference(manga?.readingMode?.toInt())
         return when {
-            resolveDefault && readingMode == ReadingMode.DEFAULT -> default
+            // Manga on the default mode inherits its category's mode (if any), then the global default.
+            resolveDefault && readingMode == ReadingMode.DEFAULT -> categoryReadingMode ?: default
             else -> manga?.readingMode?.toInt() ?: default
         }
     }

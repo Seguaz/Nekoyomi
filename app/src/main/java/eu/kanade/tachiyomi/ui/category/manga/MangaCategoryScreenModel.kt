@@ -4,9 +4,13 @@ import androidx.compose.runtime.Immutable
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.icerock.moko.resources.StringResource
+import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
@@ -52,7 +56,8 @@ class MangaCategoryScreenModel(
             combine(
                 allCategories,
                 libraryPreferences.autoHideMangaCategories().changes(),
-            ) { categories, autoHideIds ->
+                libraryPreferences.categoryReadingModes().changes(),
+            ) { categories, autoHideIds, readingModes ->
                 MangaCategoryScreenState.Success(
                     categories = categories
                         .filterNot(Category::isSystemCategory)
@@ -60,6 +65,15 @@ class MangaCategoryScreenModel(
                     autoHideCategoryIds = autoHideIds
                         .mapNotNull(String::toLongOrNull)
                         .toImmutableSet(),
+                    categoryReadingModes = readingModes
+                        .mapNotNull { entry ->
+                            val (id, mode) = entry.split(":", limit = 2).takeIf { it.size == 2 }
+                                ?: return@mapNotNull null
+                            (id.toLongOrNull() ?: return@mapNotNull null) to
+                                (mode.toIntOrNull() ?: return@mapNotNull null)
+                        }
+                        .toMap()
+                        .toImmutableMap(),
                 )
             }.collectLatest { newState ->
                 mutableState.update { newState }
@@ -78,6 +92,16 @@ class MangaCategoryScreenModel(
             if (nowPrivate && !category.hidden) {
                 hideCategory.await(category)
             }
+        }
+    }
+
+    fun setCategoryReadingMode(category: Category, mode: ReadingMode) {
+        screenModelScope.launch {
+            val pref = libraryPreferences.categoryReadingModes()
+            val others = pref.get().filterNot { it.startsWith("${category.id}:") }.toSet()
+            pref.set(
+                if (mode == ReadingMode.DEFAULT) others else others + "${category.id}:${mode.flagValue}",
+            )
         }
     }
 
@@ -176,6 +200,7 @@ sealed interface MangaCategoryScreenState {
     data class Success(
         val categories: ImmutableList<Category>,
         val autoHideCategoryIds: ImmutableSet<Long>,
+        val categoryReadingModes: ImmutableMap<Long, Int> = persistentMapOf(),
         val dialog: MangaCategoryDialog? = null,
     ) : MangaCategoryScreenState {
 
