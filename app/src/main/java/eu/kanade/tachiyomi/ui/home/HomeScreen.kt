@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Badge
@@ -96,6 +98,9 @@ private val LocalNavBarIconScale = compositionLocalOf { 1f }
 /** Default height of the (floating) navigation bar; the height slider scales this. */
 private val NAV_BAR_BASE_HEIGHT = 80.dp
 
+/** Max width of the floating nav pill, so it stays centered on wide tablets instead of stretching. */
+private val FLOATING_NAV_BAR_MAX_WIDTH = 640.dp
+
 object HomeScreen : Screen() {
 
     private val librarySearchEvent = Channel<String>()
@@ -134,7 +139,10 @@ object HomeScreen : Screen() {
             CompositionLocalProvider(LocalNavigator provides navigator) {
                 Scaffold(
                     startBar = {
-                        if (isTabletUi()) {
+                        // Side rail only in classic (non-floating) mode on wide screens. With the
+                        // floating nav bar enabled we use the floating bottom bar everywhere (phones
+                        // AND tablets), so it behaves the same regardless of screen size/orientation.
+                        if (isTabletUi() && !floatingNavBar) {
                             NavigationRail {
                                 shownTabs.fastForEach {
                                     NavigationRailItem(it)
@@ -143,7 +151,7 @@ object HomeScreen : Screen() {
                         }
                     },
                     bottomBar = {
-                        if (!isTabletUi()) {
+                        if (!isTabletUi() || floatingNavBar) {
                             val bottomNavVisible by produceState(initialValue = true) {
                                 showBottomNavEvent.receiveAsFlow().collectLatest { value = it }
                             }
@@ -172,45 +180,53 @@ object HomeScreen : Screen() {
                                             .copy(alpha = pillAlpha * 0.5f)
                                         Box(
                                             modifier = Modifier
+                                                .fillMaxWidth()
                                                 .windowInsetsPadding(NavigationBarDefaults.windowInsets)
                                                 .padding(horizontal = 16.dp, vertical = 12.dp),
                                             contentAlignment = Alignment.Center,
                                         ) {
+                                            // Cap the pill width so it stays a centered floating pill
+                                            // on wide tablets instead of stretching edge to edge.
                                             Box(
-                                                modifier = Modifier
-                                                    .matchParentSize()
-                                                    .clip(pillShape)
-                                                    .then(
-                                                        // Blur on: frost the content scrolling behind
-                                                        // the pill (the fill becomes the glass tint).
-                                                        // Blur off: a plain translucent fill.
-                                                        if (navBarBlurActive) {
-                                                            Modifier.hazeEffect(state = hazeState) {
-                                                                blurRadius = navBarBlurRadius
-                                                                backgroundColor = Color.Transparent
-                                                                tints = listOf(HazeTint(glassTint))
-                                                                fallbackTint = HazeTint(glassTint)
-                                                                noiseFactor = 0f
-                                                            }
-                                                        } else {
-                                                            Modifier.background(color = solidTint)
-                                                        },
-                                                    )
-                                                    .border(
-                                                        width = 1.dp,
-                                                        color = MaterialTheme.colorScheme.outlineVariant
-                                                            .copy(alpha = pillAlpha),
-                                                        shape = pillShape,
-                                                    ),
-                                            )
-                                            NavigationBar(
-                                                containerColor = Color.Transparent,
-                                                tonalElevation = 0.dp,
-                                                windowInsets = WindowInsets(0),
-                                                barHeight = navBarHeight,
+                                                modifier = Modifier.widthIn(max = FLOATING_NAV_BAR_MAX_WIDTH),
+                                                contentAlignment = Alignment.Center,
                                             ) {
-                                                shownTabs.fastForEach {
-                                                    NavigationBarItem(it, showLabel = !hideNavBarLabels)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .matchParentSize()
+                                                        .clip(pillShape)
+                                                        .then(
+                                                            // Blur on: frost the content scrolling behind
+                                                            // the pill (the fill becomes the glass tint).
+                                                            // Blur off: a plain translucent fill.
+                                                            if (navBarBlurActive) {
+                                                                Modifier.hazeEffect(state = hazeState) {
+                                                                    blurRadius = navBarBlurRadius
+                                                                    backgroundColor = Color.Transparent
+                                                                    tints = listOf(HazeTint(glassTint))
+                                                                    fallbackTint = HazeTint(glassTint)
+                                                                    noiseFactor = 0f
+                                                                }
+                                                            } else {
+                                                                Modifier.background(color = solidTint)
+                                                            },
+                                                        )
+                                                        .border(
+                                                            width = 1.dp,
+                                                            color = MaterialTheme.colorScheme.outlineVariant
+                                                                .copy(alpha = pillAlpha),
+                                                            shape = pillShape,
+                                                        ),
+                                                )
+                                                NavigationBar(
+                                                    containerColor = Color.Transparent,
+                                                    tonalElevation = 0.dp,
+                                                    windowInsets = WindowInsets(0),
+                                                    barHeight = navBarHeight,
+                                                ) {
+                                                    shownTabs.fastForEach {
+                                                        NavigationBarItem(it, showLabel = !hideNavBarLabels)
+                                                    }
                                                 }
                                             }
                                         }
@@ -229,8 +245,8 @@ object HomeScreen : Screen() {
                     contentWindowInsets = WindowInsets(0),
                 ) { contentPadding ->
                     val layoutDirection = LocalLayoutDirection.current
-                    // Floating nav bar only applies to the phone bottom bar, not the tablet rail.
-                    val floating = floatingNavBar && !isTabletUi()
+                    // Floating nav bar (bottom pill) is used on both phones and tablets now.
+                    val floating = floatingNavBar
                     // Floating nav bar: drop the bottom reservation from the content box so tab
                     // content fills behind the translucent bar, and hand that reservation to the
                     // tab scaffolds (via LocalNavigationBarPadding) so their lists still clear it.
