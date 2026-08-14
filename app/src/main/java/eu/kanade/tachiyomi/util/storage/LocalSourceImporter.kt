@@ -69,10 +69,9 @@ class LocalSourceImporter(
         /** Video containers the player (mpv) can handle. */
         val ANIME_EXTENSIONS = setOf("avi", "flv", "mkv", "mov", "mp4", "webm", "wmv")
 
-        // Archive containers the manga reader can handle. Note: `.epub` is intentionally excluded —
-        // the local manga source renders chapters as images, so a text-novel epub (the common case)
-        // imports but can't be read. Proper novel support would be a separate feature.
-        val MANGA_EXTENSIONS = setOf("zip", "cbz", "rar", "cbr", "7z", "cb7", "tar", "cbt")
+        // Archive containers the manga reader can handle, plus `.epub`: image epubs read as manga
+        // and text-novel epubs now read as text (see EpubTextPageLoader / TextViewer).
+        val MANGA_EXTENSIONS = setOf("zip", "cbz", "rar", "cbr", "7z", "cb7", "tar", "cbt", "epub")
 
         fun supportedExtensions(isAnime: Boolean) = if (isAnime) ANIME_EXTENSIONS else MANGA_EXTENSIONS
 

@@ -17,6 +17,7 @@ import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.ui.reader.viewer.Viewer
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import uy.kohesive.injekt.injectLazy
@@ -33,7 +34,7 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
 
     private val scope = MainScope()
 
-    private val adapter = TextViewerAdapter(activity, readerPreferences.novelTextScale().get())
+    private val adapter = TextViewerAdapter(readerPreferences.novelTextScale().get(), currentStyle())
 
     private val layoutManager = LinearLayoutManager(activity, RecyclerView.HORIZONTAL, false)
 
@@ -62,11 +63,23 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
                 }
             },
         )
-        // Apply text size changes live to the visible sections without reloading them.
+        // Text size applies live (WebView textZoom), without re-rendering.
         readerPreferences.novelTextScale().changes()
             .onEach { scale ->
                 adapter.textScale = scale
                 recyclerView.children.filterIsInstance<TextWebView>().forEach { it.setTextScale(scale) }
+            }
+            .launchIn(scope)
+        // Other typography changes re-render the visible sections with the new style.
+        combine(
+            readerPreferences.novelFontFamily().changes(),
+            readerPreferences.novelLineHeight().changes(),
+            readerPreferences.novelMargin().changes(),
+            readerPreferences.novelJustify().changes(),
+        ) { _, _, _, _ -> currentStyle() }
+            .onEach { style ->
+                adapter.style = style
+                recyclerView.children.filterIsInstance<TextWebView>().forEach { it.applyStyle(style) }
             }
             .launchIn(scope)
     }
@@ -120,35 +133,46 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
         val position = layoutManager.getPosition(snapView)
         pages.getOrNull(position)?.let(activity::onPageSelected)
     }
-}
 
-private class TextViewerAdapter(
-    private val activity: ReaderActivity,
-    var textScale: Int,
-) : RecyclerView.Adapter<TextPageHolder>() {
+    private fun currentStyle() = NovelStyle(
+        fontFamily = when (readerPreferences.novelFontFamily().get()) {
+            1 -> "sans-serif"
+            2 -> "monospace"
+            else -> "serif"
+        },
+        lineHeight = readerPreferences.novelLineHeight().get() / 100f,
+        marginDp = readerPreferences.novelMargin().get(),
+        justify = readerPreferences.novelJustify().get(),
+    )
 
-    private var pages: List<ReaderPage> = emptyList()
+    private inner class TextViewerAdapter(
+        var textScale: Int,
+        var style: NovelStyle,
+    ) : RecyclerView.Adapter<TextPageHolder>() {
 
-    @SuppressLint("NotifyDataSetChanged")
-    fun setPages(pages: List<ReaderPage>) {
-        this.pages = pages
-        notifyDataSetChanged()
-    }
+        private var pages: List<ReaderPage> = emptyList()
 
-    override fun getItemCount(): Int = pages.size
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextPageHolder {
-        val webView = TextWebView(activity, activity::toggleMenu).apply {
-            layoutParams = RecyclerView.LayoutParams(
-                RecyclerView.LayoutParams.MATCH_PARENT,
-                RecyclerView.LayoutParams.MATCH_PARENT,
-            )
+        @SuppressLint("NotifyDataSetChanged")
+        fun setPages(pages: List<ReaderPage>) {
+            this.pages = pages
+            notifyDataSetChanged()
         }
-        return TextPageHolder(webView)
-    }
 
-    override fun onBindViewHolder(holder: TextPageHolder, position: Int) {
-        holder.bind(pages[position], textScale)
+        override fun getItemCount(): Int = pages.size
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextPageHolder {
+            val webView = TextWebView(activity, activity::toggleMenu).apply {
+                layoutParams = RecyclerView.LayoutParams(
+                    RecyclerView.LayoutParams.MATCH_PARENT,
+                    RecyclerView.LayoutParams.MATCH_PARENT,
+                )
+            }
+            return TextPageHolder(webView)
+        }
+
+        override fun onBindViewHolder(holder: TextPageHolder, position: Int) {
+            holder.bind(pages[position], textScale, style)
+        }
     }
 }
 
@@ -156,9 +180,9 @@ private class TextPageHolder(
     private val webView: TextWebView,
 ) : RecyclerView.ViewHolder(webView) {
 
-    fun bind(page: ReaderPage, textScale: Int) {
+    fun bind(page: ReaderPage, textScale: Int, style: NovelStyle) {
         webView.setTextScale(textScale)
         val html = (page.chapter.pageLoader as? EpubTextPageLoader)?.getHtml(page).orEmpty()
-        webView.loadSection(html)
+        webView.load(html, style)
     }
 }

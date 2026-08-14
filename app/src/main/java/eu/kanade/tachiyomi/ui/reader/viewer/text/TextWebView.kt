@@ -7,12 +7,20 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.webkit.WebView
 import com.google.android.material.color.MaterialColors
-import org.jsoup.Jsoup
+
+/** Typography options for the novel reader, applied as CSS. */
+data class NovelStyle(
+    val fontFamily: String,
+    val lineHeight: Float,
+    val marginDp: Int,
+    val justify: Boolean,
+)
 
 /**
- * A [WebView] that renders one XHTML section of a text (novel) epub. It applies theme-aware colors
- * and comfortable reading typography, and toggles the reader menu on a single tap while still
- * allowing normal vertical scrolling within the section.
+ * A [WebView] that renders one section of a text (novel) epub. It applies theme-aware colors and the
+ * user's typography ([NovelStyle]), and toggles the reader menu on a single tap while still allowing
+ * normal vertical scrolling within the section. Text size is applied live via [setTextScale]; other
+ * typography changes are applied with [applyStyle], which re-renders the current section.
  */
 @SuppressLint("SetJavaScriptEnabled", "ViewConstructor")
 class TextWebView(
@@ -41,6 +49,9 @@ class TextWebView(
         Color.WHITE,
     )
 
+    private var body: String = ""
+    private var style: NovelStyle = DEFAULT_STYLE
+
     init {
         isVerticalScrollBarEnabled = true
         isHorizontalScrollBarEnabled = false
@@ -56,24 +67,39 @@ class TextWebView(
         return super.onTouchEvent(event)
     }
 
-    /** Sets the reading text size as a percentage (100 = default). */
+    /** Sets the reading text size as a percentage (100 = default). Applies live, without re-rendering. */
     fun setTextScale(scale: Int) {
         settings.textZoom = scale
     }
 
-    /** Renders the body of the given XHTML section with the reader's theme and typography. */
-    fun loadSection(xhtml: String) {
-        val body = runCatching { Jsoup.parse(xhtml).body().html() }.getOrDefault(xhtml)
+    /** Renders the given section [body] HTML with the given typography. */
+    fun load(body: String, style: NovelStyle) {
+        this.body = body
+        this.style = style
+        render()
+    }
+
+    /** Re-renders the current section with new typography (font, spacing, margins, alignment). */
+    fun applyStyle(style: NovelStyle) {
+        this.style = style
+        render()
+    }
+
+    private fun render() {
         val bg = cssColor(backgroundColor)
         val fg = cssColor(textColor)
+        val align = if (style.justify) "justify" else "start"
         val document = buildString {
             append("<html><head>")
             append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">")
             append("<style>")
-            append("html,body{margin:0;padding:16px 20px;")
+            append("html,body{margin:0;padding:16px ").append(style.marginDp).append("px;")
             append("background:").append(bg).append(';')
             append("color:").append(fg).append(';')
-            append("font-size:19px;line-height:1.7;font-family:serif;")
+            append("font-size:19px;")
+            append("line-height:").append(style.lineHeight).append(';')
+            append("font-family:").append(style.fontFamily).append(';')
+            append("text-align:").append(align).append(';')
             append("word-wrap:break-word;overflow-wrap:break-word;}")
             append("img{max-width:100%;height:auto;}")
             append("a{color:").append(fg).append(";}")
@@ -85,4 +111,8 @@ class TextWebView(
     }
 
     private fun cssColor(color: Int): String = "#%06X".format(0xFFFFFF and color)
+
+    companion object {
+        val DEFAULT_STYLE = NovelStyle(fontFamily = "serif", lineHeight = 1.7f, marginDp = 20, justify = false)
+    }
 }

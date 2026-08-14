@@ -508,6 +508,10 @@
     <string name="pref_auto_scroll_speed">Velocidad del desplazamiento</string>
     <string name="novel_viewer">Novela</string>
     <string name="pref_novel_text_size">Tamaño del texto</string>
+    <string name="pref_novel_font">Fuente</string>
+    <string name="pref_novel_line_height">Interlineado</string>
+    <string name="pref_novel_margin">Márgenes</string>
+    <string name="pref_novel_justify">Justificar texto</string>
     <string name="pref_home_tabs_mode">Secciones Manga / Anime</string>
     <string name="pref_home_tabs_mode_summary">Qué secciones se muestran en Actualizaciones e Historial</string>
     <string name="pref_home_tabs_both_anime">Ambas (Anime primero)</string>

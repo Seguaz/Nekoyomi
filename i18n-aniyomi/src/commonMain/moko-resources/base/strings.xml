@@ -82,6 +82,10 @@
     <string name="pref_auto_scroll_speed">Auto-scroll speed</string>
     <string name="novel_viewer">Novel</string>
     <string name="pref_novel_text_size">Text size</string>
+    <string name="pref_novel_font">Font</string>
+    <string name="pref_novel_line_height">Line spacing</string>
+    <string name="pref_novel_margin">Margins</string>
+    <string name="pref_novel_justify">Justify text</string>
     <string name="pref_home_tabs_mode">Manga / Anime sections</string>
     <string name="pref_home_tabs_mode_summary">Which sections show in Updates and History</string>
     <string name="pref_home_tabs_both_anime">Both (Anime first)</string>

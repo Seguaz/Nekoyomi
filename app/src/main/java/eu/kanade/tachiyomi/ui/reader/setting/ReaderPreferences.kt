@@ -79,8 +79,21 @@ class ReaderPreferences(
     // Auto-scroll speed level (1..10) for the webtoon reader; higher = faster.
     fun webtoonAutoScrollSpeed() = preferenceStore.getInt("webtoon_auto_scroll_speed", 3)
 
-    // Text size, as a percentage, for the text (novel) reader. 100 = default WebView text size.
+    // Text (novel) reader typography.
+    // Text size, as a percentage. 100 = default WebView text size.
     fun novelTextScale() = preferenceStore.getInt("pref_novel_text_scale", 100)
+
+    // Font family index: 0 = serif, 1 = sans-serif, 2 = monospace.
+    fun novelFontFamily() = preferenceStore.getInt("pref_novel_font_family", 0)
+
+    // Line height, as a percentage (e.g. 170 = line-height 1.7).
+    fun novelLineHeight() = preferenceStore.getInt("pref_novel_line_height", 170)
+
+    // Horizontal page margin, in dp.
+    fun novelMargin() = preferenceStore.getInt("pref_novel_margin", 20)
+
+    // Whether the body text is justified (true) or start-aligned (false).
+    fun novelJustify() = preferenceStore.getBoolean("pref_novel_justify", false)
 
     fun readerHideThreshold() = preferenceStore.getEnum("reader_hide_threshold", ReaderHideThreshold.LOW)
 

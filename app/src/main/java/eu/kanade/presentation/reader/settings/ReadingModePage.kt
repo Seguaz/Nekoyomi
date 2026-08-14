@@ -90,6 +90,42 @@ private fun ColumnScope.TextViewerSettings(screenModel: ReaderSettingsScreenMode
         onChange = { screenModel.preferences.novelTextScale().set(it) },
         pillColor = MaterialTheme.colorScheme.surfaceContainerHighest,
     )
+
+    val fontFamily by screenModel.preferences.novelFontFamily().collectAsState()
+    SettingsChipRow(AYMR.strings.pref_novel_font) {
+        listOf("Serif", "Sans", "Mono").forEachIndexed { index, label ->
+            FilterChip(
+                selected = fontFamily == index,
+                onClick = { screenModel.preferences.novelFontFamily().set(index) },
+                label = { Text(label) },
+            )
+        }
+    }
+
+    val lineHeight by screenModel.preferences.novelLineHeight().collectAsState()
+    SliderItem(
+        value = lineHeight,
+        valueRange = 100..250,
+        label = stringResource(AYMR.strings.pref_novel_line_height),
+        valueText = numberFormat.format(lineHeight / 100f),
+        onChange = { screenModel.preferences.novelLineHeight().set(it) },
+        pillColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    )
+
+    val margin by screenModel.preferences.novelMargin().collectAsState()
+    SliderItem(
+        value = margin,
+        valueRange = 0..64,
+        label = stringResource(AYMR.strings.pref_novel_margin),
+        valueText = "$margin",
+        onChange = { screenModel.preferences.novelMargin().set(it) },
+        pillColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    )
+
+    CheckboxItem(
+        label = stringResource(AYMR.strings.pref_novel_justify),
+        pref = screenModel.preferences.novelJustify(),
+    )
 }
 
 @Composable
