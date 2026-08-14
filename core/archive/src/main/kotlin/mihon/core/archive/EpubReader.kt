@@ -5,6 +5,7 @@ import org.jsoup.nodes.Document
 import java.io.Closeable
 import java.io.File
 import java.io.InputStream
+import java.util.Base64
 
 /**
  * Wrapper over ArchiveReader to load files in epub format.
@@ -31,6 +32,67 @@ class EpubReader(private val reader: ArchiveReader) : Closeable by reader {
         val doc = getPackageDocument(ref)
         val pages = getPagesFromDocument(doc)
         return getImagesFromPages(pages, ref)
+    }
+
+    /**
+     * Returns the zip-entry paths of the spine's XHTML documents, in reading order. Used to render a
+     * text (novel) epub: each entry can be read as HTML with [getInputStream].
+     */
+    fun getSpinePaths(): List<String> {
+        val ref = getPackageHref()
+        val doc = getPackageDocument(ref)
+        val basePath = getParentDirectory(ref)
+        return getPagesFromDocument(doc).map { resolveZipPath(basePath, it) }
+    }
+
+    /**
+     * Whether this epub is a text novel rather than an image (manga) epub. Image epubs wrap each
+     * page in an `<img>` with virtually no text, while a novel carries prose. We accumulate the
+     * plain-text length of the spine documents and stop as soon as it crosses [TEXT_NOVEL_THRESHOLD].
+     */
+    fun isTextNovel(): Boolean {
+        var textLength = 0
+        for (path in getSpinePaths()) {
+            val html = getInputStream(path)?.use { it.readBytes().toString(Charsets.UTF_8) } ?: continue
+            textLength += Jsoup.parse(html).body().text().length
+            if (textLength >= TEXT_NOVEL_THRESHOLD) return true
+        }
+        return false
+    }
+
+    /**
+     * Reads a spine XHTML document and returns its `<body>` HTML with every `<img>`/`<image>` source
+     * rewritten to an inline `data:` URI, so referenced illustrations render without a base URL.
+     */
+    fun getSectionHtml(path: String): String {
+        val html = getInputStream(path)?.use { it.readBytes().toString(Charsets.UTF_8) } ?: return ""
+        val document = Jsoup.parse(html)
+        val basePath = getParentDirectory(path)
+        document.select("img[src]").forEach { element ->
+            inlineImage(basePath, element.attr("src"))?.let { element.attr("src", it) }
+        }
+        document.select("image").forEach { element ->
+            val href = element.attr("xlink:href").ifEmpty { element.attr("href") }
+            inlineImage(basePath, href)?.let { element.attr("xlink:href", it) }
+        }
+        return document.body().html()
+    }
+
+    /** Encodes the epub entry referenced by [src] (relative to [basePath]) as a `data:` URI. */
+    private fun inlineImage(basePath: String, src: String): String? {
+        if (src.isEmpty() || src.startsWith("data:")) return null
+        val entryPath = resolveZipPath(basePath, src)
+        val bytes = getInputStream(entryPath)?.use { it.readBytes() } ?: return null
+        val mimeType = when (entryPath.substringAfterLast('.', "").lowercase()) {
+            "png" -> "image/png"
+            "jpg", "jpeg" -> "image/jpeg"
+            "gif" -> "image/gif"
+            "svg" -> "image/svg+xml"
+            "webp" -> "image/webp"
+            else -> "image/*"
+        }
+        val encoded = Base64.getEncoder().encodeToString(bytes)
+        return "data:$mimeType;base64,$encoded"
     }
 
     /**
@@ -131,5 +193,10 @@ class EpubReader(private val reader: ArchiveReader) : Closeable by reader {
         } else {
             ""
         }
+    }
+
+    companion object {
+        // Plain-text characters of prose needed to treat an epub as a text novel rather than manga.
+        private const val TEXT_NOVEL_THRESHOLD = 500
     }
 }

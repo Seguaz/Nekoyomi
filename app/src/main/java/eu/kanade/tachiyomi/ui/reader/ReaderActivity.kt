@@ -65,6 +65,7 @@ import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.reader.ReaderViewModel.SetAsCoverResult.AddToLibraryFirst
 import eu.kanade.tachiyomi.ui.reader.ReaderViewModel.SetAsCoverResult.Error
 import eu.kanade.tachiyomi.ui.reader.ReaderViewModel.SetAsCoverResult.Success
+import eu.kanade.tachiyomi.ui.reader.loader.EpubTextPageLoader
 import eu.kanade.tachiyomi.ui.reader.model.ReaderChapter
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.model.ViewerChapters
@@ -73,6 +74,7 @@ import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderSettingsScreenModel
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
 import eu.kanade.tachiyomi.ui.reader.viewer.ReaderProgressIndicator
+import eu.kanade.tachiyomi.ui.reader.viewer.text.TextViewer
 import eu.kanade.tachiyomi.ui.reader.viewer.webtoon.WebtoonViewer
 import eu.kanade.tachiyomi.ui.webview.WebViewActivity
 import eu.kanade.tachiyomi.util.system.hasDisplayCutout
@@ -568,6 +570,28 @@ class ReaderActivity : BaseActivity() {
         startPostponedEnterTransition()
     }
 
+    /**
+     * Swaps to (or away from) the novel [TextViewer] depending on whether the loaded chapter is a
+     * text epub. The image viewer is chosen from the reading mode when the manga loads, before the
+     * chapter format is known, so this corrects it once the pages (and their loader) are available.
+     */
+    private fun ensureViewerForContent(viewerChapters: ViewerChapters) {
+        val isNovel = viewerChapters.currChapter.pageLoader is EpubTextPageLoader
+        val currentViewer = viewModel.state.value.viewer
+        if (isNovel == (currentViewer is TextViewer)) return
+
+        currentViewer?.destroy()
+        binding.viewerContainer.removeAllViews()
+        val newViewer = if (isNovel) {
+            TextViewer(this)
+        } else {
+            ReadingMode.toViewer(viewModel.getMangaReadingMode(), this)
+        }
+        viewModel.onViewerLoaded(newViewer)
+        updateViewerInset(readerPreferences.fullscreen().get())
+        binding.viewerContainer.addView(newViewer.getView())
+    }
+
     private fun openMangaScreen() {
         viewModel.manga?.id?.let { id ->
             startActivity(
@@ -618,6 +642,7 @@ class ReaderActivity : BaseActivity() {
      */
     @SuppressLint("RestrictedApi")
     private fun setChapters(viewerChapters: ViewerChapters) {
+        ensureViewerForContent(viewerChapters)
         binding.readerContainer.removeView(loadingIndicator)
         viewModel.state.value.viewer?.setChapters(viewerChapters)
 

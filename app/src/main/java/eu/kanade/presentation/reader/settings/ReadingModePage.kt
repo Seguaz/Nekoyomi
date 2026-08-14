@@ -14,6 +14,7 @@ import eu.kanade.tachiyomi.ui.reader.setting.ReaderOrientation
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderSettingsScreenModel
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
+import eu.kanade.tachiyomi.ui.reader.viewer.text.TextViewer
 import eu.kanade.tachiyomi.ui.reader.viewer.webtoon.WebtoonViewer
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
@@ -27,6 +28,13 @@ import java.text.NumberFormat
 
 @Composable
 internal fun ColumnScope.ReadingModePage(screenModel: ReaderSettingsScreenModel) {
+    val viewer by screenModel.viewerFlow.collectAsState()
+    // Novels use a dedicated text viewer; the image reading-mode/orientation options don't apply.
+    if (viewer is TextViewer) {
+        TextViewerSettings(screenModel)
+        return
+    }
+
     HeadingItem(MR.strings.pref_category_for_this_series)
     val manga by screenModel.mangaFlow.collectAsState()
 
@@ -60,12 +68,28 @@ internal fun ColumnScope.ReadingModePage(screenModel: ReaderSettingsScreenModel)
         }
     }
 
-    val viewer by screenModel.viewerFlow.collectAsState()
     if (viewer is WebtoonViewer) {
         WebtoonViewerSettings(screenModel)
     } else {
         PagerViewerSettings(screenModel)
     }
+}
+
+@Composable
+private fun ColumnScope.TextViewerSettings(screenModel: ReaderSettingsScreenModel) {
+    val numberFormat = remember { NumberFormat.getPercentInstance() }
+
+    HeadingItem(AYMR.strings.novel_viewer)
+
+    val textScale by screenModel.preferences.novelTextScale().collectAsState()
+    SliderItem(
+        value = textScale,
+        valueRange = 50..300,
+        label = stringResource(AYMR.strings.pref_novel_text_size),
+        valueText = numberFormat.format(textScale / 100f),
+        onChange = { screenModel.preferences.novelTextScale().set(it) },
+        pillColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    )
 }
 
 @Composable

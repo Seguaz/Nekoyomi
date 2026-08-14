@@ -79,6 +79,9 @@ class ReaderPreferences(
     // Auto-scroll speed level (1..10) for the webtoon reader; higher = faster.
     fun webtoonAutoScrollSpeed() = preferenceStore.getInt("webtoon_auto_scroll_speed", 3)
 
+    // Text size, as a percentage, for the text (novel) reader. 100 = default WebView text size.
+    fun novelTextScale() = preferenceStore.getInt("pref_novel_text_scale", 100)
+
     fun readerHideThreshold() = preferenceStore.getEnum("reader_hide_threshold", ReaderHideThreshold.LOW)
 
     fun folderPerManga() = preferenceStore.getBoolean("create_folder_per_manga", false)

@@ -99,7 +99,16 @@ class ChapterLoader(
                 when (format) {
                     is Format.Directory -> DirectoryPageLoader(format.file)
                     is Format.Archive -> ArchivePageLoader(format.file.archiveReader(context))
-                    is Format.Epub -> EpubPageLoader(format.file.epubReader(context))
+                    is Format.Epub -> {
+                        val reader = format.file.epubReader(context)
+                        // A text novel carries prose in its spine (even if each chapter also has a
+                        // decorative image); a manga epub is just images. Render text novels as text.
+                        if (reader.isTextNovel()) {
+                            EpubTextPageLoader(reader)
+                        } else {
+                            EpubPageLoader(reader)
+                        }
+                    }
                 }
             }
             source is HttpSource -> HttpPageLoader(chapter, source)
