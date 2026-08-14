@@ -82,6 +82,16 @@ internal fun SeriesBadge(
 }
 
 @Composable
+internal fun FolderBadge(count: Int) {
+    Badge(
+        imageVector = Icons.Outlined.Folder,
+        text = "$count",
+        color = MaterialTheme.colorScheme.secondary,
+        iconColor = MaterialTheme.colorScheme.onSecondary,
+    )
+}
+
+@Composable
 internal fun LanguageBadge(
     isLocal: Boolean,
     sourceLanguage: String,

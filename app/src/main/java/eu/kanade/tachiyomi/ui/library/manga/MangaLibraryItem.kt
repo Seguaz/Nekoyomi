@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.ui.library.manga
 
 import eu.kanade.tachiyomi.source.manga.getNameForMangaInfo
+import tachiyomi.domain.entries.manga.model.MangaCover
 import tachiyomi.domain.library.manga.LibraryManga
 import tachiyomi.domain.source.manga.service.MangaSourceManager
 import uy.kohesive.injekt.Injekt
@@ -17,6 +18,12 @@ class MangaLibraryItem(
     var isSeriesHead: Boolean = false,
     var seriesMemberCount: Int = 0,
     var seriesExpanded: Boolean = false,
+    var seriesCoverPath: String? = null,
+    // Folder-cell fields: a folder is a synthetic item (isFolder = true) that stands in for a whole
+    // custom series at the top level; tapping it drills into the members. [folderPreviewCovers] feeds
+    // the default 2x2 collage shown when no custom cover is set.
+    var isFolder: Boolean = false,
+    var folderPreviewCovers: List<MangaCover> = emptyList(),
     private val sourceManager: MangaSourceManager = Injekt.get(),
 ) {
     /**

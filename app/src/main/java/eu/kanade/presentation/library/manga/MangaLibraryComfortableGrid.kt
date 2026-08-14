@@ -8,10 +8,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.util.fastAny
 import eu.kanade.presentation.library.components.DownloadsBadge
 import eu.kanade.presentation.library.components.EntryComfortableGridItem
+import eu.kanade.presentation.library.components.FolderBadge
+import eu.kanade.presentation.library.components.FolderCover
 import eu.kanade.presentation.library.components.LanguageBadge
 import eu.kanade.presentation.library.components.LazyLibraryGrid
 import eu.kanade.presentation.library.components.PinnedBadge
-import eu.kanade.presentation.library.components.SeriesBadge
 import eu.kanade.presentation.library.components.UnviewedBadge
 import eu.kanade.presentation.library.components.globalSearchItem
 import eu.kanade.tachiyomi.ui.library.manga.MangaLibraryItem
@@ -27,7 +28,8 @@ internal fun MangaLibraryComfortableGrid(
     onClick: (LibraryManga) -> Unit,
     onLongClick: (LibraryManga) -> Unit,
     onClickContinueReading: ((LibraryManga) -> Unit)?,
-    onToggleSeriesExpanded: (String?) -> Unit,
+    onOpenFolder: (String?) -> Unit,
+    onFolderLongClick: (String?) -> Unit,
     searchQuery: String?,
     onGlobalSearchClicked: () -> Unit,
 ) {
@@ -42,6 +44,23 @@ internal fun MangaLibraryComfortableGrid(
             items = items,
             contentType = { "manga_library_comfortable_grid_item" },
         ) { libraryItem ->
+            if (libraryItem.isFolder) {
+                EntryComfortableGridItem(
+                    title = libraryItem.seriesName.orEmpty(),
+                    coverData = libraryItem.folderPreviewCovers.firstOrNull() ?: "",
+                    coverContent = {
+                        FolderCover(
+                            coverPath = libraryItem.seriesCoverPath,
+                            previewCovers = libraryItem.folderPreviewCovers,
+                            modifier = Modifier.matchParentSize(),
+                        )
+                    },
+                    coverBadgeEnd = { FolderBadge(count = libraryItem.seriesMemberCount) },
+                    onLongClick = { onFolderLongClick(libraryItem.seriesName) },
+                    onClick = { onOpenFolder(libraryItem.seriesName) },
+                )
+                return@items
+            }
             val manga = libraryItem.libraryManga.manga
             EntryComfortableGridItem(
                 isSelected = selection.fastAny { it.id == libraryItem.libraryManga.id },
@@ -59,12 +78,6 @@ internal fun MangaLibraryComfortableGrid(
                 },
                 coverBadgeEnd = {
                     PinnedBadge(pinned = libraryItem.isPinned)
-                    SeriesBadge(
-                        seriesName = libraryItem.seriesName,
-                        count = libraryItem.seriesMemberCount,
-                        expanded = libraryItem.seriesExpanded,
-                        onToggleExpanded = { onToggleSeriesExpanded(libraryItem.seriesName) },
-                    )
                     LanguageBadge(
                         isLocal = libraryItem.isLocal,
                         sourceLanguage = libraryItem.sourceLanguage,

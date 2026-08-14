@@ -1,5 +1,8 @@
 package eu.kanade.tachiyomi.ui.library.anime
 
+import android.app.Application
+import android.content.Context
+import android.net.Uri
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -24,6 +27,7 @@ import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.data.cache.AnimeBackgroundCache
 import eu.kanade.tachiyomi.data.cache.AnimeCoverCache
+import eu.kanade.tachiyomi.data.cache.SeriesCoverCache
 import eu.kanade.tachiyomi.data.download.anime.AnimeDownloadCache
 import eu.kanade.tachiyomi.data.download.anime.AnimeDownloadManager
 import eu.kanade.tachiyomi.data.track.TrackerManager
@@ -31,6 +35,7 @@ import eu.kanade.tachiyomi.ui.library.SeriesGrouping
 import eu.kanade.tachiyomi.util.episode.getNextUnseen
 import eu.kanade.tachiyomi.util.removeBackgrounds
 import eu.kanade.tachiyomi.util.removeCovers
+import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.mutate
@@ -48,17 +53,21 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import logcat.LogPriority
 import tachiyomi.core.common.preference.CheckboxState
 import tachiyomi.core.common.preference.TriState
 import tachiyomi.core.common.util.lang.compareToWithCollator
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.launchNonCancellable
 import tachiyomi.core.common.util.lang.withIOContext
+import tachiyomi.core.common.util.lang.withUIContext
+import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.anime.interactor.GetVisibleAnimeCategories
 import tachiyomi.domain.category.anime.interactor.SetAnimeCategories
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.entries.anime.interactor.GetLibraryAnime
 import tachiyomi.domain.entries.anime.model.Anime
+import tachiyomi.domain.entries.anime.model.AnimeCover
 import tachiyomi.domain.entries.anime.model.AnimeUpdate
 import tachiyomi.domain.entries.applyFilter
 import tachiyomi.domain.history.anime.interactor.GetNextEpisodes
@@ -72,6 +81,7 @@ import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.source.anime.service.AnimeSourceManager
 import tachiyomi.domain.track.anime.interactor.GetTracksPerAnime
 import tachiyomi.domain.track.anime.model.AnimeTrack
+import tachiyomi.i18n.MR
 import tachiyomi.source.local.entries.anime.isLocal
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -105,35 +115,42 @@ class AnimeLibraryScreenModel(
         screenModelScope,
     )
 
+    private val seriesCoverCache = SeriesCoverCache(Injekt.get<Application>(), libraryPreferences)
+
     init {
         screenModelScope.launchIO {
-            val searchAndExpand = combine(
+            val searchAndCovers = combine(
                 state.map { it.searchQuery }.distinctUntilChanged().debounce(SEARCH_DEBOUNCE_MILLIS),
-                state.map { it.seriesExpanded }.distinctUntilChanged(),
-            ) { searchQuery, expanded -> searchQuery to expanded }
+                libraryPreferences.seriesCoversAnime().changes(),
+            ) { searchQuery, _ -> searchQuery }
             combine(
-                searchAndExpand,
+                searchAndCovers,
                 getLibraryFlow(),
                 getTracksPerAnime.subscribe(),
                 getTrackingFilterFlow(),
                 downloadCache.changes,
-            ) { (searchQuery, expanded), library, tracks, trackingFilter, _ ->
-                library
+            ) { searchQuery, library, tracks, trackingFilter, _ ->
+                val sorted = library
                     .applyFilters(tracks, trackingFilter)
-                    .applySort(tracks, trackingFilter.keys, expanded, collapseSeries = searchQuery == null)
-                    .mapValues { (_, value) ->
-                        if (searchQuery != null) {
-                            value.filter { it.matches(searchQuery) }
-                        } else {
-                            value
-                        }
-                    }
+                    .applySort(tracks, trackingFilter.keys)
+                // Members of each custom series, deduped, feeding the drill-in folder view.
+                val folderMembers = sorted.values.asSequence().flatten()
+                    .filter { it.seriesName != null && !it.isFolder }
+                    .groupBy { it.seriesName!! }
+                    .mapValues { (_, members) -> members.distinctBy { it.libraryAnime.anime.id } }
+                val display = if (searchQuery != null) {
+                    sorted.mapValues { (_, value) -> value.filter { it.matches(searchQuery) } }
+                } else {
+                    sorted.foldIntoFolders(folderMembers)
+                }
+                display to folderMembers
             }
-                .collectLatest {
+                .collectLatest { (display, folderMembers) ->
                     mutableState.update { state ->
                         state.copy(
                             isLoading = false,
-                            library = it,
+                            library = display,
+                            folderMembers = folderMembers,
                         )
                     }
                 }
@@ -268,8 +285,6 @@ class AnimeLibraryScreenModel(
     private fun AnimeLibraryMap.applySort(
         trackMap: Map<Long, List<AnimeTrack>>,
         loggedInTrackerIds: Set<Long>,
-        expandedSeries: Set<String>,
-        collapseSeries: Boolean,
     ): AnimeLibraryMap {
         val sortAlphabetically: (AnimeLibraryItem, AnimeLibraryItem) -> Int = { i1, i2 ->
             i1.libraryAnime.anime.title.lowercase().compareToWithCollator(i2.libraryAnime.anime.title.lowercase())
@@ -347,11 +362,13 @@ class AnimeLibraryScreenModel(
         val pinnedFirst = compareByDescending<AnimeLibraryItem> { it.libraryAnime.id.toString() in pinnedIds }
 
         return mapValues { (key, value) ->
-            // Reset transient series-collapse flags (items are reused across re-emissions).
+            // Reset transient flags (items are reused across re-emissions).
             value.forEach {
                 it.isSeriesHead = false
                 it.seriesMemberCount = 0
                 it.seriesExpanded = false
+                it.seriesCoverPath = null
+                it.isFolder = false
             }
 
             if (key.sort.type == AnimeLibrarySort.Type.Random) {
@@ -365,43 +382,49 @@ class AnimeLibraryScreenModel(
                     .thenComparator(sortAlphabetically),
             )
 
-            if (!collapseSeries) {
-                return@mapValues value.sortedWith(comparator)
+            value.sortedWith(comparator)
+        }
+    }
+
+    /**
+     * Replaces every custom-series member in each category with a single synthetic folder cell placed
+     * at the position of the series' first (already-sorted) member. Non-series entries pass through
+     * untouched. [folderMembers] provides the global member list backing each folder's cover collage.
+     */
+    private fun AnimeLibraryMap.foldIntoFolders(
+        folderMembers: Map<String, List<AnimeLibraryItem>>,
+    ): AnimeLibraryMap = mapValues { (_, items) ->
+        val seenFolders = HashSet<String>()
+        val result = ArrayList<AnimeLibraryItem>(items.size)
+        for (item in items) {
+            val name = item.seriesName
+            val members = name?.let { folderMembers[it] }.orEmpty()
+            when {
+                // Not grouped, or a lone remnant (<2) that isn't a real folder: show as a normal entry.
+                name == null || members.size < 2 -> result += item
+                // First member of a real folder: replace the whole group with one folder cell.
+                seenFolders.add(name) -> result += createFolderCell(name, members)
+                // Subsequent members of an already-folded group are hidden.
             }
+        }
+        result
+    }
 
-            // Collapse custom series: keep only the head of each multi-member series unless expanded.
-            val groups = value.filter { it.seriesName != null }
-                .groupBy { it.seriesName!! }
-                .filter { it.value.size > 1 }
-            if (groups.isEmpty()) return@mapValues value.sortedWith(comparator)
-
-            val memberIds = groups.values.flatten().mapTo(HashSet()) { it.libraryAnime.id }
-            val headIds = groups.values
-                .mapNotNull { members -> members.minWithOrNull(comparator) }
-                .mapTo(HashSet()) { it.libraryAnime.id }
-
-            value.forEach { item ->
-                val head = item.libraryAnime.id in headIds
-                item.isSeriesHead = head
-                if (head) {
-                    item.seriesMemberCount = groups[item.seriesName]!!.size
-                    item.seriesExpanded = item.seriesName in expandedSeries
-                }
-            }
-
-            // Representatives: entries not in any series, plus each series' head.
-            val reps = value
-                .filter { it.libraryAnime.id !in memberIds || it.libraryAnime.id in headIds }
-                .sortedWith(comparator)
-
-            reps.flatMap { rep ->
-                if (rep.isSeriesHead && rep.seriesExpanded) {
-                    listOf(rep) + groups[rep.seriesName]!!
-                        .sortedWith(comparator)
-                        .filter { it.libraryAnime.id != rep.libraryAnime.id }
-                } else {
-                    listOf(rep)
-                }
+    private fun createFolderCell(name: String, members: List<AnimeLibraryItem>): AnimeLibraryItem {
+        return AnimeLibraryItem(libraryAnime = members.first().libraryAnime).apply {
+            isFolder = true
+            seriesName = name
+            seriesMemberCount = members.size
+            seriesCoverPath = seriesCoverCache.getCoverFile(isAnime = true, name = name)?.absolutePath
+            folderPreviewCovers = members.take(4).map {
+                val anime = it.libraryAnime.anime
+                AnimeCover(
+                    animeId = anime.id,
+                    sourceId = anime.source,
+                    isAnimeFavorite = anime.favorite,
+                    url = anime.thumbnailUrl,
+                    lastModified = anime.coverLastModified,
+                )
             }
         }
     }
@@ -640,6 +663,54 @@ class AnimeLibraryScreenModel(
         }
     }
 
+    /** Drills into the folder [name], showing only its members. */
+    fun openFolder(name: String?) {
+        name ?: return
+        mutableState.update { it.copy(openFolder = name) }
+    }
+
+    /** Leaves the currently-open folder, back to the top level. */
+    fun closeFolder() {
+        mutableState.update { it.copy(openFolder = null) }
+    }
+
+    /** Whether the folder [name] has a custom cover set. */
+    fun folderHasCover(name: String?): Boolean =
+        name != null && seriesCoverCache.hasCover(isAnime = true, name = name)
+
+    /** Opens the actions menu for the folder [name] (change cover, rename, disband). */
+    fun showFolderActionsDialog(name: String?) {
+        name ?: return
+        val hasCover = seriesCoverCache.hasCover(isAnime = true, name = name)
+        mutableState.update { it.copy(dialog = Dialog.FolderActions(name, hasCover)) }
+    }
+
+    /** Opens the rename dialog for the folder [name]. */
+    fun showRenameFolderDialog(name: String) {
+        mutableState.update { it.copy(dialog = Dialog.RenameFolder(name)) }
+    }
+
+    /** Renames the folder [oldName] to [newName], reassigning every member and moving its cover. */
+    fun renameFolder(oldName: String, newName: String) {
+        val trimmed = newName.trim()
+        if (trimmed.isBlank() || trimmed == oldName) return
+        val pref = libraryPreferences.seriesGroupingsAnime()
+        val ids = SeriesGrouping.decode(pref.get()).filterValues { it == oldName }.keys.toList()
+        if (ids.isEmpty()) return
+        pref.set(SeriesGrouping.assign(pref.get(), ids, trimmed))
+        seriesCoverCache.renameSeries(isAnime = true, oldName = oldName, newName = trimmed)
+        mutableState.update { if (it.openFolder == oldName) it.copy(openFolder = trimmed) else it }
+    }
+
+    /** Disbands the folder [name], ungrouping all its members and dropping its cover. */
+    fun disbandFolder(name: String) {
+        val pref = libraryPreferences.seriesGroupingsAnime()
+        val ids = SeriesGrouping.decode(pref.get()).filterValues { it == name }.keys.toList()
+        if (ids.isNotEmpty()) pref.set(SeriesGrouping.remove(pref.get(), ids))
+        seriesCoverCache.deleteCover(isAnime = true, name = name)
+        mutableState.update { if (it.openFolder == name) it.copy(openFolder = null) else it }
+    }
+
     /**
      * Removes the current selection from any custom series.
      */
@@ -653,6 +724,45 @@ class AnimeLibraryScreenModel(
         val seriesOfSelection = ids.mapNotNull { decoded[it] }.toSet()
         val idsToRemove = decoded.filterValues { it in seriesOfSelection }.keys + ids
         pref.set(SeriesGrouping.remove(pref.get(), idsToRemove.toList()))
+        clearSelection()
+    }
+
+    /**
+     * The custom-series name shared by the whole current selection, or null if the selection is empty
+     * or spans more than one series. Used to gate the "set group cover" action.
+     */
+    fun selectedSingleSeriesName(): String? {
+        val ids = state.value.selection.map { it.id }
+        if (ids.isEmpty()) return null
+        val decoded = SeriesGrouping.decode(libraryPreferences.seriesGroupingsAnime().get())
+        // singleOrNull() yields the shared name only when every id maps to the same non-null series.
+        return ids.map { decoded[it] }.toSet().singleOrNull()
+    }
+
+    /** Whether the current selection's series already has a custom cover. */
+    fun selectionHasSeriesCover(): Boolean {
+        val name = selectedSingleSeriesName() ?: return false
+        return seriesCoverCache.hasCover(isAnime = true, name = name)
+    }
+
+    /** Sets [uri] as the custom cover of the custom series [name]. */
+    fun setSeriesCover(name: String, uri: Uri, context: Context) {
+        screenModelScope.launchIO {
+            try {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    seriesCoverCache.setCover(isAnime = true, name = name, inputStream = input)
+                }
+            } catch (e: Exception) {
+                logcat(LogPriority.ERROR, e)
+                withUIContext { context.toast(MR.strings.notification_cover_update_failed) }
+            }
+        }
+        clearSelection()
+    }
+
+    /** Removes the custom cover of the custom series [name]. */
+    fun removeSeriesCover(name: String) {
+        seriesCoverCache.deleteCover(isAnime = true, name = name)
         clearSelection()
     }
 
@@ -875,6 +985,8 @@ class AnimeLibraryScreenModel(
             val ids: List<Long>,
             val existingNames: ImmutableList<String>,
         ) : Dialog
+        data class FolderActions(val name: String, val hasCover: Boolean) : Dialog
+        data class RenameFolder(val name: String) : Dialog
     }
 
     @Immutable
@@ -908,6 +1020,10 @@ class AnimeLibraryScreenModel(
         val pinnedIds: Set<String> = emptySet(),
         val seriesExpanded: Set<String> = emptySet(),
         val seriesIds: Set<Long> = emptySet(),
+        // Custom-series members keyed by series name, used by the drill-in folder view.
+        val folderMembers: Map<String, List<AnimeLibraryItem>> = emptyMap(),
+        // Name of the folder currently opened (drill-in), or null at the top level.
+        val openFolder: String? = null,
     ) {
         private val libraryCount by lazy {
             library.values
@@ -921,6 +1037,9 @@ class AnimeLibraryScreenModel(
         val selectionMode = selection.isNotEmpty()
 
         val categories = library.keys.toList()
+
+        /** Members of the currently-open folder, or empty if none is open. */
+        fun openFolderItems(): List<AnimeLibraryItem> = openFolder?.let { folderMembers[it] }.orEmpty()
 
         fun getAnimelibItemsByCategoryId(categoryId: Long): List<AnimeLibraryItem>? {
             return library.firstNotNullOfOrNull { (k, v) -> v.takeIf { k.id == categoryId } }

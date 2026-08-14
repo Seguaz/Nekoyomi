@@ -42,7 +42,8 @@ fun AnimeLibraryPager(
     onClickAnime: (LibraryAnime) -> Unit,
     onLongClickAnime: (LibraryAnime) -> Unit,
     onClickContinueWatching: ((LibraryAnime) -> Unit)?,
-    onToggleSeriesExpanded: (String?) -> Unit,
+    onOpenFolder: (String?) -> Unit,
+    onFolderLongClick: (String?) -> Unit,
 ) {
     BoxWithConstraints {
         val density = LocalDensity.current
@@ -84,7 +85,8 @@ fun AnimeLibraryPager(
                         selection = selectedAnime,
                         onClick = onClickAnime,
                         onClickContinueWatching = onClickContinueWatching,
-                        onToggleSeriesExpanded = onToggleSeriesExpanded,
+                        onOpenFolder = onOpenFolder,
+                        onFolderLongClick = onFolderLongClick,
                         onLongClick = onLongClickAnime,
                         searchQuery = searchQuery,
                         onGlobalSearchClicked = onGlobalSearchClicked,
@@ -100,7 +102,8 @@ fun AnimeLibraryPager(
                         onClick = onClickAnime,
                         onLongClick = onLongClickAnime,
                         onClickContinueWatching = onClickContinueWatching,
-                        onToggleSeriesExpanded = onToggleSeriesExpanded,
+                        onOpenFolder = onOpenFolder,
+                        onFolderLongClick = onFolderLongClick,
                         searchQuery = searchQuery,
                         onGlobalSearchClicked = onGlobalSearchClicked,
                     )
@@ -117,7 +120,8 @@ fun AnimeLibraryPager(
                         selection = selectedAnime,
                         onClick = onClickAnime,
                         onClickContinueWatching = onClickContinueWatching,
-                        onToggleSeriesExpanded = onToggleSeriesExpanded,
+                        onOpenFolder = onOpenFolder,
+                        onFolderLongClick = onFolderLongClick,
                         onLongClick = onLongClickAnime,
                         searchQuery = searchQuery,
                         onGlobalSearchClicked = onGlobalSearchClicked,

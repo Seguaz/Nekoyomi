@@ -182,6 +182,10 @@ class LibraryPreferences(
     fun seriesGroupingsAnime() = preferenceStore.getStringSet("library_series_anime", emptySet())
     fun seriesGroupingsManga() = preferenceStore.getStringSet("library_series_manga", emptySet())
 
+    // Custom cover per series group. Each element encodes one group as "<fileName>|<seriesName>".
+    fun seriesCoversAnime() = preferenceStore.getStringSet("library_series_covers_anime", emptySet())
+    fun seriesCoversManga() = preferenceStore.getStringSet("library_series_covers_manga", emptySet())
+
     fun animeUpdateCategories() =
         preferenceStore.getStringSet(LIBRARY_UPDATE_ANIME_CATEGORIES_PREF_KEY, emptySet())
 

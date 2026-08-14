@@ -37,7 +37,8 @@ fun AnimeLibraryContent(
     showPageTabs: Boolean,
     onChangeCurrentPage: (Int) -> Unit,
     onAnimeClicked: (Long) -> Unit,
-    onToggleSeriesExpanded: (String?) -> Unit,
+    onOpenFolder: (String?) -> Unit,
+    onFolderLongClick: (String?) -> Unit,
     onContinueWatchingClicked: ((LibraryAnime) -> Unit)?,
     onToggleSelection: (LibraryAnime) -> Unit,
     onToggleRangeSelection: (LibraryAnime) -> Unit,
@@ -77,15 +78,7 @@ fun AnimeLibraryContent(
         val notSelectionMode = selection.isEmpty()
         val onClickAnime = { anime: LibraryAnime ->
             if (notSelectionMode) {
-                val item = getAnimeLibraryForPage(pagerState.currentPage)
-                    .find { it.libraryAnime.id == anime.id }
-                // A collapsed series head expands on tap; once expanded, tapping it OPENS the entry (the
-                // chevron badge collapses it). This lets the first/lead entry of a group be opened.
-                if (item?.isSeriesHead == true && !item.seriesExpanded) {
-                    onToggleSeriesExpanded(item.seriesName)
-                } else {
-                    onAnimeClicked(anime.anime.id)
-                }
+                onAnimeClicked(anime.anime.id)
             } else {
                 onToggleSelection(anime)
             }
@@ -118,7 +111,8 @@ fun AnimeLibraryContent(
                 onClickAnime = onClickAnime,
                 onLongClickAnime = onToggleRangeSelection,
                 onClickContinueWatching = onContinueWatchingClicked,
-                onToggleSeriesExpanded = onToggleSeriesExpanded,
+                onOpenFolder = onOpenFolder,
+                onFolderLongClick = onFolderLongClick,
             )
         }
 

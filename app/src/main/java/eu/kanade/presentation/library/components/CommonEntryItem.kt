@@ -44,7 +44,6 @@ import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.BadgeGroup
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.selectedBackground
-import tachiyomi.domain.entries.EntryCover as EntryCoverModel
 
 object CommonEntryItemDefaults {
     val GridHorizontalSpacer = 4.dp
@@ -71,7 +70,7 @@ private const val GRID_SELECTED_COVER_ALPHA = 0.76f
  */
 @Composable
 fun EntryCompactGridItem(
-    coverData: EntryCoverModel,
+    coverData: Any,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     isSelected: Boolean = false,
@@ -80,6 +79,7 @@ fun EntryCompactGridItem(
     coverAlpha: Float = 1f,
     coverBadgeStart: @Composable (RowScope.() -> Unit)? = null,
     coverBadgeEnd: @Composable (RowScope.() -> Unit)? = null,
+    coverContent: (@Composable BoxScope.() -> Unit)? = null,
 ) {
     GridItemSelectable(
         isSelected = isSelected,
@@ -88,12 +88,16 @@ fun EntryCompactGridItem(
     ) {
         EntryGridCover(
             cover = {
-                ItemCover.Book(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .alpha(if (isSelected) GRID_SELECTED_COVER_ALPHA else coverAlpha),
-                    data = coverData,
-                )
+                if (coverContent != null) {
+                    coverContent()
+                } else {
+                    ItemCover.Book(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .alpha(if (isSelected) GRID_SELECTED_COVER_ALPHA else coverAlpha),
+                        data = coverData,
+                    )
+                }
             },
             badgesStart = coverBadgeStart,
             badgesEnd = coverBadgeEnd,
@@ -181,11 +185,12 @@ fun EntryComfortableGridItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     titleMaxLines: Int = 2,
-    coverData: EntryCoverModel,
+    coverData: Any,
     coverAlpha: Float = 1f,
     coverBadgeStart: (@Composable RowScope.() -> Unit)? = null,
     coverBadgeEnd: (@Composable RowScope.() -> Unit)? = null,
     onClickContinueViewing: (() -> Unit)? = null,
+    coverContent: (@Composable BoxScope.() -> Unit)? = null,
 ) {
     GridItemSelectable(
         isSelected = isSelected,
@@ -195,12 +200,16 @@ fun EntryComfortableGridItem(
         Column {
             EntryGridCover(
                 cover = {
-                    ItemCover.Book(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .alpha(if (isSelected) GRID_SELECTED_COVER_ALPHA else coverAlpha),
-                        data = coverData,
-                    )
+                    if (coverContent != null) {
+                        coverContent()
+                    } else {
+                        ItemCover.Book(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .alpha(if (isSelected) GRID_SELECTED_COVER_ALPHA else coverAlpha),
+                            data = coverData,
+                        )
+                    }
                 },
                 badgesStart = coverBadgeStart,
                 badgesEnd = coverBadgeEnd,
@@ -333,7 +342,7 @@ private fun Modifier.selectedOutline(
 fun EntryListItem(
     isSelected: Boolean = false,
     title: String,
-    coverData: EntryCoverModel,
+    coverData: Any,
     coverAlpha: Float = 1f,
     onLongClick: () -> Unit,
     onClick: () -> Unit,
@@ -341,6 +350,7 @@ fun EntryListItem(
     onClickContinueViewing: (() -> Unit)? = null,
     entries: Int = 0,
     containerHeight: Int = 0,
+    coverContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -362,12 +372,22 @@ fun EntryListItem(
             .padding(horizontal = 16.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ItemCover.Book(
-            modifier = Modifier
-                .fillMaxHeight()
-                .alpha(coverAlpha),
-            data = coverData,
-        )
+        if (coverContent != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .aspectRatio(ItemCover.Book.ratio),
+            ) {
+                coverContent()
+            }
+        } else {
+            ItemCover.Book(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .alpha(coverAlpha),
+                data = coverData,
+            )
+        }
         Text(
             text = title,
             modifier = Modifier

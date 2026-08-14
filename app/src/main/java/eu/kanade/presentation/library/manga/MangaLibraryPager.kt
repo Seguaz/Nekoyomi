@@ -42,7 +42,8 @@ fun MangaLibraryPager(
     onClickManga: (LibraryManga) -> Unit,
     onLongClickManga: (LibraryManga) -> Unit,
     onClickContinueReading: ((LibraryManga) -> Unit)?,
-    onToggleSeriesExpanded: (String?) -> Unit,
+    onOpenFolder: (String?) -> Unit,
+    onFolderLongClick: (String?) -> Unit,
 ) {
     BoxWithConstraints {
         val density = LocalDensity.current
@@ -85,7 +86,8 @@ fun MangaLibraryPager(
                         onClick = onClickManga,
                         onLongClick = onLongClickManga,
                         onClickContinueReading = onClickContinueReading,
-                        onToggleSeriesExpanded = onToggleSeriesExpanded,
+                        onOpenFolder = onOpenFolder,
+                        onFolderLongClick = onFolderLongClick,
                         searchQuery = searchQuery,
                         onGlobalSearchClicked = onGlobalSearchClicked,
                     )
@@ -100,7 +102,8 @@ fun MangaLibraryPager(
                         onClick = onClickManga,
                         onLongClick = onLongClickManga,
                         onClickContinueReading = onClickContinueReading,
-                        onToggleSeriesExpanded = onToggleSeriesExpanded,
+                        onOpenFolder = onOpenFolder,
+                        onFolderLongClick = onFolderLongClick,
                         searchQuery = searchQuery,
                         onGlobalSearchClicked = onGlobalSearchClicked,
                     )
@@ -118,7 +121,8 @@ fun MangaLibraryPager(
                         onClick = onClickManga,
                         onLongClick = onLongClickManga,
                         onClickContinueReading = onClickContinueReading,
-                        onToggleSeriesExpanded = onToggleSeriesExpanded,
+                        onOpenFolder = onOpenFolder,
+                        onFolderLongClick = onFolderLongClick,
                         searchQuery = searchQuery,
                         onGlobalSearchClicked = onGlobalSearchClicked,
                     )

@@ -37,7 +37,8 @@ fun MangaLibraryContent(
     showPageTabs: Boolean,
     onChangeCurrentPage: (Int) -> Unit,
     onMangaClicked: (Long) -> Unit,
-    onToggleSeriesExpanded: (String?) -> Unit,
+    onOpenFolder: (String?) -> Unit,
+    onFolderLongClick: (String?) -> Unit,
     onContinueReadingClicked: ((LibraryManga) -> Unit)?,
     onToggleSelection: (LibraryManga) -> Unit,
     onToggleRangeSelection: (LibraryManga) -> Unit,
@@ -77,15 +78,7 @@ fun MangaLibraryContent(
         val notSelectionMode = selection.isEmpty()
         val onClickManga = { manga: LibraryManga ->
             if (notSelectionMode) {
-                val item = getLibraryForPage(pagerState.currentPage)
-                    .find { it.libraryManga.id == manga.id }
-                // A collapsed series head expands on tap; once expanded, tapping it OPENS the entry (the
-                // chevron badge collapses it). This lets the first/lead entry of a group be opened.
-                if (item?.isSeriesHead == true && !item.seriesExpanded) {
-                    onToggleSeriesExpanded(item.seriesName)
-                } else {
-                    onMangaClicked(manga.manga.id)
-                }
+                onMangaClicked(manga.manga.id)
             } else {
                 onToggleSelection(manga)
             }
@@ -118,7 +111,8 @@ fun MangaLibraryContent(
                 onClickManga = onClickManga,
                 onLongClickManga = onToggleRangeSelection,
                 onClickContinueReading = onContinueReadingClicked,
-                onToggleSeriesExpanded = onToggleSeriesExpanded,
+                onOpenFolder = onOpenFolder,
+                onFolderLongClick = onFolderLongClick,
             )
         }
 

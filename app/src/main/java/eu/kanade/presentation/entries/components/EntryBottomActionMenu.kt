@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.BookmarkRemove
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Input
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.LayersClear
@@ -303,8 +304,11 @@ fun LibraryBottomActionMenu(
     onPinClicked: () -> Unit,
     onGroupIntoSeriesClicked: () -> Unit,
     onUngroupClicked: () -> Unit,
+    onSetGroupCoverClicked: (() -> Unit)?,
+    onRemoveGroupCoverClicked: () -> Unit,
     pinned: Boolean,
     grouped: Boolean,
+    hasGroupCover: Boolean,
     isManga: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -358,6 +362,15 @@ fun LibraryBottomActionMenu(
                     onLongClick = if (grouped) onUngroupClicked else onGroupIntoSeriesClicked,
                     onClick = if (grouped) onUngroupClicked else onGroupIntoSeriesClicked,
                 )
+                if (onSetGroupCoverClicked != null) {
+                    Button(
+                        title = stringResource(MR.strings.action_group_cover),
+                        icon = Icons.Outlined.Image,
+                        toConfirm = false,
+                        onLongClick = if (hasGroupCover) onRemoveGroupCoverClicked else onSetGroupCoverClicked,
+                        onClick = onSetGroupCoverClicked,
+                    )
+                }
                 Button(
                     title = stringResource(MR.strings.action_move_category),
                     icon = Icons.AutoMirrored.Outlined.Label,

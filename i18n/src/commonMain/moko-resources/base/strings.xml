@@ -100,6 +100,11 @@
     <string name="action_unpin">Unpin</string>
     <string name="action_group_into_series">Group into series</string>
     <string name="action_ungroup">Ungroup</string>
+    <string name="action_group_cover">Group cover</string>
+    <string name="action_change_group_cover">Change cover</string>
+    <string name="action_remove_group_cover">Remove cover</string>
+    <string name="action_rename_folder">Rename</string>
+    <string name="action_disband_folder">Ungroup all</string>
     <string name="series_name">Series name</string>
     <string name="series_add_to_existing">Add to an existing series:</string>
     <string name="delete_category_confirmation">Do you wish to delete the category \"%s\"?</string>

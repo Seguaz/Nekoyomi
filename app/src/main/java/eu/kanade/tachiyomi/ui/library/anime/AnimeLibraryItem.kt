@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.ui.library.anime
 
 import eu.kanade.tachiyomi.source.anime.getNameForAnimeInfo
+import tachiyomi.domain.entries.anime.model.AnimeCover
 import tachiyomi.domain.library.anime.LibraryAnime
 import tachiyomi.domain.source.anime.service.AnimeSourceManager
 import uy.kohesive.injekt.Injekt
@@ -17,6 +18,12 @@ data class AnimeLibraryItem(
     var isSeriesHead: Boolean = false,
     var seriesMemberCount: Int = 0,
     var seriesExpanded: Boolean = false,
+    var seriesCoverPath: String? = null,
+    // Folder-cell fields: a folder is a synthetic item (isFolder = true) that stands in for a whole
+    // custom series at the top level; tapping it drills into the members. [folderPreviewCovers] feeds
+    // the default 2x2 collage shown when no custom cover is set.
+    var isFolder: Boolean = false,
+    var folderPreviewCovers: List<AnimeCover> = emptyList(),
     private val sourceManager: AnimeSourceManager = Injekt.get(),
 ) {
     /**

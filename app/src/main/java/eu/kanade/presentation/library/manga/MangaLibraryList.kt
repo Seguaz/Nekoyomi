@@ -10,10 +10,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
 import eu.kanade.presentation.library.components.DownloadsBadge
 import eu.kanade.presentation.library.components.EntryListItem
+import eu.kanade.presentation.library.components.FolderBadge
+import eu.kanade.presentation.library.components.FolderCover
 import eu.kanade.presentation.library.components.GlobalSearchItem
 import eu.kanade.presentation.library.components.LanguageBadge
 import eu.kanade.presentation.library.components.PinnedBadge
-import eu.kanade.presentation.library.components.SeriesBadge
 import eu.kanade.presentation.library.components.UnviewedBadge
 import eu.kanade.tachiyomi.ui.library.manga.MangaLibraryItem
 import tachiyomi.domain.entries.manga.model.MangaCover
@@ -31,7 +32,8 @@ internal fun MangaLibraryList(
     onClick: (LibraryManga) -> Unit,
     onLongClick: (LibraryManga) -> Unit,
     onClickContinueReading: ((LibraryManga) -> Unit)?,
-    onToggleSeriesExpanded: (String?) -> Unit,
+    onOpenFolder: (String?) -> Unit,
+    onFolderLongClick: (String?) -> Unit,
     searchQuery: String?,
     onGlobalSearchClicked: () -> Unit,
 ) {
@@ -53,6 +55,25 @@ internal fun MangaLibraryList(
             items = items,
             contentType = { "manga_library_list_item" },
         ) { libraryItem ->
+            if (libraryItem.isFolder) {
+                EntryListItem(
+                    title = libraryItem.seriesName.orEmpty(),
+                    coverData = libraryItem.folderPreviewCovers.firstOrNull() ?: "",
+                    coverContent = {
+                        FolderCover(
+                            coverPath = libraryItem.seriesCoverPath,
+                            previewCovers = libraryItem.folderPreviewCovers,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    },
+                    badge = { FolderBadge(count = libraryItem.seriesMemberCount) },
+                    onLongClick = { onFolderLongClick(libraryItem.seriesName) },
+                    onClick = { onOpenFolder(libraryItem.seriesName) },
+                    entries = entries,
+                    containerHeight = containerHeight,
+                )
+                return@items
+            }
             val manga = libraryItem.libraryManga.manga
             EntryListItem(
                 isSelected = selection.fastAny { it.id == libraryItem.libraryManga.id },
@@ -66,12 +87,6 @@ internal fun MangaLibraryList(
                 ),
                 badge = {
                     PinnedBadge(pinned = libraryItem.isPinned)
-                    SeriesBadge(
-                        seriesName = libraryItem.seriesName,
-                        count = libraryItem.seriesMemberCount,
-                        expanded = libraryItem.seriesExpanded,
-                        onToggleExpanded = { onToggleSeriesExpanded(libraryItem.seriesName) },
-                    )
                     DownloadsBadge(count = libraryItem.downloadCount)
                     UnviewedBadge(count = libraryItem.unreadCount)
                     LanguageBadge(
