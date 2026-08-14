@@ -27,6 +27,7 @@ import eu.kanade.tachiyomi.data.cache.MangaCoverCache
 import eu.kanade.tachiyomi.data.cache.SeriesCoverCache
 import eu.kanade.tachiyomi.data.download.manga.MangaDownloadCache
 import eu.kanade.tachiyomi.data.download.manga.MangaDownloadManager
+import eu.kanade.tachiyomi.data.track.MangaTracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.HttpSource
@@ -493,12 +494,14 @@ class MangaLibraryScreenModel(
             getCategories.subscribe(),
             libraryMangasFlow,
             libraryPreferences.libraryGroupModeManga().changes(),
-        ) { categories, libraryItems, groupModeValue ->
+            getTracksPerManga.subscribe(),
+        ) { categories, libraryItems, groupModeValue, trackMap ->
             when (LibraryGroupMode.fromInt(groupModeValue)) {
                 LibraryGroupMode.BY_SOURCE -> groupBySource(libraryItems)
                 LibraryGroupMode.BY_STATUS -> groupByStatus(libraryItems)
                 LibraryGroupMode.BY_LANGUAGE -> groupByLanguage(libraryItems)
                 LibraryGroupMode.BY_GENRE -> groupByGenre(libraryItems)
+                LibraryGroupMode.BY_TRACK_STATUS -> groupByTrackStatus(libraryItems, trackMap)
                 LibraryGroupMode.NONE -> {
                     val byCategory = libraryItems.groupBy { it.libraryManga.category }
                     val displayCategories = if (byCategory.isNotEmpty() && !byCategory.containsKey(0)) {
@@ -569,6 +572,38 @@ class MangaLibraryScreenModel(
             .sortedWith(compareBy({ it.key == noGenreLabel }, { it.key.lowercase() }))
             .mapIndexed { index, (genre, entries) ->
                 syntheticCategory(id = -(5000L + index), name = genre) to entries.toList()
+            }
+            .toMap()
+    }
+
+    /**
+     * Groups by tracking status. An entry tracked on several services shows under each distinct
+     * status; entries with no tracks go to their own "Not tracked" bucket, sorted last.
+     */
+    private fun groupByTrackStatus(
+        items: List<MangaLibraryItem>,
+        trackMap: Map<Long, List<MangaTrack>>,
+    ): MangaLibraryMap {
+        val notTrackedLabel = context.stringResource(MR.strings.group_untracked)
+        val byStatus = LinkedHashMap<String, MutableList<MangaLibraryItem>>()
+        for (item in items) {
+            val labels = trackMap[item.libraryManga.id].orEmpty()
+                .mapNotNull { track ->
+                    (trackerManager.get(track.trackerId) as? MangaTracker)
+                        ?.getStatusForManga(track.status)
+                        ?.let { context.stringResource(it) }
+                }
+                .distinct()
+            if (labels.isEmpty()) {
+                byStatus.getOrPut(notTrackedLabel) { mutableListOf() }.add(item)
+            } else {
+                labels.forEach { byStatus.getOrPut(it) { mutableListOf() }.add(item) }
+            }
+        }
+        return byStatus.entries
+            .sortedWith(compareBy({ it.key == notTrackedLabel }, { it.key.lowercase() }))
+            .mapIndexed { index, (label, entries) ->
+                syntheticCategory(id = -(6000L + index), name = label) to entries.toList()
             }
             .toMap()
     }

@@ -4,6 +4,8 @@ package eu.kanade.tachiyomi.ui.library
  * How the library is grouped into pager sections. [NONE] uses the user's real categories; the other
  * modes ignore categories and generate synthetic ones on the fly (one per source / per status), so
  * the existing category-tab pager renders them unchanged.
+ *
+ * New modes must be appended at the end: the selected mode is persisted as the enum ordinal.
  */
 enum class LibraryGroupMode {
     NONE,
@@ -11,6 +13,7 @@ enum class LibraryGroupMode {
     BY_STATUS,
     BY_LANGUAGE,
     BY_GENRE,
+    BY_TRACK_STATUS,
     ;
 
     companion object {

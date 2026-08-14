@@ -92,6 +92,7 @@ private fun ColumnScope.GroupPage(
         LibraryGroupMode.BY_STATUS to stringResource(MR.strings.group_by_status),
         LibraryGroupMode.BY_LANGUAGE to stringResource(MR.strings.group_by_language),
         LibraryGroupMode.BY_GENRE to stringResource(MR.strings.group_by_genre),
+        LibraryGroupMode.BY_TRACK_STATUS to stringResource(MR.strings.group_by_track_status),
     )
     modes.forEach { (mode, label) ->
         RadioItem(
