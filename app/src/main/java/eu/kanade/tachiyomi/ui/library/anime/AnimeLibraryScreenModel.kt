@@ -31,6 +31,7 @@ import eu.kanade.tachiyomi.data.cache.SeriesCoverCache
 import eu.kanade.tachiyomi.data.download.anime.AnimeDownloadCache
 import eu.kanade.tachiyomi.data.download.anime.AnimeDownloadManager
 import eu.kanade.tachiyomi.data.track.TrackerManager
+import eu.kanade.tachiyomi.ui.library.LibraryGroupMode
 import eu.kanade.tachiyomi.ui.library.SeriesGrouping
 import eu.kanade.tachiyomi.util.episode.getNextUnseen
 import eu.kanade.tachiyomi.util.removeBackgrounds
@@ -54,6 +55,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import logcat.LogPriority
+import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.preference.CheckboxState
 import tachiyomi.core.common.preference.TriState
 import tachiyomi.core.common.util.lang.compareToWithCollator
@@ -115,7 +117,8 @@ class AnimeLibraryScreenModel(
         screenModelScope,
     )
 
-    private val seriesCoverCache = SeriesCoverCache(Injekt.get<Application>(), libraryPreferences)
+    private val context = Injekt.get<Application>()
+    private val seriesCoverCache = SeriesCoverCache(context, libraryPreferences)
 
     init {
         screenModelScope.launchIO {
@@ -160,16 +163,17 @@ class AnimeLibraryScreenModel(
             libraryPreferences.categoryTabs().changes(),
             libraryPreferences.categoryNumberOfItems().changes(),
             libraryPreferences.showContinueViewingButton().changes(),
-        ) { a, b, c -> arrayOf(a, b, c) }
-            .onEach { (showCategoryTabs, showAnimeCount, showAnimeContinueButton) ->
-                mutableState.update { state ->
-                    state.copy(
-                        showCategoryTabs = showCategoryTabs,
-                        showAnimeCount = showAnimeCount,
-                        showAnimeContinueButton = showAnimeContinueButton,
-                    )
-                }
+            libraryPreferences.libraryGroupModeAnime().changes(),
+        ) { categoryTabs, showCount, showContinue, groupMode ->
+            mutableState.update { state ->
+                state.copy(
+                    // Force tabs on when auto-grouping so the generated sections are navigable.
+                    showCategoryTabs = categoryTabs || groupMode != 0,
+                    showAnimeCount = showCount,
+                    showAnimeContinueButton = showContinue,
+                )
             }
+        }
             .launchIn(screenModelScope)
 
         combine(
@@ -496,19 +500,68 @@ class AnimeLibraryScreenModel(
                         seriesName = seriesById[animelibAnime.id],
                     )
                 }
-                .groupBy { it.libraryAnime.category }
         }
 
-        return combine(getCategories.subscribe(), animelibAnimesFlow) { categories, animelibAnime ->
-            val displayCategories = if (animelibAnime.isNotEmpty() && !animelibAnime.containsKey(0)) {
-                categories.fastFilterNot { it.isSystemCategory }
-            } else {
-                categories
+        return combine(
+            getCategories.subscribe(),
+            animelibAnimesFlow,
+            libraryPreferences.libraryGroupModeAnime().changes(),
+        ) { categories, libraryItems, groupModeValue ->
+            when (LibraryGroupMode.fromInt(groupModeValue)) {
+                LibraryGroupMode.BY_SOURCE -> groupBySource(libraryItems)
+                LibraryGroupMode.BY_STATUS -> groupByStatus(libraryItems)
+                LibraryGroupMode.NONE -> {
+                    val byCategory = libraryItems.groupBy { it.libraryAnime.category }
+                    val displayCategories = if (byCategory.isNotEmpty() && !byCategory.containsKey(0)) {
+                        categories.fastFilterNot { it.isSystemCategory }
+                    } else {
+                        categories
+                    }
+                    displayCategories.associateWith { byCategory[it.id].orEmpty() }
+                }
             }
-
-            displayCategories.associateWith { animelibAnime[it.id].orEmpty() }
         }
     }
+
+    /** Groups the whole library into one synthetic category per source, sorted by source name. */
+    private fun groupBySource(items: List<AnimeLibraryItem>): AnimeLibraryMap {
+        return items.groupBy { it.libraryAnime.anime.source }
+            .entries
+            .sortedBy { sourceManager.getOrStub(it.key).name.lowercase() }
+            .associate { (sourceId, entries) ->
+                syntheticCategory(
+                    id = -(sourceId + 1),
+                    name = sourceManager.getOrStub(sourceId).name.ifBlank {
+                        context.stringResource(MR.strings.unknown)
+                    },
+                ) to entries
+            }
+    }
+
+    /** Groups the whole library into one synthetic category per publication status. */
+    private fun groupByStatus(items: List<AnimeLibraryItem>): AnimeLibraryMap {
+        return items.groupBy { it.libraryAnime.anime.status }
+            .entries
+            .sortedBy { it.key }
+            .associate { (status, entries) ->
+                syntheticCategory(id = -(2000L + status), name = statusLabel(status)) to entries
+            }
+    }
+
+    private fun syntheticCategory(id: Long, name: String) =
+        Category(id = id, name = name, order = 0, flags = 0, hidden = false)
+
+    private fun statusLabel(status: Long): String = context.stringResource(
+        when (status) {
+            SAnime.ONGOING.toLong() -> MR.strings.ongoing
+            SAnime.COMPLETED.toLong() -> MR.strings.completed
+            SAnime.LICENSED.toLong() -> MR.strings.licensed
+            SAnime.PUBLISHING_FINISHED.toLong() -> MR.strings.publishing_finished
+            SAnime.CANCELLED.toLong() -> MR.strings.cancelled
+            SAnime.ON_HIATUS.toLong() -> MR.strings.on_hiatus
+            else -> MR.strings.unknown
+        },
+    )
 
     /**
      * Flow of tracking filter preferences

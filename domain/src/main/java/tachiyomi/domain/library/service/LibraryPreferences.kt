@@ -186,6 +186,10 @@ class LibraryPreferences(
     fun seriesCoversAnime() = preferenceStore.getStringSet("library_series_covers_anime", emptySet())
     fun seriesCoversManga() = preferenceStore.getStringSet("library_series_covers_manga", emptySet())
 
+    // Automatic library grouping mode (0 = none/categories, see LibraryGroupMode ordinal).
+    fun libraryGroupModeAnime() = preferenceStore.getInt("library_group_mode_anime", 0)
+    fun libraryGroupModeManga() = preferenceStore.getInt("library_group_mode_manga", 0)
+
     fun animeUpdateCategories() =
         preferenceStore.getStringSet(LIBRARY_UPDATE_ANIME_CATEGORIES_PREF_KEY, emptySet())
 

@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import eu.kanade.presentation.components.TabbedDialog
 import eu.kanade.presentation.components.TabbedDialogPaddings
+import eu.kanade.tachiyomi.ui.library.LibraryGroupMode
 import eu.kanade.tachiyomi.ui.library.manga.MangaLibrarySettingsScreenModel
 import eu.kanade.tachiyomi.util.system.isReleaseBuildType
 import kotlinx.collections.immutable.persistentListOf
@@ -33,6 +34,7 @@ import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.BaseSortItem
 import tachiyomi.presentation.core.components.CheckboxItem
 import tachiyomi.presentation.core.components.HeadingItem
+import tachiyomi.presentation.core.components.RadioItem
 import tachiyomi.presentation.core.components.SettingsChipRow
 import tachiyomi.presentation.core.components.SliderItem
 import tachiyomi.presentation.core.components.SortItem
@@ -52,6 +54,7 @@ fun MangaLibrarySettingsDialog(
             stringResource(MR.strings.action_filter),
             stringResource(MR.strings.action_sort),
             stringResource(MR.strings.action_display),
+            stringResource(MR.strings.action_group),
         ),
     ) { page ->
         Column(
@@ -70,8 +73,30 @@ fun MangaLibrarySettingsDialog(
                 2 -> DisplayPage(
                     screenModel = screenModel,
                 )
+                3 -> GroupPage(
+                    screenModel = screenModel,
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun ColumnScope.GroupPage(
+    screenModel: MangaLibrarySettingsScreenModel,
+) {
+    val groupMode by screenModel.libraryPreferences.libraryGroupModeManga().collectAsState()
+    val modes = listOf(
+        LibraryGroupMode.NONE to stringResource(MR.strings.group_by_none),
+        LibraryGroupMode.BY_SOURCE to stringResource(MR.strings.group_by_source),
+        LibraryGroupMode.BY_STATUS to stringResource(MR.strings.group_by_status),
+    )
+    modes.forEach { (mode, label) ->
+        RadioItem(
+            label = label,
+            selected = groupMode == mode.ordinal,
+            onClick = { screenModel.libraryPreferences.libraryGroupModeManga().set(mode.ordinal) },
+        )
     }
 }
 
