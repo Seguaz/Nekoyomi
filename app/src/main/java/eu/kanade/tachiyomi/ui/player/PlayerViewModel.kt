@@ -1531,18 +1531,27 @@ class PlayerViewModel @JvmOverloads constructor(
                     }
                     qualityIndex = Pair(hostIndex, vidIndex)
                 } else {
-                    EpisodeLoader.getHosters(currentEp.toDomainEpisode()!!, anime, source)
-                        .takeIf { it.isNotEmpty() }
-                        ?.also { currentHosterList = it }
-                        ?: run {
-                            // Primary source returned no hosters for this episode. If the user opted in, try
-                            // the same episode from another installed source before giving up.
-                            logcat { "F1 fallback: primary source returned empty hosters" }
-                            if (!tryPlayFromFallbackSource(anime, currentEp.toDomainEpisode()!!)) {
-                                currentHosterList = null
-                                throw ExceptionWithStringResource("Hoster list is empty", AYMR.strings.no_hosters)
-                            }
-                        }
+                    // The primary source can fail two ways: return NO hosters, OR THROW (429, Cloudflare,
+                    // timeout…). Either way, if the user opted in, try the same episode from another source
+                    // before giving up — otherwise a Cloudflare-blocked source would never open the player.
+                    val domainEp = currentEp.toDomainEpisode()!!
+                    var primaryError: Throwable? = null
+                    val primaryHosters = try {
+                        EpisodeLoader.getHosters(domainEp, anime, source)
+                    } catch (e: Throwable) {
+                        if (e is CancellationException) throw e
+                        primaryError = e
+                        logcat(LogPriority.ERROR, e) { "F1 fallback: primary source failed to load hosters" }
+                        emptyList()
+                    }
+                    if (primaryHosters.isNotEmpty()) {
+                        currentHosterList = primaryHosters
+                    } else if (!tryPlayFromFallbackSource(anime, domainEp)) {
+                        currentHosterList = null
+                        // Surface the real reason (Cloudflare/429) when there was one; else "no hosters".
+                        throw primaryError
+                            ?: ExceptionWithStringResource("Hoster list is empty", AYMR.strings.no_hosters)
+                    }
                 }
 
                 val result = InitResult(
@@ -1882,7 +1891,14 @@ class PlayerViewModel @JvmOverloads constructor(
                     currentEpisode.value
                         ?: throw ExceptionWithStringResource("No episode loaded", AYMR.strings.no_episode_loaded)
                 val domainEpisode = currentEpisode.toDomainEpisode()!!
-                val primaryHosters = EpisodeLoader.getHosters(domainEpisode, anime, source)
+                // Same as init: fall back when the source returns no hosters OR throws (429/Cloudflare).
+                val primaryHosters = try {
+                    EpisodeLoader.getHosters(domainEpisode, anime, source)
+                } catch (e: Throwable) {
+                    if (e is CancellationException) throw e
+                    logcat(LogPriority.ERROR, e) { "F1 fallback: primary source failed to load hosters (switch)" }
+                    emptyList()
+                }
                 if (primaryHosters.isNotEmpty()) {
                     currentHosterList = primaryHosters
                 } else if (tryPlayFromFallbackSource(anime, domainEpisode)) {
