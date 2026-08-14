@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -62,29 +65,39 @@ fun SeriesGroupDialog(
         text = {
             Column {
                 OutlinedTextField(
-                    modifier = Modifier.focusRequester(focusRequester),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(text = stringResource(MR.strings.series_name)) },
                     singleLine = true,
                 )
-                if (existingSeries.isNotEmpty()) {
+                // The name field doubles as a search box: typing filters the existing series so a
+                // previously-used one is easy to find and tap. The list scrolls when it's long.
+                val suggestions = remember(name, existingSeries) {
+                    val query = name.trim()
+                    if (query.isEmpty()) existingSeries else existingSeries.filter { it.contains(query, true) }
+                }
+                if (suggestions.isNotEmpty()) {
                     Spacer(Modifier.height(12.dp))
                     Text(
                         text = stringResource(MR.strings.series_add_to_existing),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    existingSeries.forEach { series ->
-                        Text(
-                            text = series,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { name = series }
-                                .padding(vertical = 8.dp),
-                        )
+                    LazyColumn(modifier = Modifier.heightIn(max = 220.dp)) {
+                        items(suggestions) { series ->
+                            Text(
+                                text = series,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { name = series }
+                                    .padding(vertical = 8.dp),
+                            )
+                        }
                     }
                 }
             }

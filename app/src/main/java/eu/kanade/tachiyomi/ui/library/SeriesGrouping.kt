@@ -20,8 +20,12 @@ object SeriesGrouping {
     /** Encodes one membership entry. */
     fun encode(id: Long, name: String): String = "$id$SEP$name"
 
-    /** Existing series names in the library, sorted for display. */
-    fun seriesNames(raw: Set<String>): List<String> = decode(raw).values.distinct().sorted()
+    /**
+     * Existing series names that actually form a group (≥2 members), sorted for display. A leftover
+     * 1-member remnant isn't a real group and shouldn't be suggested (it wouldn't even render as one).
+     */
+    fun seriesNames(raw: Set<String>): List<String> =
+        decode(raw).values.groupingBy { it }.eachCount().filterValues { it >= 2 }.keys.sorted()
 
     /**
      * Returns [raw] with [ids] (re)assigned to [name], dropping any previous membership for them.

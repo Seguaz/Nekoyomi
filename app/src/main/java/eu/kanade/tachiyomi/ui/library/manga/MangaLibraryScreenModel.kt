@@ -617,7 +617,12 @@ class MangaLibraryScreenModel(
         val ids = state.value.selection.map { it.id }
         if (ids.isEmpty()) return
         val pref = libraryPreferences.seriesGroupingsManga()
-        pref.set(SeriesGrouping.remove(pref.get(), ids))
+        val decoded = SeriesGrouping.decode(pref.get())
+        // A collapsed series head only selects itself (its members are hidden), yet ungrouping should
+        // disband the WHOLE group. So remove every entry that shares a series with any selection.
+        val seriesOfSelection = ids.mapNotNull { decoded[it] }.toSet()
+        val idsToRemove = decoded.filterValues { it in seriesOfSelection }.keys + ids
+        pref.set(SeriesGrouping.remove(pref.get(), idsToRemove.toList()))
         clearSelection()
     }
 
