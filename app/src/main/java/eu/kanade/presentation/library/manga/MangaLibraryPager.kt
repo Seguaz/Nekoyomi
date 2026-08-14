@@ -42,6 +42,7 @@ fun MangaLibraryPager(
     onClickManga: (LibraryManga) -> Unit,
     onLongClickManga: (LibraryManga) -> Unit,
     onClickContinueReading: ((LibraryManga) -> Unit)?,
+    onToggleSeriesExpanded: (String?) -> Unit,
 ) {
     BoxWithConstraints {
         val density = LocalDensity.current
@@ -84,6 +85,7 @@ fun MangaLibraryPager(
                         onClick = onClickManga,
                         onLongClick = onLongClickManga,
                         onClickContinueReading = onClickContinueReading,
+                        onToggleSeriesExpanded = onToggleSeriesExpanded,
                         searchQuery = searchQuery,
                         onGlobalSearchClicked = onGlobalSearchClicked,
                     )
@@ -98,6 +100,7 @@ fun MangaLibraryPager(
                         onClick = onClickManga,
                         onLongClick = onLongClickManga,
                         onClickContinueReading = onClickContinueReading,
+                        onToggleSeriesExpanded = onToggleSeriesExpanded,
                         searchQuery = searchQuery,
                         onGlobalSearchClicked = onGlobalSearchClicked,
                     )
@@ -115,6 +118,7 @@ fun MangaLibraryPager(
                         onClick = onClickManga,
                         onLongClick = onLongClickManga,
                         onClickContinueReading = onClickContinueReading,
+                        onToggleSeriesExpanded = onToggleSeriesExpanded,
                         searchQuery = searchQuery,
                         onGlobalSearchClicked = onGlobalSearchClicked,
                     )

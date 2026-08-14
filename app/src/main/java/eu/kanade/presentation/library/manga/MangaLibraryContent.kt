@@ -79,7 +79,9 @@ fun MangaLibraryContent(
             if (notSelectionMode) {
                 val item = getLibraryForPage(pagerState.currentPage)
                     .find { it.libraryManga.id == manga.id }
-                if (item?.isSeriesHead == true) {
+                // A collapsed series head expands on tap; once expanded, tapping it OPENS the entry (the
+                // chevron badge collapses it). This lets the first/lead entry of a group be opened.
+                if (item?.isSeriesHead == true && !item.seriesExpanded) {
                     onToggleSeriesExpanded(item.seriesName)
                 } else {
                     onMangaClicked(manga.manga.id)
@@ -116,6 +118,7 @@ fun MangaLibraryContent(
                 onClickManga = onClickManga,
                 onLongClickManga = onToggleRangeSelection,
                 onClickContinueReading = onContinueReadingClicked,
+                onToggleSeriesExpanded = onToggleSeriesExpanded,
             )
         }
 

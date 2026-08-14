@@ -42,6 +42,7 @@ fun AnimeLibraryPager(
     onClickAnime: (LibraryAnime) -> Unit,
     onLongClickAnime: (LibraryAnime) -> Unit,
     onClickContinueWatching: ((LibraryAnime) -> Unit)?,
+    onToggleSeriesExpanded: (String?) -> Unit,
 ) {
     BoxWithConstraints {
         val density = LocalDensity.current
@@ -83,6 +84,7 @@ fun AnimeLibraryPager(
                         selection = selectedAnime,
                         onClick = onClickAnime,
                         onClickContinueWatching = onClickContinueWatching,
+                        onToggleSeriesExpanded = onToggleSeriesExpanded,
                         onLongClick = onLongClickAnime,
                         searchQuery = searchQuery,
                         onGlobalSearchClicked = onGlobalSearchClicked,
@@ -98,6 +100,7 @@ fun AnimeLibraryPager(
                         onClick = onClickAnime,
                         onLongClick = onLongClickAnime,
                         onClickContinueWatching = onClickContinueWatching,
+                        onToggleSeriesExpanded = onToggleSeriesExpanded,
                         searchQuery = searchQuery,
                         onGlobalSearchClicked = onGlobalSearchClicked,
                     )
@@ -114,6 +117,7 @@ fun AnimeLibraryPager(
                         selection = selectedAnime,
                         onClick = onClickAnime,
                         onClickContinueWatching = onClickContinueWatching,
+                        onToggleSeriesExpanded = onToggleSeriesExpanded,
                         onLongClick = onLongClickAnime,
                         searchQuery = searchQuery,
                         onGlobalSearchClicked = onGlobalSearchClicked,

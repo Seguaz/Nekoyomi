@@ -27,6 +27,7 @@ internal fun AnimeLibraryComfortableGrid(
     onClick: (LibraryAnime) -> Unit,
     onLongClick: (LibraryAnime) -> Unit,
     onClickContinueWatching: ((LibraryAnime) -> Unit)?,
+    onToggleSeriesExpanded: (String?) -> Unit,
     searchQuery: String?,
     onGlobalSearchClicked: () -> Unit,
 ) {
@@ -62,6 +63,7 @@ internal fun AnimeLibraryComfortableGrid(
                         seriesName = libraryItem.seriesName,
                         count = libraryItem.seriesMemberCount,
                         expanded = libraryItem.seriesExpanded,
+                        onToggleExpanded = { onToggleSeriesExpanded(libraryItem.seriesName) },
                     )
                     LanguageBadge(
                         isLocal = libraryItem.isLocal,

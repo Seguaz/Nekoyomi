@@ -27,6 +27,7 @@ internal fun MangaLibraryComfortableGrid(
     onClick: (LibraryManga) -> Unit,
     onLongClick: (LibraryManga) -> Unit,
     onClickContinueReading: ((LibraryManga) -> Unit)?,
+    onToggleSeriesExpanded: (String?) -> Unit,
     searchQuery: String?,
     onGlobalSearchClicked: () -> Unit,
 ) {
@@ -62,6 +63,7 @@ internal fun MangaLibraryComfortableGrid(
                         seriesName = libraryItem.seriesName,
                         count = libraryItem.seriesMemberCount,
                         expanded = libraryItem.seriesExpanded,
+                        onToggleExpanded = { onToggleSeriesExpanded(libraryItem.seriesName) },
                     )
                     LanguageBadge(
                         isLocal = libraryItem.isLocal,

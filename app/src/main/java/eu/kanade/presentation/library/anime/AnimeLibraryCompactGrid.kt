@@ -28,6 +28,7 @@ fun AnimeLibraryCompactGrid(
     onClick: (LibraryAnime) -> Unit,
     onLongClick: (LibraryAnime) -> Unit,
     onClickContinueWatching: ((LibraryAnime) -> Unit)?,
+    onToggleSeriesExpanded: (String?) -> Unit,
     searchQuery: String?,
     onGlobalSearchClicked: () -> Unit,
 ) {
@@ -63,6 +64,7 @@ fun AnimeLibraryCompactGrid(
                         seriesName = libraryItem.seriesName,
                         count = libraryItem.seriesMemberCount,
                         expanded = libraryItem.seriesExpanded,
+                        onToggleExpanded = { onToggleSeriesExpanded(libraryItem.seriesName) },
                     )
                     LanguageBadge(
                         isLocal = libraryItem.isLocal,
