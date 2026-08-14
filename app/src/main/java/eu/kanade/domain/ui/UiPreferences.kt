@@ -3,6 +3,7 @@ package eu.kanade.domain.ui
 import eu.kanade.domain.ui.model.AppIcon
 import eu.kanade.domain.ui.model.AppTheme
 import eu.kanade.domain.ui.model.HomeTabsMode
+import eu.kanade.domain.ui.model.NavBarLabelMode
 import eu.kanade.domain.ui.model.NavTab
 import eu.kanade.domain.ui.model.StartScreen
 import eu.kanade.domain.ui.model.TabletUiMode
@@ -50,7 +51,8 @@ class UiPreferences(
 
     fun bottomNavFloating() = preferenceStore.getBoolean("pref_bottom_nav_floating", true)
 
-    fun bottomNavHideLabels() = preferenceStore.getBoolean("pref_bottom_nav_hide_labels", true)
+    // How the nav bar shows tab labels: hidden, beside the selected icon (pill), or below every icon.
+    fun bottomNavLabelMode() = preferenceStore.getEnum("pref_bottom_nav_label_mode", NavBarLabelMode.HIDDEN)
 
     // Opacity of the floating nav bar, as a percentage (0 = fully translucent, 100 = solid).
     fun bottomNavFloatingAlpha() = preferenceStore.getInt("pref_bottom_nav_floating_alpha", 81)

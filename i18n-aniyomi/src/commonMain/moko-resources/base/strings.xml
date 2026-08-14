@@ -489,6 +489,10 @@
     <string name="player_opensubtitles_downloads">%1$d downloads</string>
     <string name="pref_hide_nav_bar_labels">Hide navigation bar labels</string>
     <string name="pref_hide_nav_bar_labels_summary">Show only icons, without any text label</string>
+    <string name="pref_nav_bar_labels">Navigation bar labels</string>
+    <string name="pref_nav_bar_labels_hidden">Hidden (icons only)</string>
+    <string name="pref_nav_bar_labels_beside">Beside the selected icon</string>
+    <string name="pref_nav_bar_labels_below">Below every icon</string>
     <string name="pref_show_download_size">Show download size</string>
     <string name="pref_show_download_size_summary">Show the on-disk size of each downloaded chapter or episode</string>
     <string name="pref_navigation_style">Navigation style</string>

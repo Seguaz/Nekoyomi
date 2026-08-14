@@ -60,6 +60,7 @@ import dev.chrisbanes.haze.hazeSource
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.domain.ui.model.AppIcon
 import eu.kanade.domain.ui.model.HomeTabsMode
+import eu.kanade.domain.ui.model.NavBarLabelMode
 import eu.kanade.domain.ui.model.StartScreen
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
@@ -255,10 +256,14 @@ object SettingsAppearanceScreen : SearchableSettings {
                         sizeTitle = stringResource(AYMR.strings.pref_nav_bar_icon_size),
                     )
                 },
-                Preference.PreferenceItem.SwitchPreference(
-                    preference = uiPreferences.bottomNavHideLabels(),
-                    title = stringResource(AYMR.strings.pref_hide_nav_bar_labels),
-                    subtitle = stringResource(AYMR.strings.pref_hide_nav_bar_labels_summary),
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.bottomNavLabelMode(),
+                    entries = persistentMapOf(
+                        NavBarLabelMode.HIDDEN to stringResource(AYMR.strings.pref_nav_bar_labels_hidden),
+                        NavBarLabelMode.BESIDE to stringResource(AYMR.strings.pref_nav_bar_labels_beside),
+                        NavBarLabelMode.BELOW to stringResource(AYMR.strings.pref_nav_bar_labels_below),
+                    ),
+                    title = stringResource(AYMR.strings.pref_nav_bar_labels),
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = uiPreferences.showDownloadSize(),

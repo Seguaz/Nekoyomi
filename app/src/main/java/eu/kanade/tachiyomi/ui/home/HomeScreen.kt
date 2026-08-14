@@ -9,7 +9,10 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -61,6 +64,7 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.ui.UiPreferences
+import eu.kanade.domain.ui.model.NavBarLabelMode
 import eu.kanade.domain.ui.model.NavTab
 import eu.kanade.presentation.util.Screen
 import eu.kanade.presentation.util.isTabletUi
@@ -125,7 +129,7 @@ object HomeScreen : Screen() {
         val floatingNavBarAlpha by uiPreferences.bottomNavFloatingAlpha().collectAsState()
         val floatingNavBarBlur by uiPreferences.bottomNavFloatingBlur().collectAsState()
         val floatingNavBarHeight by uiPreferences.bottomNavFloatingHeight().collectAsState()
-        val hideNavBarLabels by uiPreferences.bottomNavHideLabels().collectAsState()
+        val navBarLabelMode by uiPreferences.bottomNavLabelMode().collectAsState()
         val navBarIconScale by uiPreferences.bottomNavIconScale().collectAsState()
         // Backdrop for the floating nav bar's optional frosted-glass blur.
         val hazeState = remember { HazeState() }
@@ -225,7 +229,11 @@ object HomeScreen : Screen() {
                                                     barHeight = navBarHeight,
                                                 ) {
                                                     shownTabs.fastForEach {
-                                                        NavigationBarItem(it, showLabel = !hideNavBarLabels)
+                                                        NavigationBarItem(
+                                                            it,
+                                                            showLabel = navBarLabelMode == NavBarLabelMode.BESIDE,
+                                                            labelsBelow = navBarLabelMode == NavBarLabelMode.BELOW,
+                                                        )
                                                     }
                                                 }
                                             }
@@ -234,7 +242,11 @@ object HomeScreen : Screen() {
                                         // Classic bar: full width, flush to the bottom, no rounded corners.
                                         NavigationBar {
                                             shownTabs.fastForEach {
-                                                NavigationBarItem(it, showLabel = !hideNavBarLabels)
+                                                NavigationBarItem(
+                                                    it,
+                                                    showLabel = navBarLabelMode == NavBarLabelMode.BESIDE,
+                                                    labelsBelow = navBarLabelMode == NavBarLabelMode.BELOW,
+                                                )
                                             }
                                         }
                                     }
@@ -347,11 +359,67 @@ object HomeScreen : Screen() {
     }
 
     @Composable
-    private fun RowScope.NavigationBarItem(tab: eu.kanade.presentation.util.Tab, showLabel: Boolean) {
+    private fun RowScope.NavigationBarItem(
+        tab: eu.kanade.presentation.util.Tab,
+        showLabel: Boolean,
+        labelsBelow: Boolean = false,
+    ) {
         val tabNavigator = LocalTabNavigator.current
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
         val selected = tabNavigator.current::class == tab::class
+        val onClick: () -> Unit = {
+            if (!selected) {
+                tabNavigator.current = tab
+            } else {
+                scope.launch { tab.onReselect(navigator) }
+            }
+        }
+
+        if (labelsBelow) {
+            // Classic layout: icon (with the selected pill behind it) on top, label always below.
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clickable(onClick = onClick),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(percent = 50),
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        Color.Transparent
+                    },
+                    contentColor = if (selected) {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                ) {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                        NavigationIconItem(tab)
+                    }
+                }
+                Text(
+                    text = tab.options.title,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.padding(top = 2.dp, start = 2.dp, end = 2.dp),
+                )
+            }
+            return
+        }
+
+        // Pill layout: only the selected tab expands to show its label beside the icon.
         val weight by animateFloatAsState(
             targetValue = if (selected && showLabel) 2.0f else 1f,
             label = "navItemWeight",
@@ -364,13 +432,7 @@ object HomeScreen : Screen() {
             contentAlignment = Alignment.Center,
         ) {
             Surface(
-                onClick = {
-                    if (!selected) {
-                        tabNavigator.current = tab
-                    } else {
-                        scope.launch { tab.onReselect(navigator) }
-                    }
-                },
+                onClick = onClick,
                 shape = RoundedCornerShape(percent = 50),
                 color = if (selected) {
                     MaterialTheme.colorScheme.secondaryContainer

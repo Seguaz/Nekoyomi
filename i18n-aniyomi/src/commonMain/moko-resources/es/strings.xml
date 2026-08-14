@@ -289,6 +289,10 @@
     <string name="player_opensubtitles_downloads">%1$d descargas</string>
     <string name="pref_hide_nav_bar_labels">Ocultar etiquetas de la barra de navegación</string>
     <string name="pref_hide_nav_bar_labels_summary">Muestra solo los iconos, sin ningún texto</string>
+    <string name="pref_nav_bar_labels">Etiquetas de la barra de navegación</string>
+    <string name="pref_nav_bar_labels_hidden">Ocultas (solo iconos)</string>
+    <string name="pref_nav_bar_labels_beside">Al lado del icono seleccionado</string>
+    <string name="pref_nav_bar_labels_below">Debajo de cada icono</string>
     <string name="pref_show_download_size">Mostrar tamaño de descarga</string>
     <string name="pref_show_download_size_summary">Muestra el tamaño en disco de cada capítulo o episodio descargado</string>
     <string name="pref_navigation_style">Estilo de navegación</string>
