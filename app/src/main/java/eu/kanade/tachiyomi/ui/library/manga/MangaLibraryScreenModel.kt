@@ -34,6 +34,7 @@ import eu.kanade.tachiyomi.ui.library.LibraryGroupMode
 import eu.kanade.tachiyomi.ui.library.SeriesGrouping
 import eu.kanade.tachiyomi.util.chapter.getNextUnread
 import eu.kanade.tachiyomi.util.removeCovers
+import eu.kanade.tachiyomi.util.system.LocaleHelper
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.PersistentList
@@ -496,6 +497,8 @@ class MangaLibraryScreenModel(
             when (LibraryGroupMode.fromInt(groupModeValue)) {
                 LibraryGroupMode.BY_SOURCE -> groupBySource(libraryItems)
                 LibraryGroupMode.BY_STATUS -> groupByStatus(libraryItems)
+                LibraryGroupMode.BY_LANGUAGE -> groupByLanguage(libraryItems)
+                LibraryGroupMode.BY_GENRE -> groupByGenre(libraryItems)
                 LibraryGroupMode.NONE -> {
                     val byCategory = libraryItems.groupBy { it.libraryManga.category }
                     val displayCategories = if (byCategory.isNotEmpty() && !byCategory.containsKey(0)) {
@@ -532,6 +535,42 @@ class MangaLibraryScreenModel(
             .associate { (status, entries) ->
                 syntheticCategory(id = -(2000L + status), name = statusLabel(status)) to entries
             }
+    }
+
+    /** Groups the whole library into one synthetic category per source language. */
+    private fun groupByLanguage(items: List<MangaLibraryItem>): MangaLibraryMap {
+        return items.groupBy { sourceManager.getOrStub(it.libraryManga.manga.source).lang }
+            .entries
+            .sortedBy { LocaleHelper.getSourceDisplayName(it.key, context).lowercase() }
+            .mapIndexed { index, (lang, entries) ->
+                syntheticCategory(id = -(3000L + index), name = LocaleHelper.getSourceDisplayName(lang, context)) to
+                    entries
+            }
+            .toMap()
+    }
+
+    /** Groups by genre/tag. An entry with several genres shows under each; untagged go to their own. */
+    private fun groupByGenre(items: List<MangaLibraryItem>): MangaLibraryMap {
+        val noGenreLabel = context.stringResource(MR.strings.unknown)
+        val byGenre = LinkedHashMap<String, MutableList<MangaLibraryItem>>()
+        for (item in items) {
+            val genres = item.libraryManga.manga.genre
+                ?.mapNotNull { it.trim().takeIf(String::isNotEmpty) }
+                ?.distinct()
+                .orEmpty()
+            if (genres.isEmpty()) {
+                byGenre.getOrPut(noGenreLabel) { mutableListOf() }.add(item)
+            } else {
+                genres.forEach { byGenre.getOrPut(it) { mutableListOf() }.add(item) }
+            }
+        }
+        // Alphabetical, with the "untagged" bucket last.
+        return byGenre.entries
+            .sortedWith(compareBy({ it.key == noGenreLabel }, { it.key.lowercase() }))
+            .mapIndexed { index, (genre, entries) ->
+                syntheticCategory(id = -(5000L + index), name = genre) to entries.toList()
+            }
+            .toMap()
     }
 
     private fun syntheticCategory(id: Long, name: String) =

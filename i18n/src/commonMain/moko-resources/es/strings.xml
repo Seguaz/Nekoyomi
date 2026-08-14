@@ -198,6 +198,8 @@
     <string name="group_by_none">Ninguno (categorías)</string>
     <string name="group_by_source">Fuente</string>
     <string name="group_by_status">Estado</string>
+    <string name="group_by_language">Idioma</string>
+    <string name="group_by_genre">Etiqueta</string>
     <string name="action_display_grid">Cuadrícula compacta</string>
     <string name="action_display_list">Lista</string>
     <string name="action_share">Compartir</string>

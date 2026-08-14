@@ -142,6 +142,8 @@
     <string name="group_by_none">None (categories)</string>
     <string name="group_by_source">Source</string>
     <string name="group_by_status">Status</string>
+    <string name="group_by_language">Language</string>
+    <string name="group_by_genre">Tag</string>
     <string name="action_display_grid">Compact grid</string>
     <string name="action_display_comfortable_grid">Comfortable grid</string>
     <string name="action_display_list">List</string>

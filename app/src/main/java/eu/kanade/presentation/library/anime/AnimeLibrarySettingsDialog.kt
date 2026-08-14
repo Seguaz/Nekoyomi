@@ -90,6 +90,8 @@ private fun ColumnScope.GroupPage(
         LibraryGroupMode.NONE to stringResource(MR.strings.group_by_none),
         LibraryGroupMode.BY_SOURCE to stringResource(MR.strings.group_by_source),
         LibraryGroupMode.BY_STATUS to stringResource(MR.strings.group_by_status),
+        LibraryGroupMode.BY_LANGUAGE to stringResource(MR.strings.group_by_language),
+        LibraryGroupMode.BY_GENRE to stringResource(MR.strings.group_by_genre),
     )
     modes.forEach { (mode, label) ->
         RadioItem(

@@ -9,6 +9,8 @@ enum class LibraryGroupMode {
     NONE,
     BY_SOURCE,
     BY_STATUS,
+    BY_LANGUAGE,
+    BY_GENRE,
     ;
 
     companion object {
