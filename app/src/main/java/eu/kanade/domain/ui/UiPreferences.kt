@@ -2,6 +2,7 @@ package eu.kanade.domain.ui
 
 import eu.kanade.domain.ui.model.AppIcon
 import eu.kanade.domain.ui.model.AppTheme
+import eu.kanade.domain.ui.model.HomeTabsMode
 import eu.kanade.domain.ui.model.NavTab
 import eu.kanade.domain.ui.model.StartScreen
 import eu.kanade.domain.ui.model.TabletUiMode
@@ -40,6 +41,9 @@ class UiPreferences(
     fun startScreen() = preferenceStore.getEnum("start_screen", StartScreen.ANIME)
 
     fun bottomNavTabs() = preferenceStore.getStringSet("bottom_nav_tabs", NavTab.DEFAULT)
+
+    // Which Manga/Anime sub-tabs are shown (and the default) in Updates/History/Browse.
+    fun homeTabsMode() = preferenceStore.getEnum("home_tabs_mode", HomeTabsMode.ANIME_FIRST)
 
     // Order of the bottom nav tabs, as a comma-separated list of NavTab prefKeys. Empty = enum order.
     fun bottomNavOrder() = preferenceStore.getString("bottom_nav_order", "")

@@ -502,6 +502,12 @@
     <string name="pref_source_priority_summary">Elige el orden en que se prueban las fuentes (compartido con migrar)</string>
     <string name="action_auto_scroll">Desplazamiento automático</string>
     <string name="pref_auto_scroll_speed">Velocidad del desplazamiento</string>
+    <string name="pref_home_tabs_mode">Secciones Manga / Anime</string>
+    <string name="pref_home_tabs_mode_summary">Qué secciones se muestran en Actualizaciones e Historial</string>
+    <string name="pref_home_tabs_both_anime">Ambas (Anime primero)</string>
+    <string name="pref_home_tabs_both_manga">Ambas (Manga primero)</string>
+    <string name="pref_home_tabs_anime_only">Solo Anime</string>
+    <string name="pref_home_tabs_manga_only">Solo Manga</string>
     <string name="pref_category_intro_skip">Omitir introducción</string>
     <string name="pref_enable_intro_skip">Habilitar \"Omitir introducción\"</string>
     <string name="pref_disable_aniskip_chapter">Desactivar AniSkip si el vídeo ya contiene capítulos</string>

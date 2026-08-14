@@ -89,22 +89,25 @@ fun TabbedScreen(
                 end = contentPadding.calculateEndPadding(LocalLayoutDirection.current),
             ),
         ) {
-            FlexibleTabRow(
-                scrollable = scrollable,
-                selectedTabIndex = state.currentPage,
-            ) {
-                tabs.forEachIndexed { index, tab ->
-                    Tab(
-                        selected = state.currentPage == index,
-                        onClick = { scope.launch { state.animateScrollToPage(index) } },
-                        text = {
-                            TabText(
-                                text = stringResource(tab.titleRes),
-                                badgeCount = tab.badgeNumber,
-                            )
-                        },
-                        unselectedContentColor = MaterialTheme.colorScheme.onSurface,
-                    )
+            // No point in a tab row for a single tab (e.g. when the user hides one of Manga/Anime).
+            if (tabs.size > 1) {
+                FlexibleTabRow(
+                    scrollable = scrollable,
+                    selectedTabIndex = state.currentPage,
+                ) {
+                    tabs.forEachIndexed { index, tab ->
+                        Tab(
+                            selected = state.currentPage == index,
+                            onClick = { scope.launch { state.animateScrollToPage(index) } },
+                            text = {
+                                TabText(
+                                    text = stringResource(tab.titleRes),
+                                    badgeCount = tab.badgeNumber,
+                                )
+                            },
+                            unselectedContentColor = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
                 }
             }
 

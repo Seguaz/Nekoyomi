@@ -59,6 +59,7 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.domain.ui.model.AppIcon
+import eu.kanade.domain.ui.model.HomeTabsMode
 import eu.kanade.domain.ui.model.StartScreen
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
@@ -72,6 +73,7 @@ import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.main.AppIconManager
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableMap
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.i18n.MR
@@ -208,6 +210,21 @@ object SettingsAppearanceScreen : SearchableSettings {
                         .associateWith { stringResource(it.titleRes) }
                         .toImmutableMap(),
                     title = stringResource(AYMR.strings.pref_start_screen),
+                    onValueChanged = {
+                        context.toast(MR.strings.requires_app_restart)
+                        true
+                    },
+                ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.homeTabsMode(),
+                    entries = persistentMapOf(
+                        HomeTabsMode.ANIME_FIRST to stringResource(AYMR.strings.pref_home_tabs_both_anime),
+                        HomeTabsMode.MANGA_FIRST to stringResource(AYMR.strings.pref_home_tabs_both_manga),
+                        HomeTabsMode.ANIME_ONLY to stringResource(AYMR.strings.pref_home_tabs_anime_only),
+                        HomeTabsMode.MANGA_ONLY to stringResource(AYMR.strings.pref_home_tabs_manga_only),
+                    ),
+                    title = stringResource(AYMR.strings.pref_home_tabs_mode),
+                    subtitle = stringResource(AYMR.strings.pref_home_tabs_mode_summary),
                     onValueChanged = {
                         context.toast(MR.strings.requires_app_restart)
                         true
