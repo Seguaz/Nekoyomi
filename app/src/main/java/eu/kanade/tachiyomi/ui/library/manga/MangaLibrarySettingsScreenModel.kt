@@ -45,6 +45,25 @@ class MangaLibrarySettingsScreenModel(
         toggleFilter { libraryPreferences.filterTrackedManga(id) }
     }
 
+    /** Cycles a tag through neutral -> included -> excluded -> neutral for the library tag filter. */
+    fun cycleGenreFilter(genre: String) {
+        val include = libraryPreferences.filterGenresIncludeManga()
+        val exclude = libraryPreferences.filterGenresExcludeManga()
+        when (genre) {
+            in include.get() -> {
+                include.set(include.get() - genre)
+                exclude.set(exclude.get() + genre)
+            }
+            in exclude.get() -> exclude.set(exclude.get() - genre)
+            else -> include.set(include.get() + genre)
+        }
+    }
+
+    fun clearGenreFilters() {
+        libraryPreferences.filterGenresIncludeManga().set(emptySet())
+        libraryPreferences.filterGenresExcludeManga().set(emptySet())
+    }
+
     fun setDisplayMode(mode: LibraryDisplayMode) {
         setMangaDisplayMode.await(mode)
     }

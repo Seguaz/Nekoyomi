@@ -381,6 +381,7 @@ data object MangaLibraryTab : Tab {
                     onDismissRequest = onDismissRequest,
                     screenModel = settingsScreenModel,
                     category = category,
+                    genres = state.libraryGenres,
                 )
             }
             is MangaLibraryScreenModel.Dialog.ChangeCategory -> {

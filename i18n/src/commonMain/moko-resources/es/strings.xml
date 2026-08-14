@@ -202,6 +202,7 @@
     <string name="group_by_genre">Etiqueta</string>
     <string name="group_by_track_status">Estado de seguimiento</string>
     <string name="group_untracked">Sin seguimiento</string>
+    <string name="library_filter_tags">Etiquetas</string>
     <string name="action_display_grid">Cuadrícula compacta</string>
     <string name="action_display_list">Lista</string>
     <string name="action_share">Compartir</string>

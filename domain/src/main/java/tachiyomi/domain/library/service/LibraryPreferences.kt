@@ -161,6 +161,19 @@ class LibraryPreferences(
     fun filterTrackedManga(id: Int) =
         preferenceStore.getEnum("pref_filter_library_tracked_${id}_v2", TriState.DISABLED)
 
+    // Tag/genre library filter: entries must have ALL "include" tags and NONE of the "exclude" tags.
+    fun filterGenresIncludeAnime() =
+        preferenceStore.getStringSet("pref_filter_animelib_genres_include", emptySet())
+
+    fun filterGenresExcludeAnime() =
+        preferenceStore.getStringSet("pref_filter_animelib_genres_exclude", emptySet())
+
+    fun filterGenresIncludeManga() =
+        preferenceStore.getStringSet("pref_filter_library_genres_include", emptySet())
+
+    fun filterGenresExcludeManga() =
+        preferenceStore.getStringSet("pref_filter_library_genres_exclude", emptySet())
+
     // Mixture Update Count
 
     fun newMangaUpdatesCount() = preferenceStore.getInt("library_unread_updates_count", 0)

@@ -19,9 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import eu.kanade.presentation.components.TabbedDialog
 import eu.kanade.presentation.components.TabbedDialogPaddings
+import eu.kanade.presentation.library.components.GenreFilterSection
 import eu.kanade.tachiyomi.ui.library.LibraryGroupMode
 import eu.kanade.tachiyomi.ui.library.anime.AnimeLibrarySettingsScreenModel
 import eu.kanade.tachiyomi.util.system.isReleaseBuildType
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import tachiyomi.core.common.preference.TriState
 import tachiyomi.domain.category.model.Category
@@ -47,6 +49,7 @@ fun AnimeLibrarySettingsDialog(
     onDismissRequest: () -> Unit,
     screenModel: AnimeLibrarySettingsScreenModel,
     category: Category?,
+    genres: ImmutableList<String>,
 ) {
     TabbedDialog(
         onDismissRequest = onDismissRequest,
@@ -65,6 +68,7 @@ fun AnimeLibrarySettingsDialog(
             when (page) {
                 0 -> FilterPage(
                     screenModel = screenModel,
+                    genres = genres,
                 )
                 1 -> SortPage(
                     category = category,
@@ -106,6 +110,7 @@ private fun ColumnScope.GroupPage(
 @Composable
 private fun ColumnScope.FilterPage(
     screenModel: AnimeLibrarySettingsScreenModel,
+    genres: ImmutableList<String>,
 ) {
     val filterDownloaded by screenModel.libraryPreferences.filterDownloadedAnime().collectAsState()
     val downloadedOnly by screenModel.preferences.downloadedOnly().collectAsState()
@@ -185,6 +190,16 @@ private fun ColumnScope.FilterPage(
             }
         }
     }
+
+    val includedGenres by screenModel.libraryPreferences.filterGenresIncludeAnime().collectAsState()
+    val excludedGenres by screenModel.libraryPreferences.filterGenresExcludeAnime().collectAsState()
+    GenreFilterSection(
+        genres = genres,
+        includedGenres = includedGenres,
+        excludedGenres = excludedGenres,
+        onGenreClick = screenModel::cycleGenreFilter,
+        onClear = screenModel::clearGenreFilters,
+    )
 }
 
 @Composable

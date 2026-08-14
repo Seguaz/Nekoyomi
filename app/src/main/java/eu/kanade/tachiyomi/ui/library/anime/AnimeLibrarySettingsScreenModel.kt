@@ -45,6 +45,25 @@ class AnimeLibrarySettingsScreenModel(
         toggleFilter { libraryPreferences.filterTrackedAnime(id) }
     }
 
+    /** Cycles a tag through neutral -> included -> excluded -> neutral for the library tag filter. */
+    fun cycleGenreFilter(genre: String) {
+        val include = libraryPreferences.filterGenresIncludeAnime()
+        val exclude = libraryPreferences.filterGenresExcludeAnime()
+        when (genre) {
+            in include.get() -> {
+                include.set(include.get() - genre)
+                exclude.set(exclude.get() + genre)
+            }
+            in exclude.get() -> exclude.set(exclude.get() - genre)
+            else -> include.set(include.get() + genre)
+        }
+    }
+
+    fun clearGenreFilters() {
+        libraryPreferences.filterGenresIncludeAnime().set(emptySet())
+        libraryPreferences.filterGenresExcludeAnime().set(emptySet())
+    }
+
     fun setDisplayMode(mode: LibraryDisplayMode) {
         setAnimeDisplayMode.await(mode)
     }

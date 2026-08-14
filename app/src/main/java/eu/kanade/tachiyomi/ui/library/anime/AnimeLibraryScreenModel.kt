@@ -191,7 +191,9 @@ class AnimeLibraryScreenModel(
                     prefs.filterCompleted,
                     prefs.filterIntervalCustom,
                 ) + trackFilter.values
-                ).any { it != TriState.DISABLED }
+                ).any { it != TriState.DISABLED } ||
+                prefs.filterGenresInclude.isNotEmpty() ||
+                prefs.filterGenresExclude.isNotEmpty()
         }
             .distinctUntilChanged()
             .onEach {
@@ -208,6 +210,21 @@ class AnimeLibraryScreenModel(
         libraryPreferences.seriesGroupingsAnime().changes()
             .onEach { set -> mutableState.update { it.copy(seriesIds = SeriesGrouping.decode(set).keys) } }
             .launchIn(screenModelScope)
+
+        // Keep the sorted set of all tags/genres in the library up to date for the tag-filter chips.
+        getLibraryAnime.subscribe()
+            .map { list ->
+                list.asSequence()
+                    .flatMap { it.anime.genre.orEmpty().asSequence() }
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .distinctBy { it.lowercase() }
+                    .sortedBy { it.lowercase() }
+                    .toImmutableList()
+            }
+            .distinctUntilChanged()
+            .onEach { genres -> mutableState.update { it.copy(libraryGenres = genres) } }
+            .launchIn(screenModelScope)
     }
 
     private suspend fun AnimeLibraryMap.applyFilters(
@@ -223,6 +240,8 @@ class AnimeLibraryScreenModel(
         val filterBookmarked = prefs.filterBookmarked
         val filterCompleted = prefs.filterCompleted
         val filterIntervalCustom = prefs.filterIntervalCustom
+        val includedGenres = prefs.filterGenresInclude
+        val excludedGenres = prefs.filterGenresExclude
 
         val isNotLoggedInAnyTrack = trackingFilter.isEmpty()
 
@@ -275,6 +294,14 @@ class AnimeLibraryScreenModel(
             !isExcluded && isIncluded
         }
 
+        val filterFnGenre: (AnimeLibraryItem) -> Boolean = genre@{ item ->
+            if (includedGenres.isEmpty() && excludedGenres.isEmpty()) return@genre true
+            val genres = item.libraryAnime.anime.genre.orEmpty()
+            val hasAllIncluded = includedGenres.all { inc -> genres.fastAny { it.equals(inc, true) } }
+            val hasNoExcluded = excludedGenres.none { exc -> genres.fastAny { it.equals(exc, true) } }
+            hasAllIncluded && hasNoExcluded
+        }
+
         val filterFn: (AnimeLibraryItem) -> Boolean = {
             filterFnDownloaded(it) &&
                 filterFnUnseen(it) &&
@@ -282,7 +309,8 @@ class AnimeLibraryScreenModel(
                 filterFnBookmarked(it) &&
                 filterFnCompleted(it) &&
                 filterFnIntervalCustom(it) &&
-                filterFnTracking(it)
+                filterFnTracking(it) &&
+                filterFnGenre(it)
         }
 
         return mapValues { (_, value) -> value.fastFilter(filterFn) }
@@ -450,7 +478,10 @@ class AnimeLibraryScreenModel(
             libraryPreferences.filterBookmarkedAnime().changes(),
             libraryPreferences.filterCompletedAnime().changes(),
             libraryPreferences.filterIntervalCustom().changes(),
+            libraryPreferences.filterGenresIncludeAnime().changes(),
+            libraryPreferences.filterGenresExcludeAnime().changes(),
             transform = {
+                @Suppress("UNCHECKED_CAST")
                 ItemPreferences(
                     downloadBadge = it[0] as Boolean,
                     unseenBadge = it[1] as Boolean,
@@ -464,6 +495,8 @@ class AnimeLibraryScreenModel(
                     filterBookmarked = it[9] as TriState,
                     filterCompleted = it[10] as TriState,
                     filterIntervalCustom = it[11] as TriState,
+                    filterGenresInclude = it[12] as Set<String>,
+                    filterGenresExclude = it[13] as Set<String>,
                 )
             },
         )
@@ -1131,6 +1164,8 @@ class AnimeLibraryScreenModel(
         val filterBookmarked: TriState,
         val filterCompleted: TriState,
         val filterIntervalCustom: TriState,
+        val filterGenresInclude: Set<String>,
+        val filterGenresExclude: Set<String>,
     )
 
     @Immutable
@@ -1151,6 +1186,8 @@ class AnimeLibraryScreenModel(
         val folderMembers: Map<String, List<AnimeLibraryItem>> = emptyMap(),
         // Name of the folder currently opened (drill-in), or null at the top level.
         val openFolder: String? = null,
+        // Distinct tags/genres across the whole library, sorted, feeding the tag-filter chips.
+        val libraryGenres: ImmutableList<String> = persistentListOf(),
     ) {
         private val libraryCount by lazy {
             library.values

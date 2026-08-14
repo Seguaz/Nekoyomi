@@ -383,6 +383,7 @@ data object AnimeLibraryTab : Tab {
                     onDismissRequest = onDismissRequest,
                     screenModel = settingsScreenModel,
                     category = category,
+                    genres = state.libraryGenres,
                 )
             }
             is AnimeLibraryScreenModel.Dialog.ChangeCategory -> {
