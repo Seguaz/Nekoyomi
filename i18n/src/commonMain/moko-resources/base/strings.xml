@@ -117,6 +117,15 @@
     <string name="action_retry">Retry</string>
     <string name="action_remove">Remove</string>
     <string name="action_remove_everything">Remove everything</string>
+    <string name="action_import">Import</string>
+    <string name="action_add_files">Add files</string>
+    <string name="action_add_folder">Add folder</string>
+    <string name="import_to_local_title">Import to local source</string>
+    <string name="import_field_title">Title</string>
+    <string name="import_selected_files">Selected files (%d)</string>
+    <string name="import_in_progress">Importing…</string>
+    <string name="import_completed">Imported %d file(s)</string>
+    <string name="import_no_storage">Couldn\'t access the local storage folder</string>
     <string name="action_start">Start</string>
     <string name="action_resume">Resume</string>
     <string name="action_open_in_browser">Open in browser</string>

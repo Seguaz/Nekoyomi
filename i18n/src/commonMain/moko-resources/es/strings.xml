@@ -43,6 +43,15 @@
     <string name="action_retry">Reintentar</string>
     <string name="action_remove">Eliminar</string>
     <string name="action_resume">Continuar</string>
+    <string name="action_import">Importar</string>
+    <string name="action_add_files">Añadir archivos</string>
+    <string name="action_add_folder">Añadir carpeta</string>
+    <string name="import_to_local_title">Importar a la fuente local</string>
+    <string name="import_field_title">Título</string>
+    <string name="import_selected_files">Archivos seleccionados (%d)</string>
+    <string name="import_in_progress">Importando…</string>
+    <string name="import_completed">%d archivo(s) importado(s)</string>
+    <string name="import_no_storage">No se pudo acceder a la carpeta de almacenamiento local</string>
     <string name="action_open_in_browser">Abrir en el navegador</string>
     <string name="action_display_mode">Modo de visualización</string>
     <string name="action_cancel">Cancelar</string>

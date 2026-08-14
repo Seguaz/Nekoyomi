@@ -3,6 +3,7 @@ package eu.kanade.presentation.browse.manga.components
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.ViewModule
+import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
@@ -36,6 +37,7 @@ fun BrowseMangaSourceToolbar(
     onHelpClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onSearch: (String) -> Unit,
+    onImportClick: (() -> Unit)? = null,
     incognitoMode: Boolean = false,
     onToggleIncognito: (() -> Unit)? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
@@ -70,6 +72,15 @@ fun BrowseMangaSourceToolbar(
                             ),
                         )
                         if (isLocalSource) {
+                            if (onImportClick != null) {
+                                add(
+                                    AppBar.Action(
+                                        title = stringResource(MR.strings.action_import),
+                                        icon = Icons.Outlined.CreateNewFolder,
+                                        onClick = onImportClick,
+                                    ),
+                                )
+                            }
                             add(
                                 AppBar.OverflowAction(
                                     title = stringResource(MR.strings.label_help),

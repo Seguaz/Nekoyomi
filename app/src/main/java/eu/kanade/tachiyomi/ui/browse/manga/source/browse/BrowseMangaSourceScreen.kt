@@ -1,5 +1,7 @@
 package eu.kanade.tachiyomi.ui.browse.manga.source.browse
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +27,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -32,13 +36,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.hippo.unifile.UniFile
 import eu.kanade.core.util.ifMangaSourcesLoaded
 import eu.kanade.presentation.browse.RemoveEntryDialog
+import eu.kanade.presentation.browse.components.LocalSourceImportDialog
 import eu.kanade.presentation.browse.manga.BrowseSourceContent
 import eu.kanade.presentation.browse.manga.MissingSourceScreen
 import eu.kanade.presentation.browse.manga.components.BrowseMangaSourceToolbar
@@ -56,11 +63,15 @@ import eu.kanade.tachiyomi.ui.browse.manga.source.browse.BrowseMangaSourceScreen
 import eu.kanade.tachiyomi.ui.category.CategoriesTab
 import eu.kanade.tachiyomi.ui.entries.manga.MangaScreen
 import eu.kanade.tachiyomi.ui.webview.WebViewScreen
+import eu.kanade.tachiyomi.util.storage.ImportResult
+import eu.kanade.tachiyomi.util.storage.LocalSourceImporter
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import mihon.presentation.core.util.collectAsLazyPagingItems
+import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.launchIO
+import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.domain.source.manga.model.StubMangaSource
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.material.Scaffold
@@ -123,9 +134,42 @@ data class BrowseMangaSourceScreen(
             )
         }
 
+        // In-app import into the local source (pick chapter files/archives or a folder).
+        val context = LocalContext.current
+        val isLocalSource = screenModel.source is LocalMangaSource
+        val importer = remember { LocalSourceImporter(context) }
+        var showImportDialog by remember { mutableStateOf(false) }
+        var importTitle by remember { mutableStateOf("") }
+        val importSources = remember { mutableStateListOf<UniFile>() }
+        var importing by remember { mutableStateOf(false) }
+        val importFilePicker = rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenMultipleDocuments(),
+        ) { uris ->
+            val picked = uris.mapNotNull { UniFile.fromUri(context, it) }
+            importSources.addAll(LocalSourceImporter.filterSupported(picked, isAnime = false))
+        }
+        val importFolderPicker = rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocumentTree(),
+        ) { treeUri ->
+            val tree = treeUri?.let { UniFile.fromUri(context, it) }
+            if (tree != null) {
+                importSources.addAll(
+                    LocalSourceImporter.filterSupported(tree.listFiles().orEmpty().toList(), isAnime = false),
+                )
+                if (importTitle.isBlank()) importTitle = tree.name.orEmpty()
+            }
+        }
+        val resetImport = {
+            showImportDialog = false
+            importTitle = ""
+            importSources.clear()
+        }
+
         LaunchedEffect(screenModel.source) {
             assistUrl = (screenModel.source as? HttpSource)?.baseUrl
         }
+
+        val mangaList = screenModel.mangaPagerFlowFlow.collectAsLazyPagingItems()
 
         var topBarHeight by remember { mutableIntStateOf(0) }
         Scaffold(
@@ -146,6 +190,7 @@ data class BrowseMangaSourceScreen(
                         onHelpClick = onHelpClick,
                         onSettingsClick = { navigator.push(MangaSourcePreferencesScreen(sourceId)) },
                         onSearch = screenModel::search,
+                        onImportClick = { showImportDialog = true }.takeIf { isLocalSource },
                         incognitoMode = state.incognitoMode,
                         onToggleIncognito = screenModel::toggleIncognito
                             .takeIf { screenModel.extensionPackage != null },
@@ -221,7 +266,7 @@ data class BrowseMangaSourceScreen(
         ) { paddingValues ->
             BrowseSourceContent(
                 source = screenModel.source,
-                mangaList = screenModel.mangaPagerFlowFlow.collectAsLazyPagingItems(),
+                mangaList = mangaList,
                 columns = screenModel.getColumnsPreference(LocalConfiguration.current.orientation),
                 entries = screenModel.getColumnsPreferenceForCurrentOrientation(LocalConfiguration.current.orientation),
                 topBarHeight = topBarHeight,
@@ -313,6 +358,38 @@ data class BrowseMangaSourceScreen(
                 )
             }
             else -> {}
+        }
+
+        if (showImportDialog) {
+            LocalSourceImportDialog(
+                title = importTitle,
+                onTitleChange = { importTitle = it },
+                fileNames = importSources.map { it.name.orEmpty() },
+                importing = importing,
+                onAddFiles = { importFilePicker.launch(arrayOf("*/*")) },
+                onAddFolder = { importFolderPicker.launch(null) },
+                onRemoveAt = { importSources.removeAt(it) },
+                onImport = {
+                    importing = true
+                    val title = importTitle
+                    val sources = importSources.toList()
+                    scope.launchIO {
+                        val result = importer.import(isAnime = false, title = title, sources = sources)
+                        withUIContext {
+                            importing = false
+                            resetImport()
+                            mangaList.refresh()
+                            val message = when (result) {
+                                is ImportResult.Done ->
+                                    context.stringResource(MR.strings.import_completed, result.copied)
+                                else -> context.stringResource(MR.strings.import_no_storage)
+                            }
+                            snackbarHostState.showSnackbar(message)
+                        }
+                    }
+                },
+                onDismissRequest = resetImport,
+            )
         }
 
         LaunchedEffect(Unit) {
