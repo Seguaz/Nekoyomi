@@ -500,6 +500,8 @@
     <string name="player_source_fallback_toast">Reproduciendo desde %1$s</string>
     <string name="player_source_fallback_searching">Esta fuente no reproduce, buscando otra…</string>
     <string name="pref_source_priority_summary">Elige el orden en que se prueban las fuentes (compartido con migrar)</string>
+    <string name="action_auto_scroll">Desplazamiento automático</string>
+    <string name="pref_auto_scroll_speed">Velocidad del desplazamiento</string>
     <string name="pref_category_intro_skip">Omitir introducción</string>
     <string name="pref_enable_intro_skip">Habilitar \"Omitir introducción\"</string>
     <string name="pref_disable_aniskip_chapter">Desactivar AniSkip si el vídeo ya contiene capítulos</string>

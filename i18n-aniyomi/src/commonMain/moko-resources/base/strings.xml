@@ -78,6 +78,8 @@
     <string name="player_source_fallback_toast">Playing from %1$s</string>
     <string name="player_source_fallback_searching">Source has no video, trying another…</string>
     <string name="pref_source_priority_summary">Set the order sources are tried in (shared with migration)</string>
+    <string name="action_auto_scroll">Auto-scroll</string>
+    <string name="pref_auto_scroll_speed">Auto-scroll speed</string>
     <string name="pref_player_fullscreen">Show content in display cutout</string>
     <string name="pref_player_hide_controls">Hide player controls when opening the player</string>
     <string name="pref_show_system_bar">Show system status bar with controls</string>

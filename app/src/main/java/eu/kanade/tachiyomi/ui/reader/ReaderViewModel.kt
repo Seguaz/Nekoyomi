@@ -110,6 +110,13 @@ class ReaderViewModel @JvmOverloads constructor(
     private val mutableState = MutableStateFlow(State())
     val state = mutableState.asStateFlow()
 
+    /** Whether webtoon auto-scroll is currently running (drives the reader menu toggle icon). */
+    val autoScrollActive = MutableStateFlow(false)
+
+    fun setAutoScrollActive(active: Boolean) {
+        autoScrollActive.value = active
+    }
+
     private val eventChannel = Channel<Event>()
     val eventFlow = eventChannel.receiveAsFlow()
 

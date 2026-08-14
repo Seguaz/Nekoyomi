@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -20,6 +22,7 @@ import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderOrientation
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.i18n.stringResource
 
 @Composable
@@ -32,6 +35,8 @@ fun BottomReaderBar(
     cropEnabled: Boolean,
     onClickCropBorder: () -> Unit,
     onClickSettings: () -> Unit,
+    autoScrollActive: Boolean = false,
+    onClickAutoScroll: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -61,6 +66,15 @@ fun BottomReaderBar(
                 painter = painterResource(if (cropEnabled) R.drawable.ic_crop_24dp else R.drawable.ic_crop_off_24dp),
                 contentDescription = stringResource(MR.strings.pref_crop_borders),
             )
+        }
+
+        if (onClickAutoScroll != null) {
+            IconButton(onClick = onClickAutoScroll) {
+                Icon(
+                    imageVector = if (autoScrollActive) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                    contentDescription = stringResource(AYMR.strings.action_auto_scroll),
+                )
+            }
         }
 
         IconButton(onClick = onClickSettings) {

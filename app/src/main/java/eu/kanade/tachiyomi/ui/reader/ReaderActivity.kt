@@ -73,6 +73,7 @@ import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderSettingsScreenModel
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
 import eu.kanade.tachiyomi.ui.reader.viewer.ReaderProgressIndicator
+import eu.kanade.tachiyomi.ui.reader.viewer.webtoon.WebtoonViewer
 import eu.kanade.tachiyomi.ui.webview.WebViewActivity
 import eu.kanade.tachiyomi.util.system.hasDisplayCutout
 import eu.kanade.tachiyomi.util.system.isNightMode
@@ -351,6 +352,7 @@ class ReaderActivity : BaseActivity() {
 
         binding.dialogRoot.setComposeContent {
             val state by viewModel.state.collectAsState()
+            val autoScrollActive by viewModel.autoScrollActive.collectAsState()
             val settingsScreenModel = remember {
                 ReaderSettingsScreenModel(
                     readerState = viewModel.state,
@@ -428,6 +430,10 @@ class ReaderActivity : BaseActivity() {
                     menuToggleToast = toast(if (enabled) MR.strings.on else MR.strings.off)
                 },
                 onClickSettings = viewModel::openSettingsDialog,
+                autoScrollActive = autoScrollActive,
+                onClickAutoScroll = {
+                    (state.viewer as? WebtoonViewer)?.let { viewModel.setAutoScrollActive(it.toggleAutoScroll()) }
+                },
             )
 
             if (flashOnPageChange) {

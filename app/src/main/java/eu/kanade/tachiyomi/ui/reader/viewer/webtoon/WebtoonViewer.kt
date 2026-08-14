@@ -19,8 +19,12 @@ import eu.kanade.tachiyomi.ui.reader.model.ViewerChapters
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.ui.reader.viewer.Viewer
 import eu.kanade.tachiyomi.ui.reader.viewer.ViewerNavigation.NavigationRegion
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import tachiyomi.core.common.util.system.logcat
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -72,11 +76,12 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
      */
     private var currentPage: Any? = null
 
-    private val threshold: Int =
-        Injekt.get<ReaderPreferences>()
-            .readerHideThreshold()
-            .get()
-            .threshold
+    private val readerPreferences = Injekt.get<ReaderPreferences>()
+
+    private val threshold: Int = readerPreferences.readerHideThreshold().get().threshold
+
+    /** Non-null while auto-scroll is running. */
+    private var autoScrollJob: Job? = null
 
     init {
         recycler.setItemViewCacheSize(RECYCLER_VIEW_CACHE_SIZE)
@@ -88,6 +93,13 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
         recycler.adapter = adapter
         recycler.addOnScrollListener(
             object : RecyclerView.OnScrollListener() {
+                override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                    // A manual drag pauses auto-scroll (programmatic scrollBy stays IDLE, so it won't).
+                    if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
+                        pauseAutoScroll()
+                    }
+                }
+
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     onScrolled()
 
@@ -112,18 +124,25 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
             },
         )
         recycler.tapListener = { event ->
-            val viewPosition = IntArray(2)
-            recycler.getLocationOnScreen(viewPosition)
-            val viewPositionRelativeToWindow = IntArray(2)
-            recycler.getLocationInWindow(viewPositionRelativeToWindow)
-            val pos = PointF(
-                (event.rawX - viewPosition[0] + viewPositionRelativeToWindow[0]) / recycler.width,
-                (event.rawY - viewPosition[1] + viewPositionRelativeToWindow[1]) / recycler.originalHeight,
-            )
-            when (config.navigator.getAction(pos)) {
-                NavigationRegion.MENU -> activity.toggleMenu()
-                NavigationRegion.NEXT, NavigationRegion.RIGHT -> scrollDown()
-                NavigationRegion.PREV, NavigationRegion.LEFT -> scrollUp()
+            // Only pause on a tap when the menu is hidden; while the menu is up, a tap is meant to
+            // dismiss/use it (e.g. right after pressing play) and shouldn't stop the scroll.
+            if (!activity.viewModel.state.value.menuVisible && pauseAutoScroll()) {
+                // A tap pauses auto-scroll and reveals the menu so it can be resumed or adjusted.
+                activity.showMenu()
+            } else {
+                val viewPosition = IntArray(2)
+                recycler.getLocationOnScreen(viewPosition)
+                val viewPositionRelativeToWindow = IntArray(2)
+                recycler.getLocationInWindow(viewPositionRelativeToWindow)
+                val pos = PointF(
+                    (event.rawX - viewPosition[0] + viewPositionRelativeToWindow[0]) / recycler.width,
+                    (event.rawY - viewPosition[1] + viewPositionRelativeToWindow[1]) / recycler.originalHeight,
+                )
+                when (config.navigator.getAction(pos)) {
+                    NavigationRegion.MENU -> activity.toggleMenu()
+                    NavigationRegion.NEXT, NavigationRegion.RIGHT -> scrollDown()
+                    NavigationRegion.PREV, NavigationRegion.LEFT -> scrollUp()
+                }
             }
         }
         recycler.longTapListener = f@{ event ->
@@ -302,6 +321,50 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
     }
 
     /**
+     * Toggles webtoon auto-scroll and returns whether it is now running. The scroll speed follows the
+     * [ReaderPreferences.webtoonAutoScrollSpeed] preference (re-read every frame so it can be changed live).
+     */
+    fun toggleAutoScroll(): Boolean {
+        if (autoScrollJob?.isActive == true) stopAutoScroll() else startAutoScroll()
+        return autoScrollJob?.isActive == true
+    }
+
+    private fun startAutoScroll() {
+        autoScrollJob?.cancel()
+        val density = recycler.resources.displayMetrics.density
+        autoScrollJob = scope.launch {
+            var remainder = 0f
+            while (isActive) {
+                val level = readerPreferences.webtoonAutoScrollSpeed().get().coerceIn(1, MAX_AUTO_SCROLL_LEVEL)
+                val dpPerSecond = AUTO_SCROLL_MIN_DP_PER_SEC +
+                    (level - 1) * (AUTO_SCROLL_MAX_DP_PER_SEC - AUTO_SCROLL_MIN_DP_PER_SEC) /
+                    (MAX_AUTO_SCROLL_LEVEL - 1)
+                val distance = remainder + dpPerSecond * density * AUTO_SCROLL_FRAME_MS / 1000f
+                val dy = distance.toInt()
+                remainder = distance - dy
+                if (dy != 0) recycler.scrollBy(0, dy)
+                delay(AUTO_SCROLL_FRAME_MS)
+            }
+        }
+    }
+
+    private fun stopAutoScroll() {
+        autoScrollJob?.cancel()
+        autoScrollJob = null
+    }
+
+    /**
+     * Stops auto-scroll if it's running and reflects it in the reader menu state. Returns true if it
+     * was running (so callers can, e.g., reveal the menu on the tap that paused it).
+     */
+    private fun pauseAutoScroll(): Boolean {
+        if (autoScrollJob?.isActive != true) return false
+        stopAutoScroll()
+        activity.viewModel.setAutoScrollActive(false)
+        return true
+    }
+
+    /**
      * Called from the containing activity when a key [event] is received. It should return true
      * if the event was handled, false otherwise.
      */
@@ -363,3 +426,9 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
 
 // Double the cache size to reduce rebinds/recycles incurred by the extra layout space on scroll direction changes
 private const val RECYCLER_VIEW_CACHE_SIZE = 4
+
+// Auto-scroll speed: level 1 (slowest) = 25 dp/s … level 10 (fastest) = 400 dp/s, interpolated linearly.
+private const val MAX_AUTO_SCROLL_LEVEL = 10
+private const val AUTO_SCROLL_MIN_DP_PER_SEC = 25f
+private const val AUTO_SCROLL_MAX_DP_PER_SEC = 400f
+private const val AUTO_SCROLL_FRAME_MS = 16L

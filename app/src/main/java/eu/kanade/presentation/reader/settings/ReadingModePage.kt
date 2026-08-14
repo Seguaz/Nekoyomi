@@ -16,6 +16,7 @@ import eu.kanade.tachiyomi.ui.reader.setting.ReaderSettingsScreenModel
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
 import eu.kanade.tachiyomi.ui.reader.viewer.webtoon.WebtoonViewer
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.CheckboxItem
 import tachiyomi.presentation.core.components.HeadingItem
 import tachiyomi.presentation.core.components.SettingsChipRow
@@ -167,6 +168,18 @@ private fun ColumnScope.WebtoonViewerSettings(screenModel: ReaderSettingsScreenM
         valueText = numberFormat.format(webtoonSidePadding / 100f),
         onChange = {
             screenModel.preferences.webtoonSidePadding().set(it)
+        },
+        pillColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    )
+
+    val autoScrollSpeed by screenModel.preferences.webtoonAutoScrollSpeed().collectAsState()
+    SliderItem(
+        value = autoScrollSpeed,
+        valueRange = 1..10,
+        label = stringResource(AYMR.strings.pref_auto_scroll_speed),
+        valueText = "$autoScrollSpeed",
+        onChange = {
+            screenModel.preferences.webtoonAutoScrollSpeed().set(it)
         },
         pillColor = MaterialTheme.colorScheme.surfaceContainerHighest,
     )

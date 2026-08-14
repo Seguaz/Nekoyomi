@@ -76,6 +76,9 @@ class ReaderPreferences(
 
     fun webtoonSidePadding() = preferenceStore.getInt("webtoon_side_padding", WEBTOON_PADDING_MIN)
 
+    // Auto-scroll speed level (1..10) for the webtoon reader; higher = faster.
+    fun webtoonAutoScrollSpeed() = preferenceStore.getInt("webtoon_auto_scroll_speed", 3)
+
     fun readerHideThreshold() = preferenceStore.getEnum("reader_hide_threshold", ReaderHideThreshold.LOW)
 
     fun folderPerManga() = preferenceStore.getBoolean("create_folder_per_manga", false)
