@@ -43,6 +43,9 @@ sealed class MangaExtension {
         val apkName: String,
         val iconUrl: String,
         val repoUrl: String,
+        // Full APK download URL when the repo provides one directly (new "tachiyomix 1.6" index
+        // format). Null for the classic format, where the URL is built from [repoUrl] + [apkName].
+        val apkUrl: String? = null,
     ) : MangaExtension() {
 
         data class MangaSource(

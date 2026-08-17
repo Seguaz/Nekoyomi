@@ -177,12 +177,16 @@ internal class MangaExtensionApi {
                     apkName = it.resources.apkUrl.substringAfterLast('/'),
                     iconUrl = it.resources.iconUrl ?: "$repoUrl/icon/${it.packageName}.png",
                     repoUrl = repoUrl,
+                    // The new format hosts APKs at an arbitrary URL, not "$repoUrl/apk/$apkName";
+                    // keep the real one so the download doesn't 404.
+                    apkUrl = it.resources.apkUrl,
                 )
             }
     }
 
     fun getApkUrl(extension: MangaExtension.Available): String {
-        return "${extension.repoUrl}/apk/${extension.apkName}"
+        // New-format repos give the real download URL directly; classic repos build it from the repo.
+        return extension.apkUrl ?: "${extension.repoUrl}/apk/${extension.apkName}"
     }
 
     private fun ExtensionJsonObject.extractLibVersion(): Double {
