@@ -126,6 +126,9 @@
     <string name="import_in_progress">Importing…</string>
     <string name="import_completed">Imported %d file(s)</string>
     <string name="import_no_storage">Couldn\'t access the local storage folder</string>
+    <string name="import_no_space">Not enough storage space to import</string>
+    <string name="action_delete_from_local">Delete from local</string>
+    <string name="delete_local_entry_confirmation">Delete \"%1$s\" from local storage? Its files will be permanently removed.</string>
     <string name="action_start">Start</string>
     <string name="action_resume">Resume</string>
     <string name="action_open_in_browser">Open in browser</string>

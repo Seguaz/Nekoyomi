@@ -48,6 +48,7 @@ import eu.kanade.presentation.browse.RemoveEntryDialog
 import eu.kanade.presentation.browse.anime.BrowseAnimeSourceContent
 import eu.kanade.presentation.browse.anime.MissingSourceScreen
 import eu.kanade.presentation.browse.anime.components.BrowseAnimeSourceToolbar
+import eu.kanade.presentation.browse.components.DeleteLocalEntryDialog
 import eu.kanade.presentation.browse.components.LocalSourceImportDialog
 import eu.kanade.presentation.category.components.ChangeCategoryDialog
 import eu.kanade.presentation.entries.anime.DuplicateAnimeDialog
@@ -154,8 +155,10 @@ data class BrowseAnimeSourceScreen(
         ) { treeUri ->
             val tree = treeUri?.let { UniFile.fromUri(context, it) }
             if (tree != null) {
+                // Add the folder's children (files and episode subfolders); the importer recurses
+                // into subfolders, so they're copied directly under the entry (no extra nesting).
                 importSources.addAll(
-                    LocalSourceImporter.filterSupported(tree.listFiles().orEmpty().toList(), isAnime = true),
+                    LocalSourceImporter.filterImportable(tree.listFiles().orEmpty().toList(), isAnime = true),
                 )
                 if (importTitle.isBlank()) importTitle = tree.name.orEmpty()
             }
@@ -279,21 +282,27 @@ data class BrowseAnimeSourceScreen(
                 onLocalAnimeSourceHelpClick = onHelpClick,
                 onAnimeClick = { navigator.push((AnimeScreen(it.id, true))) },
                 onAnimeLongClick = { anime ->
-                    scope.launchIO {
-                        val duplicateAnime = screenModel.getDuplicateAnimelibAnime(anime)
-                        when {
-                            anime.favorite -> screenModel.setDialog(
-                                BrowseAnimeSourceScreenModel.Dialog.RemoveAnime(anime),
-                            )
-                            duplicateAnime != null -> screenModel.setDialog(
-                                BrowseAnimeSourceScreenModel.Dialog.AddDuplicateAnime(
-                                    anime,
-                                    duplicateAnime,
-                                ),
-                            )
-                            else -> screenModel.addFavorite(anime)
-                        }
+                    if (isLocalSource) {
+                        // Local entries are user files, so long-press offers to delete them.
+                        screenModel.setDialog(BrowseAnimeSourceScreenModel.Dialog.DeleteLocal(anime))
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    } else {
+                        scope.launchIO {
+                            val duplicateAnime = screenModel.getDuplicateAnimelibAnime(anime)
+                            when {
+                                anime.favorite -> screenModel.setDialog(
+                                    BrowseAnimeSourceScreenModel.Dialog.RemoveAnime(anime),
+                                )
+                                duplicateAnime != null -> screenModel.setDialog(
+                                    BrowseAnimeSourceScreenModel.Dialog.AddDuplicateAnime(
+                                        anime,
+                                        duplicateAnime,
+                                    ),
+                                )
+                                else -> screenModel.addFavorite(anime)
+                            }
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
                     }
                 },
             )
@@ -345,6 +354,19 @@ data class BrowseAnimeSourceScreen(
                     entryToRemove = dialog.anime.title,
                 )
             }
+            is BrowseAnimeSourceScreenModel.Dialog.DeleteLocal -> {
+                DeleteLocalEntryDialog(
+                    entryTitle = dialog.anime.title,
+                    onDismissRequest = onDismissRequest,
+                    onConfirm = {
+                        scope.launchIO {
+                            importer.delete(isAnime = true, url = dialog.anime.url)
+                            screenModel.deleteCachedLocalEntry(dialog.anime.id)
+                            withUIContext { animeList.refresh() }
+                        }
+                    },
+                )
+            }
             is BrowseAnimeSourceScreenModel.Dialog.ChangeAnimeCategory -> {
                 ChangeCategoryDialog(
                     initialSelection = dialog.initialSelection,
@@ -381,6 +403,8 @@ data class BrowseAnimeSourceScreen(
                             val message = when (result) {
                                 is ImportResult.Done ->
                                     context.stringResource(MR.strings.import_completed, result.copied)
+                                ImportResult.NoSpace ->
+                                    context.stringResource(MR.strings.import_no_space)
                                 else -> context.stringResource(MR.strings.import_no_storage)
                             }
                             snackbarHostState.showSnackbar(message)

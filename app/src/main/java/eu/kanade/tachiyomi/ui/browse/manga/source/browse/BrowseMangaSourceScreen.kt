@@ -45,6 +45,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.hippo.unifile.UniFile
 import eu.kanade.core.util.ifMangaSourcesLoaded
 import eu.kanade.presentation.browse.RemoveEntryDialog
+import eu.kanade.presentation.browse.components.DeleteLocalEntryDialog
 import eu.kanade.presentation.browse.components.LocalSourceImportDialog
 import eu.kanade.presentation.browse.manga.BrowseSourceContent
 import eu.kanade.presentation.browse.manga.MissingSourceScreen
@@ -153,8 +154,10 @@ data class BrowseMangaSourceScreen(
         ) { treeUri ->
             val tree = treeUri?.let { UniFile.fromUri(context, it) }
             if (tree != null) {
+                // Add the folder's children (files and chapter subfolders); the importer recurses
+                // into subfolders, so they're copied directly under the entry (no extra nesting).
                 importSources.addAll(
-                    LocalSourceImporter.filterSupported(tree.listFiles().orEmpty().toList(), isAnime = false),
+                    LocalSourceImporter.filterImportable(tree.listFiles().orEmpty().toList(), isAnime = false),
                 )
                 if (importTitle.isBlank()) importTitle = tree.name.orEmpty()
             }
@@ -278,21 +281,27 @@ data class BrowseMangaSourceScreen(
                 onLocalSourceHelpClick = onHelpClick,
                 onMangaClick = { navigator.push((MangaScreen(it.id, true))) },
                 onMangaLongClick = { manga ->
-                    scope.launchIO {
-                        val duplicateManga = screenModel.getDuplicateLibraryManga(manga)
-                        when {
-                            manga.favorite -> screenModel.setDialog(
-                                BrowseMangaSourceScreenModel.Dialog.RemoveManga(manga),
-                            )
-                            duplicateManga != null -> screenModel.setDialog(
-                                BrowseMangaSourceScreenModel.Dialog.AddDuplicateManga(
-                                    manga,
-                                    duplicateManga,
-                                ),
-                            )
-                            else -> screenModel.addFavorite(manga)
-                        }
+                    if (isLocalSource) {
+                        // Local entries are user files, so long-press offers to delete them.
+                        screenModel.setDialog(BrowseMangaSourceScreenModel.Dialog.DeleteLocal(manga))
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    } else {
+                        scope.launchIO {
+                            val duplicateManga = screenModel.getDuplicateLibraryManga(manga)
+                            when {
+                                manga.favorite -> screenModel.setDialog(
+                                    BrowseMangaSourceScreenModel.Dialog.RemoveManga(manga),
+                                )
+                                duplicateManga != null -> screenModel.setDialog(
+                                    BrowseMangaSourceScreenModel.Dialog.AddDuplicateManga(
+                                        manga,
+                                        duplicateManga,
+                                    ),
+                                )
+                                else -> screenModel.addFavorite(manga)
+                            }
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
                     }
                 },
             )
@@ -343,6 +352,19 @@ data class BrowseMangaSourceScreen(
                     entryToRemove = dialog.manga.title,
                 )
             }
+            is BrowseMangaSourceScreenModel.Dialog.DeleteLocal -> {
+                DeleteLocalEntryDialog(
+                    entryTitle = dialog.manga.title,
+                    onDismissRequest = onDismissRequest,
+                    onConfirm = {
+                        scope.launchIO {
+                            importer.delete(isAnime = false, url = dialog.manga.url)
+                            screenModel.deleteCachedLocalEntry(dialog.manga.id)
+                            withUIContext { mangaList.refresh() }
+                        }
+                    },
+                )
+            }
             is BrowseMangaSourceScreenModel.Dialog.ChangeMangaCategory -> {
                 ChangeCategoryDialog(
                     initialSelection = dialog.initialSelection,
@@ -382,6 +404,8 @@ data class BrowseMangaSourceScreen(
                             val message = when (result) {
                                 is ImportResult.Done ->
                                     context.stringResource(MR.strings.import_completed, result.copied)
+                                ImportResult.NoSpace ->
+                                    context.stringResource(MR.strings.import_no_space)
                                 else -> context.stringResource(MR.strings.import_no_storage)
                             }
                             snackbarHostState.showSnackbar(message)

@@ -29,6 +29,9 @@ interface AnimeRepository {
 
     suspend fun getDuplicateLibraryAnime(id: Long, title: String): List<Anime>
 
+    /** Removes the given non-favorite (browse-cached) anime from the database. */
+    suspend fun deleteAnimesNotInLibrary(animeIds: List<Long>)
+
     suspend fun getUpcomingAnime(statuses: Set<Long>): Flow<List<Anime>>
 
     suspend fun resetAnimeViewerFlags(): Boolean

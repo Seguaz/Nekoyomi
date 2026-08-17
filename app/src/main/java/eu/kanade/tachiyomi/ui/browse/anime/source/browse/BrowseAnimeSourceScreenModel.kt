@@ -93,6 +93,7 @@ class BrowseAnimeSourceScreenModel(
     private val getAnime: GetAnime = Injekt.get(),
     private val networkToLocalAnime: NetworkToLocalAnime = Injekt.get(),
     private val updateAnime: UpdateAnime = Injekt.get(),
+    private val animeRepository: tachiyomi.domain.entries.anime.repository.AnimeRepository = Injekt.get(),
     private val addTracks: AddAnimeTracks = Injekt.get(),
     private val getIncognitoState: GetAnimeIncognitoState = Injekt.get(),
     private val toggleIncognitoInteractor: ToggleAnimeIncognito = Injekt.get(),
@@ -344,6 +345,14 @@ class BrowseAnimeSourceScreenModel(
         return getDuplicateAnimelibAnime.await(anime).getOrNull(0)
     }
 
+    /**
+     * Drops the browse-cached DB record for a deleted local anime so re-importing the same title
+     * detects its structure (episodes vs seasons) fresh instead of reusing the stale one.
+     */
+    suspend fun deleteCachedLocalEntry(animeId: Long) {
+        animeRepository.deleteAnimesNotInLibrary(listOf(animeId))
+    }
+
     private fun moveAnimeToCategories(anime: Anime, vararg categories: Category) {
         moveAnimeToCategories(anime, categories.filter { it.id != 0L }.map { it.id })
     }
@@ -397,6 +406,7 @@ class BrowseAnimeSourceScreenModel(
     sealed interface Dialog {
         data object Filter : Dialog
         data class RemoveAnime(val anime: Anime) : Dialog
+        data class DeleteLocal(val anime: Anime) : Dialog
         data class AddDuplicateAnime(val anime: Anime, val duplicate: Anime) : Dialog
         data class ChangeAnimeCategory(
             val anime: Anime,

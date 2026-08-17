@@ -27,6 +27,9 @@ interface MangaRepository {
 
     suspend fun getDuplicateLibraryManga(id: Long, title: String): List<Manga>
 
+    /** Removes the given non-favorite (browse-cached) manga from the database. */
+    suspend fun deleteMangasNotInLibrary(mangaIds: List<Long>)
+
     suspend fun getUpcomingManga(statuses: Set<Long>): Flow<List<Manga>>
 
     suspend fun resetMangaViewerFlags(): Boolean

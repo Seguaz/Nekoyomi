@@ -52,6 +52,9 @@
     <string name="import_in_progress">Importando…</string>
     <string name="import_completed">%d archivo(s) importado(s)</string>
     <string name="import_no_storage">No se pudo acceder a la carpeta de almacenamiento local</string>
+    <string name="import_no_space">No hay suficiente espacio para importar</string>
+    <string name="action_delete_from_local">Eliminar de local</string>
+    <string name="delete_local_entry_confirmation">¿Eliminar \"%1$s\" del almacenamiento local? Sus archivos se borrarán permanentemente.</string>
     <string name="action_open_in_browser">Abrir en el navegador</string>
     <string name="action_display_mode">Modo de visualización</string>
     <string name="action_cancel">Cancelar</string>

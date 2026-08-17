@@ -56,6 +56,10 @@ class AnimeRepositoryImpl(
         return handler.awaitList { animesQueries.getWatchedAnimeNotInLibrary(AnimeMapper::mapAnime) }
     }
 
+    override suspend fun deleteAnimesNotInLibrary(animeIds: List<Long>) {
+        handler.await { animesQueries.deleteAnimesNotInLibraryByAnimeIds(animeIds) }
+    }
+
     override suspend fun getLibraryAnime(): List<LibraryAnime> {
         return handler.awaitList { animelibViewQueries.animelib(AnimeMapper::mapLibraryAnime) }
     }

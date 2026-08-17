@@ -20,6 +20,21 @@ class LocalSourceImporter(
     private val storageManager: StorageManager = Injekt.get(),
 ) {
 
+    /**
+     * Deletes a previously-imported local entry: its folder ([url] is the entry's folder name in the
+     * local source) and everything inside it. Returns true if it was removed.
+     */
+    suspend fun delete(isAnime: Boolean, url: String): Boolean = withIOContext {
+        if (url.isBlank()) return@withIOContext false
+        val baseDir = if (isAnime) {
+            storageManager.getLocalAnimeSourceDirectory()
+        } else {
+            storageManager.getLocalMangaSourceDirectory()
+        } ?: return@withIOContext false
+        val dir = baseDir.findFile(url.substringBefore('/')) ?: return@withIOContext false
+        runCatching { dir.delete() }.getOrDefault(false)
+    }
+
     /** Copies [sources] into `<local(anime)>/<title>/`, returning how many succeeded. */
     suspend fun import(isAnime: Boolean, title: String, sources: List<UniFile>): ImportResult = withIOContext {
         val cleanTitle = title.trim()
@@ -33,36 +48,145 @@ class LocalSourceImporter(
         } ?: return@withIOContext ImportResult.NoStorage
 
         val folderName = DiskUtil.buildValidFilename(cleanTitle)
-        val entryDir = baseDir.findFile(folderName)?.takeIf { it.isDirectory }
+        val existingDir = baseDir.findFile(folderName)?.takeIf { it.isDirectory }
+        val entryDir = existingDir
             ?: baseDir.createDirectory(folderName)
             ?: return@withIOContext ImportResult.NoStorage
+        val createdFresh = existingDir == null
 
         var copied = 0
         var failed = 0
-        for (source in sources) {
-            val name = source.name
-            if (name == null) {
-                failed++
-                continue
-            }
-            try {
-                val target = entryDir.findFile(name) ?: entryDir.createFile(name)
-                if (target == null) {
-                    failed++
-                    continue
+        // Anime: flatten so a video inside a subfolder becomes a direct episode (users expect the
+        // episodes, not the subfolders). Manga: keep the structure, since a chapter is a folder of
+        // images (flattening would merge chapters).
+        val usedNames = mutableSetOf<String>()
+        try {
+            for (source in sources) {
+                val (c, f) = if (isAnime) {
+                    copyFlattened(source, entryDir, isAnime, usedNames)
+                } else {
+                    copyInto(source, entryDir, isAnime)
                 }
-                source.openInputStream().use { input ->
-                    target.openOutputStream().use { output -> input.copyTo(output) }
-                }
-                copied++
-            } catch (e: Exception) {
-                logcat(throwable = e) { "Failed to import ${source.name} into $folderName" }
-                failed++
+                copied += c
+                failed += f
             }
+        } catch (e: OutOfSpaceException) {
+            // Roll back a freshly created entry so a broken, half-copied one isn't left behind.
+            // Don't touch a pre-existing folder (it may hold the user's earlier content).
+            if (createdFresh) runCatching { entryDir.delete() }
+            return@withIOContext ImportResult.NoSpace
         }
 
-        if (copied > 0) DiskUtil.createNoMediaFile(entryDir, context)
+        if (copied > 0) runCatching { DiskUtil.createNoMediaFile(entryDir, context) }
         ImportResult.Done(title = cleanTitle, copied = copied, failed = failed)
+    }
+
+    /**
+     * Copies a picked [source] into [targetDir]: a supported file is copied directly, while a
+     * directory (e.g. an episode-per-folder layout) is recreated and its contents copied
+     * recursively, so the result on disk matches what a manual copy would produce. Unsupported
+     * files are skipped silently. Returns the number of files copied and failed.
+     */
+    private fun copyInto(source: UniFile, targetDir: UniFile, isAnime: Boolean): Pair<Int, Int> {
+        val name = source.name ?: return 0 to 1
+
+        if (source.isDirectory) {
+            val subDir = targetDir.findFile(name)?.takeIf { it.isDirectory }
+                ?: targetDir.createDirectory(name)
+                ?: return 0 to 1
+            var copied = 0
+            var failed = 0
+            for (child in source.listFiles().orEmpty()) {
+                val (c, f) = copyInto(child, subDir, isAnime)
+                copied += c
+                failed += f
+            }
+            return copied to failed
+        }
+
+        // Skip files the local source can't use (e.g. stray .txt/.nfo) without counting them as errors.
+        if (source.extension?.lowercase() !in supportedExtensions(isAnime)) return 0 to 0
+
+        return try {
+            val target = targetDir.findFile(name) ?: targetDir.createFile(name) ?: return 0 to 1
+            source.openInputStream().use { input ->
+                target.openOutputStream().use { output -> input.copyTo(output) }
+            }
+            1 to 0
+        } catch (e: Exception) {
+            // Running out of space aborts the whole import (retrying file-by-file is pointless).
+            if (e.isOutOfSpace()) throw OutOfSpaceException()
+            logcat(throwable = e) { "Failed to import $name" }
+            0 to 1
+        }
+    }
+
+    /**
+     * Copies every supported file found under [source] (recursing into subfolders) directly into
+     * [entryDir], so an "episode-per-subfolder" layout becomes a flat list of episodes. Keeps the
+     * original filenames (deduplicated) so the local source can still parse episode numbers.
+     */
+    private fun copyFlattened(
+        source: UniFile,
+        entryDir: UniFile,
+        isAnime: Boolean,
+        usedNames: MutableSet<String>,
+    ): Pair<Int, Int> {
+        if (source.isDirectory) {
+            var copied = 0
+            var failed = 0
+            for (child in source.listFiles().orEmpty()) {
+                val (c, f) = copyFlattened(child, entryDir, isAnime, usedNames)
+                copied += c
+                failed += f
+            }
+            return copied to failed
+        }
+
+        val original = source.name ?: return 0 to 1
+        if (source.extension?.lowercase() !in supportedExtensions(isAnime)) return 0 to 0
+
+        val name = uniqueName(original, entryDir, usedNames)
+        usedNames.add(name)
+        return try {
+            val target = entryDir.createFile(name) ?: return 0 to 1
+            source.openInputStream().use { input ->
+                target.openOutputStream().use { output -> input.copyTo(output) }
+            }
+            1 to 0
+        } catch (e: Exception) {
+            if (e.isOutOfSpace()) throw OutOfSpaceException()
+            logcat(throwable = e) { "Failed to import $original" }
+            0 to 1
+        }
+    }
+
+    /** Returns [original], or a "name (n).ext" variant, that doesn't collide in [dir] or [used]. */
+    private fun uniqueName(original: String, dir: UniFile, used: Set<String>): String {
+        if (original !in used && dir.findFile(original) == null) return original
+        val base = original.substringBeforeLast('.', original)
+        val ext = original.substringAfterLast('.', "")
+        var i = 1
+        while (true) {
+            val candidate = if (ext.isEmpty()) "$base ($i)" else "$base ($i).$ext"
+            if (candidate !in used && dir.findFile(candidate) == null) return candidate
+            i++
+        }
+    }
+
+    /** Thrown to abort the import when the device runs out of storage. */
+    private class OutOfSpaceException : Exception()
+
+    private fun Throwable.isOutOfSpace(): Boolean {
+        var cause: Throwable? = this
+        while (cause != null) {
+            val message = cause.message.orEmpty()
+            if (message.contains("ENOSPC") || message.contains("No space left", ignoreCase = true)) {
+                return true
+            }
+            cause = cause.cause
+        }
+        return false
     }
 
     companion object {
@@ -83,6 +207,15 @@ class LocalSourceImporter(
             val allowed = supportedExtensions(isAnime)
             return files.filter { it.isFile && it.extension?.lowercase() in allowed }
         }
+
+        /**
+         * Keeps supported files AND directories (so a picked folder's episode/chapter subfolders are
+         * imported too, copied recursively by [copyInto]).
+         */
+        fun filterImportable(files: List<UniFile>, isAnime: Boolean): List<UniFile> {
+            val allowed = supportedExtensions(isAnime)
+            return files.filter { it.isDirectory || (it.isFile && it.extension?.lowercase() in allowed) }
+        }
     }
 }
 
@@ -90,5 +223,6 @@ sealed interface ImportResult {
     data object EmptyTitle : ImportResult
     data object NoFiles : ImportResult
     data object NoStorage : ImportResult
+    data object NoSpace : ImportResult
     data class Done(val title: String, val copied: Int, val failed: Int) : ImportResult
 }

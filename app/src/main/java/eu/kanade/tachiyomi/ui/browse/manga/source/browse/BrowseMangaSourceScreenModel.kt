@@ -90,6 +90,7 @@ class BrowseMangaSourceScreenModel(
     private val getManga: GetManga = Injekt.get(),
     private val networkToLocalManga: NetworkToLocalManga = Injekt.get(),
     private val updateManga: UpdateManga = Injekt.get(),
+    private val mangaRepository: tachiyomi.domain.entries.manga.repository.MangaRepository = Injekt.get(),
     private val addTracks: AddMangaTracks = Injekt.get(),
     private val getIncognitoState: GetMangaIncognitoState = Injekt.get(),
     private val toggleIncognitoInteractor: ToggleMangaIncognito = Injekt.get(),
@@ -342,6 +343,14 @@ class BrowseMangaSourceScreenModel(
         return getDuplicateLibraryManga.await(manga).getOrNull(0)
     }
 
+    /**
+     * Drops the browse-cached DB record for a deleted local manga so re-importing the same title
+     * reads its chapters fresh instead of reusing the stale one.
+     */
+    suspend fun deleteCachedLocalEntry(mangaId: Long) {
+        mangaRepository.deleteMangasNotInLibrary(listOf(mangaId))
+    }
+
     private fun moveMangaToCategories(manga: Manga, vararg categories: Category) {
         moveMangaToCategories(manga, categories.filter { it.id != 0L }.map { it.id })
     }
@@ -387,6 +396,7 @@ class BrowseMangaSourceScreenModel(
     }
 
     sealed interface Dialog {
+        data class DeleteLocal(val manga: Manga) : Dialog
         data object Filter : Dialog
         data class RemoveManga(val manga: Manga) : Dialog
         data class AddDuplicateManga(val manga: Manga, val duplicate: Manga) : Dialog
