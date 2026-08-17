@@ -174,6 +174,10 @@ class LibraryPreferences(
     fun filterGenresExcludeManga() =
         preferenceStore.getStringSet("pref_filter_library_genres_exclude", emptySet())
 
+    // Whether the tag chips are expanded in the library filter sheet (collapsed by default so the
+    // long tag list stays out of the way for users who don't filter by tag).
+    fun filterTagsExpanded() = preferenceStore.getBoolean("pref_filter_tags_expanded", false)
+
     // Mixture Update Count
 
     fun newMangaUpdatesCount() = preferenceStore.getInt("library_unread_updates_count", 0)

@@ -193,10 +193,13 @@ private fun ColumnScope.FilterPage(
 
     val includedGenres by screenModel.libraryPreferences.filterGenresIncludeAnime().collectAsState()
     val excludedGenres by screenModel.libraryPreferences.filterGenresExcludeAnime().collectAsState()
+    val tagsExpanded by screenModel.libraryPreferences.filterTagsExpanded().collectAsState()
     GenreFilterSection(
         genres = genres,
         includedGenres = includedGenres,
         excludedGenres = excludedGenres,
+        expanded = tagsExpanded,
+        onToggleExpanded = { screenModel.libraryPreferences.filterTagsExpanded().set(!tagsExpanded) },
         onGenreClick = screenModel::cycleGenreFilter,
         onClear = screenModel::clearGenreFilters,
     )
