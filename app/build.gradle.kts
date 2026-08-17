@@ -19,8 +19,8 @@ android {
     defaultConfig {
         applicationId = "app.nekoyomi"
 
-        versionCode = 145
-        versionName = "0.19.7"
+        versionCode = 146
+        versionName = "0.19.8"
 
         buildConfigField("String", "COMMIT_COUNT", "\"${getCommitCount()}\"")
         buildConfigField("String", "COMMIT_SHA", "\"${getGitSha()}\"")
