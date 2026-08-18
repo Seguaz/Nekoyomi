@@ -19,6 +19,8 @@ Organize large libraries, group related titles, migrate multiple entries at once
 
 [Release notes](https://github.com/Seguaz/Nekoyomi/releases) ·
 [Changelog](CHANGELOG.md) ·
+[Discord](https://discord.gg/ZAUadQD5EM) ·
+[Miyomi](https://miyomi.pages.dev/software/nekoyomi) ·
 [Report a problem](https://github.com/Seguaz/Nekoyomi/issues) ·
 [Contribute](CONTRIBUTING.md)
 
@@ -194,6 +196,14 @@ The **universal APK** is the safest option for most users.
 Application bugs can be reported through [GitHub Issues](https://github.com/Seguaz/Nekoyomi/issues).
 
 Before opening an issue, check whether the problem is caused by Nekoyomi itself or by an independently maintained extension or content provider.
+
+---
+
+## Community
+
+Join the official [Nekoyomi Discord server](https://discord.gg/ZAUadQD5EM) to talk about the app, get help, report bugs, suggest features and follow development.
+
+Nekoyomi is also listed on [Miyomi](https://miyomi.pages.dev/software/nekoyomi).
 
 ---
 
