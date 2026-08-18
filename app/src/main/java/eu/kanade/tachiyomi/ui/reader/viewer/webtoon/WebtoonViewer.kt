@@ -83,6 +83,10 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
     /** Non-null while auto-scroll is running. */
     private var autoScrollJob: Job? = null
 
+    // Whether the user has auto-scroll turned on. A manual drag suspends the running job but keeps
+    // this true so auto-scroll resumes when the drag ends; a tap or the toggle clears it.
+    private var autoScrollEnabled = false
+
     init {
         recycler.setItemViewCacheSize(RECYCLER_VIEW_CACHE_SIZE)
         recycler.isVisible = false // Don't let the recycler layout yet
@@ -94,9 +98,16 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
         recycler.addOnScrollListener(
             object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                    // A manual drag pauses auto-scroll (programmatic scrollBy stays IDLE, so it won't).
-                    if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
-                        pauseAutoScroll()
+                    when (newState) {
+                        // A manual drag only suspends the running job (so the finger scrolls
+                        // smoothly); auto-scroll stays "enabled" and resumes when the drag settles,
+                        // so swiping to reposition doesn't stop it.
+                        RecyclerView.SCROLL_STATE_DRAGGING -> autoScrollJob?.cancel()
+                        RecyclerView.SCROLL_STATE_IDLE -> {
+                            if (autoScrollEnabled && autoScrollJob?.isActive != true) {
+                                startAutoScroll()
+                            }
+                        }
                     }
                 }
 
@@ -330,6 +341,7 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
     }
 
     private fun startAutoScroll() {
+        autoScrollEnabled = true
         autoScrollJob?.cancel()
         val density = recycler.resources.displayMetrics.density
         autoScrollJob = scope.launch {
@@ -349,6 +361,7 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
     }
 
     private fun stopAutoScroll() {
+        autoScrollEnabled = false
         autoScrollJob?.cancel()
         autoScrollJob = null
     }
