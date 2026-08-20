@@ -5,6 +5,7 @@ import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.tachiyomi.source.CatalogueSource
 import eu.kanade.tachiyomi.ui.browse.manga.source.globalsearch.MangaSearchScreenModel
 import eu.kanade.tachiyomi.ui.browse.manga.source.globalsearch.MangaSourceFilter
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tachiyomi.domain.entries.manga.interactor.GetManga
@@ -42,7 +43,11 @@ class MigrateMangaSearchScreenModel(
     }
 
     override fun getEnabledSources(): List<CatalogueSource> {
+        // Migrate within the same media type: a novel only offers other novel sources as targets, and
+        // manga migration excludes novel sources.
+        val migratingNovel = state.value.fromSourceId?.let { NovelSourceCompat.isNovelSource(it) } ?: false
         return super.getEnabledSources()
+            .filter { NovelSourceCompat.isNovelSource(it.id) == migratingNovel }
             .filter { "${it.id}" !in excludedSources && it.lang !in excludedLanguages }
             .filter {
                 state.value.sourceFilter != MangaSourceFilter.PinnedOnly ||

@@ -27,6 +27,8 @@ class MigrateMangaSourceScreenModel(
     preferences: SourcePreferences = Injekt.get(),
     private val getSourcesWithFavoriteCount: GetMangaSourcesWithFavoriteCount = Injekt.get(),
     private val setMigrateSorting: SetMigrateSorting = Injekt.get(),
+    // Partitions manga vs novel migration: novels are manga sources with a NovelSource.
+    private val sourceFilter: (Source) -> Boolean = { true },
 ) : StateScreenModel<MigrateMangaSourceScreenModel.State>(State()) {
 
     private val _channel = Channel<Event>(Int.MAX_VALUE)
@@ -43,7 +45,7 @@ class MigrateMangaSourceScreenModel(
                     mutableState.update {
                         it.copy(
                             isLoading = false,
-                            items = sources.toImmutableList(),
+                            items = sources.filter { (source, _) -> sourceFilter(source) }.toImmutableList(),
                         )
                     }
                 }

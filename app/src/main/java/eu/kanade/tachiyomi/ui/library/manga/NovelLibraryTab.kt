@@ -354,7 +354,10 @@ data object NovelLibraryTab : Tab {
                         onRefresh = onClickRefresh,
                         onGlobalSearchClicked = {
                             navigator.push(
-                                GlobalMangaSearchScreen(screenModel.state.value.searchQuery ?: ""),
+                                GlobalMangaSearchScreen(
+                                    screenModel.state.value.searchQuery ?: "",
+                                    novelOnly = true,
+                                ),
                             )
                         },
                         getNumberOfMangaForCategory = { state.getMangaCountForCategory(it) },

@@ -1,15 +1,16 @@
 package eu.kanade.tachiyomi.extension.manga.api
 
 import android.content.Context
+import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.tachiyomi.extension.ExtensionUpdateNotifier
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import eu.kanade.tachiyomi.extension.manga.model.MangaExtension
 import eu.kanade.tachiyomi.extension.manga.model.MangaLoadResult
-import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.tachiyomi.extension.manga.util.MangaExtensionLoader
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.awaitSuccess
+import eu.kanade.tachiyomi.network.decodeFromJsonResponse
 import eu.kanade.tachiyomi.network.parseAs
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -50,11 +51,18 @@ internal class MangaExtensionApi {
             // so their repos are fetched here too. Novel repos are stored as plain URLs in a pref.
             val mangaRepos = getExtensionRepo.getAll()
             val novelRepos = sourcePreferences.novelExtensionRepos().get().map { url ->
+                // Defensive: older entries may have been stored with a trailing index file (e.g.
+                // ".../repo/index.min.json"); strip it so we fetch ".../repo/index.json" correctly.
+                val base = url.trimEnd('/')
+                    .removeSuffix("/index.min.json")
+                    .removeSuffix("/index.json")
+                    .removeSuffix("/index.pb")
+                    .trimEnd('/')
                 ExtensionRepo(
-                    baseUrl = url.trimEnd('/'),
-                    name = url,
+                    baseUrl = base,
+                    name = base,
                     shortName = null,
-                    website = url,
+                    website = base,
                     signingKeyFingerprint = "",
                 )
             }
@@ -80,14 +88,16 @@ internal class MangaExtensionApi {
                 .awaitSuccess()
 
             with(json) {
-                response
-                    .parseAs<ExtensionRepoJsonObject>()
+                // Use the explicit compiler-generated serializer rather than the reified serializer<T>()
+                // lookup, which R8 full mode can break for a nested @Serializable graph like this one.
+                decodeFromJsonResponse(ExtensionRepoJsonObject.serializer(), response)
                     .extensionList
                     .extensions
                     .toExtensions(repoBaseUrl)
             }
         } catch (e: Throwable) {
             // Repo doesn't use the new format (or is unreachable); fall back to the classic index.
+            logcat(LogPriority.DEBUG) { "New-format index unavailable for $repoBaseUrl (${e.message})" }
             null
         }
     }

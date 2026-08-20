@@ -264,6 +264,8 @@
     <string name="action_restart_now">Reiniciar ahora</string>
     <string name="action_restart_later">Más tarde</string>
     <string name="app_icon_credits">Iconos de la comunidad — gracias especiales a spacedouttosevenone, im.melancholy, weilong0689_52230 y jigglypug 💜</string>
+    <string name="pref_category_navigation">Barra de navegación</string>
+    <string name="pref_category_date_time">Fecha y hora</string>
     <string name="pref_category_cover_backdrop">Fondo de portada</string>
     <string name="pref_entry_backdrop_opacity">Opacidad del fondo difuminado</string>
     <string name="pref_entry_backdrop_blur">Desenfoque del fondo difuminado</string>
@@ -426,6 +428,7 @@
     <string name="label_anime_extensions">Extensiones del anime</string>
     <string name="label_migration_manga">Migrar el manga</string>
     <string name="label_migration_anime">Migrar el anime</string>
+    <string name="label_migration_novel">Migrar novelas</string>
     <string name="settings">Ajustes</string>
     <string name="copied_video_link_to_clipboard">Enlace de calidad del video copiado al portapapeles</string>
     <string name="choose_video_quality">Elige la calidad del vídeo:</string>

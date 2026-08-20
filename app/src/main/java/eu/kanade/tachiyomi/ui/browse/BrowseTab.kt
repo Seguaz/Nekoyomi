@@ -25,6 +25,7 @@ import eu.kanade.tachiyomi.ui.browse.manga.extension.MangaExtensionsScreenModel
 import eu.kanade.tachiyomi.ui.browse.manga.extension.mangaExtensionsTab
 import eu.kanade.tachiyomi.ui.browse.manga.migration.sources.migrateMangaSourceTab
 import eu.kanade.tachiyomi.ui.browse.manga.source.mangaSourcesTab
+import eu.kanade.tachiyomi.ui.browse.novel.migrateNovelSourceTab
 import eu.kanade.tachiyomi.ui.browse.novel.novelExtensionsTab
 import eu.kanade.tachiyomi.ui.browse.novel.novelSourcesTab
 import eu.kanade.tachiyomi.ui.main.MainActivity
@@ -84,17 +85,20 @@ data object BrowseTab : Tab {
         val animeExtensionsScreenModel = rememberScreenModel { AnimeExtensionsScreenModel() }
         val animeExtensionsState by animeExtensionsScreenModel.state.collectAsState()
 
+        // Order: sources & extensions grouped by type (anime, manga, novel), then all migration tabs.
+        // The anime/manga search-query parity (currentPage % 2 in TabbedScreen) is preserved because
+        // anime tabs stay on even indices and manga tabs on odd ones; the two novel tabs (a pair) keep
+        // that alignment intact.
         val tabs = persistentListOf(
             animeSourcesTab(),
             mangaSourcesTab(),
             animeExtensionsTab(animeExtensionsScreenModel),
             mangaExtensionsTab(mangaExtensionsScreenModel),
-            migrateAnimeSourceTab(),
-            migrateMangaSourceTab(),
-            // Novel tabs appended last so the anime/manga search-query parity (currentPage % 2) is
-            // preserved. Novels reuse the manga source/extension screens, filtered to NovelSource.
             novelSourcesTab(),
             novelExtensionsTab(novelExtensionsScreenModel),
+            migrateAnimeSourceTab(),
+            migrateMangaSourceTab(),
+            migrateNovelSourceTab(),
         )
 
         val state = rememberPagerState { tabs.size }

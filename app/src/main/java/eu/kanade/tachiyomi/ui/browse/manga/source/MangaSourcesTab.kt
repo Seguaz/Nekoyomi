@@ -33,6 +33,8 @@ fun Screen.mangaSourcesTab(
         MangaSourcesScreenModel(sourceFilter = { !NovelSourceCompat.isNovelSource(it.id) })
     },
     titleRes: StringResource = AYMR.strings.label_manga_sources,
+    // When true this is the Novel sources tab, so global search scopes to novel sources.
+    novelOnly: Boolean = false,
 ): TabContent {
     val navigator = LocalNavigator.currentOrThrow
     val state by screenModel.state.collectAsState()
@@ -43,7 +45,7 @@ fun Screen.mangaSourcesTab(
             AppBar.Action(
                 title = stringResource(MR.strings.action_global_search),
                 icon = Icons.Outlined.TravelExplore,
-                onClick = { navigator.push(GlobalMangaSearchScreen()) },
+                onClick = { navigator.push(GlobalMangaSearchScreen(novelOnly = novelOnly)) },
             ),
             AppBar.Action(
                 title = stringResource(MR.strings.action_filter),

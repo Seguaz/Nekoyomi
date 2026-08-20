@@ -7,6 +7,8 @@ import eu.kanade.presentation.components.TabContent
 import eu.kanade.presentation.more.settings.screen.browse.NovelExtensionReposScreen
 import eu.kanade.tachiyomi.ui.browse.manga.extension.MangaExtensionsScreenModel
 import eu.kanade.tachiyomi.ui.browse.manga.extension.mangaExtensionsTab
+import eu.kanade.tachiyomi.ui.browse.manga.migration.sources.MigrateMangaSourceScreenModel
+import eu.kanade.tachiyomi.ui.browse.manga.migration.sources.migrateMangaSourceTab
 import eu.kanade.tachiyomi.ui.browse.manga.source.MangaSourcesScreenModel
 import eu.kanade.tachiyomi.ui.browse.manga.source.mangaSourcesTab
 import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
@@ -23,7 +25,7 @@ fun Screen.novelSourcesTab(): TabContent {
     val screenModel = rememberScreenModel("novel-sources") {
         MangaSourcesScreenModel(sourceFilter = { NovelSourceCompat.isNovelSource(it.id) })
     }
-    return mangaSourcesTab(screenModel, AYMR.strings.label_novel_sources)
+    return mangaSourcesTab(screenModel, AYMR.strings.label_novel_sources, novelOnly = true)
 }
 
 @Composable
@@ -36,4 +38,12 @@ fun novelExtensionsTab(screenModel: MangaExtensionsScreenModel): TabContent {
         //  disabled for now to avoid feeding the novel search into the manga model.
         searchEnabled = false,
     )
+}
+
+@Composable
+fun Screen.migrateNovelSourceTab(): TabContent {
+    val screenModel = rememberScreenModel("novel-migrate") {
+        MigrateMangaSourceScreenModel(sourceFilter = { NovelSourceCompat.isNovelSource(it.id) })
+    }
+    return migrateMangaSourceTab(screenModel, AYMR.strings.label_migration_novel)
 }

@@ -42,7 +42,7 @@ class NovelExtensionReposScreenModel(
     }
 
     fun createRepo(baseUrl: String) {
-        val url = baseUrl.trim().trimEnd('/')
+        val url = baseUrl.trim().normalizeRepoUrl()
         screenModelScope.launchIO {
             if (!url.startsWith("http://") && !url.startsWith("https://")) {
                 _events.send(RepoEvent.InvalidUrl)
@@ -88,11 +88,41 @@ class NovelExtensionReposScreenModel(
         }
     }
 
+    /**
+     * Strips a trailing index file (index.min.json / index.json / index.pb) and slashes, so pasting
+     * the full index URL still stores the repo base — matching how anime/manga repos normalize.
+     */
+    private fun String.normalizeRepoUrl(): String = trimEnd('/')
+        .removeSuffix("/index.min.json")
+        .removeSuffix("/index.json")
+        .removeSuffix("/index.pb")
+        .trimEnd('/')
+
     private fun String.toRepoShim() = ExtensionRepo(
         baseUrl = this,
-        name = this.substringAfter("://").trimEnd('/'),
+        name = repoDisplayName(this),
         shortName = null,
         website = this,
         signingKeyFingerprint = "",
     )
+
+    /**
+     * A short, readable name for a novel repo URL. Novel repos are stored as plain URLs (no fetched
+     * metadata), so we derive the owner segment for GitHub/jsDelivr hosts (e.g. "yuzono",
+     * "novelsourcery") and fall back to the host for anything else.
+     */
+    private fun repoDisplayName(url: String): String {
+        val withoutScheme = url.substringAfter("://").trimEnd('/')
+        val host = withoutScheme.substringBefore('/')
+        val segments = withoutScheme.substringAfter('/', "").split('/').filter { it.isNotBlank() }
+        return when {
+            // raw.githubusercontent.com/<owner>/<repo>/... or github.com/<owner>/<repo>
+            host.contains("githubusercontent.com") || host.contains("github.com") ->
+                segments.firstOrNull() ?: host
+            // cdn.jsdelivr.net/gh/<owner>/<repo>@<ref>/...
+            host.contains("jsdelivr") ->
+                segments.getOrNull(1) ?: segments.firstOrNull() ?: host
+            else -> host
+        }
+    }
 }

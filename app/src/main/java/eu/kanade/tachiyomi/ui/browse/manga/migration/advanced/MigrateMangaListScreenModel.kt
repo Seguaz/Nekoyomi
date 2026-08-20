@@ -8,6 +8,7 @@ import eu.kanade.domain.entries.manga.model.toDomainManga
 import eu.kanade.domain.entries.manga.model.toSManga
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.tachiyomi.source.CatalogueSource
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -91,9 +92,12 @@ class MigrateMangaListScreenModel(
     }
 
     private fun candidateSources(fromSourceId: Long): List<CatalogueSource> {
+        // Migrate within the same media type (novel targets for novels, manga targets for manga).
+        val migratingNovel = NovelSourceCompat.isNovelSource(fromSourceId)
         val enabled = sourceManager.getCatalogueSources()
             .filter {
-                it.lang in enabledLanguages &&
+                NovelSourceCompat.isNovelSource(it.id) == migratingNovel &&
+                    it.lang in enabledLanguages &&
                     "${it.id}" !in disabledSources &&
                     it.id != fromSourceId &&
                     "${it.id}" !in excludedSources &&
@@ -124,6 +128,9 @@ class MigrateMangaListScreenModel(
         for (source in candidateSources(oldManga.source)) {
             val results = try {
                 source.getSearchManga(1, query, source.getFilterList()).mangas
+                    // Some sources (seen with novel extensions) return an SManga without its lateinit
+                    // `url` set; toDomainManga would crash on it, so drop those malformed results.
+                    .filter { runCatching { it.url }.isSuccess }
             } catch (_: Throwable) {
                 continue
             }

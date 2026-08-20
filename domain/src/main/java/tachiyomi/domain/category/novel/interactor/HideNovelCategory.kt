@@ -3,9 +3,9 @@ package tachiyomi.domain.category.novel.interactor
 import logcat.LogPriority
 import tachiyomi.core.common.util.lang.withNonCancellableContext
 import tachiyomi.core.common.util.system.logcat
-import tachiyomi.domain.category.novel.repository.NovelCategoryRepository
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.category.model.CategoryUpdate
+import tachiyomi.domain.category.novel.repository.NovelCategoryRepository
 
 class HideNovelCategory(
     private val categoryRepository: NovelCategoryRepository,

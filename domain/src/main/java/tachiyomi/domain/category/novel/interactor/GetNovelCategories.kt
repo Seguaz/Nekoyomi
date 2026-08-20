@@ -1,8 +1,8 @@
 package tachiyomi.domain.category.novel.interactor
 
 import kotlinx.coroutines.flow.Flow
-import tachiyomi.domain.category.novel.repository.NovelCategoryRepository
 import tachiyomi.domain.category.model.Category
+import tachiyomi.domain.category.novel.repository.NovelCategoryRepository
 
 class GetNovelCategories(
     private val categoryRepository: NovelCategoryRepository,

@@ -10,24 +10,31 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import dev.icerock.moko.resources.StringResource
 import eu.kanade.presentation.browse.manga.MigrateMangaSourceScreen
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.components.TabContent
 import eu.kanade.tachiyomi.ui.browse.manga.migration.manga.MigrateMangaScreen
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import kotlinx.collections.immutable.persistentListOf
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.i18n.stringResource
 
 @Composable
-fun Screen.migrateMangaSourceTab(): TabContent {
+fun Screen.migrateMangaSourceTab(
+    // Manga migration excludes novel sources by default (they show in the Novel migration tab instead).
+    screenModel: MigrateMangaSourceScreenModel = rememberScreenModel {
+        MigrateMangaSourceScreenModel(sourceFilter = { !NovelSourceCompat.isNovelSource(it.id) })
+    },
+    titleRes: StringResource = AYMR.strings.label_migration_manga,
+): TabContent {
     val uriHandler = LocalUriHandler.current
     val navigator = LocalNavigator.currentOrThrow
-    val screenModel = rememberScreenModel { MigrateMangaSourceScreenModel() }
     val state by screenModel.state.collectAsState()
 
     return TabContent(
-        titleRes = AYMR.strings.label_migration_manga,
+        titleRes = titleRes,
         actions = persistentListOf(
             AppBar.Action(
                 title = stringResource(MR.strings.migration_help_guide),

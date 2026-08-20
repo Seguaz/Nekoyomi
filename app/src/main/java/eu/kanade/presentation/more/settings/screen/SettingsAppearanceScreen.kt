@@ -75,6 +75,7 @@ import eu.kanade.tachiyomi.ui.main.AppIconManager
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.i18n.MR
@@ -99,7 +100,9 @@ object SettingsAppearanceScreen : SearchableSettings {
 
         return listOf(
             getThemeGroup(uiPreferences = uiPreferences),
-            getDisplayGroup(uiPreferences = uiPreferences),
+            getGeneralGroup(uiPreferences = uiPreferences),
+            getNavigationGroup(uiPreferences = uiPreferences),
+            getDateTimeGroup(uiPreferences = uiPreferences),
             getCoverBackdropGroup(uiPreferences = uiPreferences),
         )
     }
@@ -171,39 +174,18 @@ object SettingsAppearanceScreen : SearchableSettings {
     }
 
     @Composable
-    private fun getDisplayGroup(
+    private fun getGeneralGroup(
         uiPreferences: UiPreferences,
     ): Preference.PreferenceGroup {
         val context = LocalContext.current
         val navigator = LocalNavigator.currentOrThrow
 
-        val now = remember { LocalDate.now() }
-
-        val dateFormat by uiPreferences.dateFormat().collectAsState()
-        val formattedNow = remember(dateFormat) {
-            UiPreferences.dateFormat(dateFormat).format(now)
-        }
-
-        val floatingNavBar by uiPreferences.bottomNavFloating().collectAsState()
-        val floatingNavBarAlphaPref = uiPreferences.bottomNavFloatingAlpha()
-
         return Preference.PreferenceGroup(
-            title = stringResource(MR.strings.pref_category_display),
+            title = stringResource(MR.strings.pref_category_general),
             preferenceItems = persistentListOf(
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(MR.strings.pref_app_language),
                     onClick = { navigator.push(AppLanguageScreen()) },
-                ),
-                Preference.PreferenceItem.ListPreference(
-                    preference = uiPreferences.tabletUiMode(),
-                    entries = TabletUiMode.entries
-                        .associateWith { stringResource(it.titleRes) }
-                        .toImmutableMap(),
-                    title = stringResource(MR.strings.pref_tablet_ui_mode),
-                    onValueChanged = {
-                        context.toast(MR.strings.requires_app_restart)
-                        true
-                    },
                 ),
                 Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.startScreen(),
@@ -211,6 +193,17 @@ object SettingsAppearanceScreen : SearchableSettings {
                         .associateWith { stringResource(it.titleRes) }
                         .toImmutableMap(),
                     title = stringResource(AYMR.strings.pref_start_screen),
+                    onValueChanged = {
+                        context.toast(MR.strings.requires_app_restart)
+                        true
+                    },
+                ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.tabletUiMode(),
+                    entries = TabletUiMode.entries
+                        .associateWith { stringResource(it.titleRes) }
+                        .toImmutableMap(),
+                    title = stringResource(MR.strings.pref_tablet_ui_mode),
                     onValueChanged = {
                         context.toast(MR.strings.requires_app_restart)
                         true
@@ -230,45 +223,6 @@ object SettingsAppearanceScreen : SearchableSettings {
                         context.toast(MR.strings.requires_app_restart)
                         true
                     },
-                ),
-                Preference.PreferenceItem.TextPreference(
-                    title = stringResource(AYMR.strings.pref_navigation_style),
-                    subtitle = stringResource(AYMR.strings.pref_navigation_style_summary),
-                    onClick = { navigator.push(NavBarOrderScreen()) },
-                ),
-                Preference.PreferenceItem.SwitchPreference(
-                    preference = uiPreferences.bottomNavFloating(),
-                    title = stringResource(AYMR.strings.pref_floating_nav_bar),
-                    subtitle = stringResource(AYMR.strings.pref_floating_nav_bar_summary),
-                ),
-                Preference.PreferenceItem.CustomPreference(
-                    title = stringResource(AYMR.strings.pref_floating_nav_bar_opacity),
-                ) {
-                    FloatingNavBarPreference(
-                        opacityPreference = floatingNavBarAlphaPref,
-                        blurPreference = uiPreferences.bottomNavFloatingBlur(),
-                        heightPreference = uiPreferences.bottomNavFloatingHeight(),
-                        scalePreference = uiPreferences.bottomNavIconScale(),
-                        floatingEnabled = floatingNavBar,
-                        opacityTitle = stringResource(AYMR.strings.pref_floating_nav_bar_opacity),
-                        blurTitle = stringResource(AYMR.strings.pref_floating_nav_bar_blur),
-                        heightTitle = stringResource(AYMR.strings.pref_floating_nav_bar_height),
-                        sizeTitle = stringResource(AYMR.strings.pref_nav_bar_icon_size),
-                    )
-                },
-                Preference.PreferenceItem.ListPreference(
-                    preference = uiPreferences.bottomNavLabelMode(),
-                    entries = persistentMapOf(
-                        NavBarLabelMode.HIDDEN to stringResource(AYMR.strings.pref_nav_bar_labels_hidden),
-                        NavBarLabelMode.BESIDE to stringResource(AYMR.strings.pref_nav_bar_labels_beside),
-                        NavBarLabelMode.BELOW to stringResource(AYMR.strings.pref_nav_bar_labels_below),
-                    ),
-                    title = stringResource(AYMR.strings.pref_nav_bar_labels),
-                ),
-                Preference.PreferenceItem.SwitchPreference(
-                    preference = uiPreferences.showDownloadSize(),
-                    title = stringResource(AYMR.strings.pref_show_download_size),
-                    subtitle = stringResource(AYMR.strings.pref_show_download_size_summary),
                 ),
                 Preference.PreferenceItem.CustomPreference(
                     title = stringResource(AYMR.strings.pref_app_icon),
@@ -294,6 +248,97 @@ object SettingsAppearanceScreen : SearchableSettings {
                         },
                     )
                 },
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = uiPreferences.showDownloadSize(),
+                    title = stringResource(AYMR.strings.pref_show_download_size),
+                    subtitle = stringResource(AYMR.strings.pref_show_download_size_summary),
+                ),
+            ),
+        )
+    }
+
+    @Composable
+    private fun getNavigationGroup(
+        uiPreferences: UiPreferences,
+    ): Preference.PreferenceGroup {
+        val navigator = LocalNavigator.currentOrThrow
+        val floatingNavBar by uiPreferences.bottomNavFloating().collectAsState()
+
+        return Preference.PreferenceGroup(
+            title = stringResource(AYMR.strings.pref_category_navigation),
+            preferenceItems = buildList<Preference.PreferenceItem<out Any>> {
+                add(
+                    Preference.PreferenceItem.TextPreference(
+                        title = stringResource(AYMR.strings.pref_navigation_style),
+                        subtitle = stringResource(AYMR.strings.pref_navigation_style_summary),
+                        onClick = { navigator.push(NavBarOrderScreen()) },
+                    ),
+                )
+                add(
+                    Preference.PreferenceItem.ListPreference(
+                        preference = uiPreferences.bottomNavLabelMode(),
+                        entries = persistentMapOf(
+                            NavBarLabelMode.HIDDEN to stringResource(AYMR.strings.pref_nav_bar_labels_hidden),
+                            NavBarLabelMode.BESIDE to stringResource(AYMR.strings.pref_nav_bar_labels_beside),
+                            NavBarLabelMode.BELOW to stringResource(AYMR.strings.pref_nav_bar_labels_below),
+                        ),
+                        title = stringResource(AYMR.strings.pref_nav_bar_labels),
+                    ),
+                )
+                add(
+                    Preference.PreferenceItem.CustomPreference(
+                        title = stringResource(AYMR.strings.pref_nav_bar_icon_size),
+                    ) {
+                        NavBarIconSizePreference(
+                            scalePreference = uiPreferences.bottomNavIconScale(),
+                            title = stringResource(AYMR.strings.pref_nav_bar_icon_size),
+                        )
+                    },
+                )
+                add(
+                    Preference.PreferenceItem.SwitchPreference(
+                        preference = uiPreferences.bottomNavFloating(),
+                        title = stringResource(AYMR.strings.pref_floating_nav_bar),
+                        subtitle = stringResource(AYMR.strings.pref_floating_nav_bar_summary),
+                    ),
+                )
+                // The floating-only sliders (opacity/blur/height + preview) only make sense when the
+                // floating bar is on, so they appear only then.
+                if (floatingNavBar) {
+                    add(
+                        Preference.PreferenceItem.CustomPreference(
+                            title = stringResource(AYMR.strings.pref_floating_nav_bar_opacity),
+                        ) {
+                            FloatingNavBarPreference(
+                                opacityPreference = uiPreferences.bottomNavFloatingAlpha(),
+                                blurPreference = uiPreferences.bottomNavFloatingBlur(),
+                                heightPreference = uiPreferences.bottomNavFloatingHeight(),
+                                scalePreference = uiPreferences.bottomNavIconScale(),
+                                opacityTitle = stringResource(AYMR.strings.pref_floating_nav_bar_opacity),
+                                blurTitle = stringResource(AYMR.strings.pref_floating_nav_bar_blur),
+                                heightTitle = stringResource(AYMR.strings.pref_floating_nav_bar_height),
+                            )
+                        },
+                    )
+                }
+            }.toImmutableList(),
+        )
+    }
+
+    @Composable
+    private fun getDateTimeGroup(
+        uiPreferences: UiPreferences,
+    ): Preference.PreferenceGroup {
+        val now = remember { LocalDate.now() }
+
+        val dateFormat by uiPreferences.dateFormat().collectAsState()
+        val formattedNow = remember(dateFormat) {
+            UiPreferences.dateFormat(dateFormat).format(now)
+        }
+
+        return Preference.PreferenceGroup(
+            title = stringResource(AYMR.strings.pref_category_date_time),
+            preferenceItems = persistentListOf(
                 Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.dateFormat(),
                     entries = DateFormats
@@ -333,21 +378,19 @@ private fun FloatingNavBarPreference(
     blurPreference: tachiyomi.core.common.preference.Preference<Int>,
     heightPreference: tachiyomi.core.common.preference.Preference<Int>,
     scalePreference: tachiyomi.core.common.preference.Preference<Int>,
-    floatingEnabled: Boolean,
     opacityTitle: String,
     blurTitle: String,
     heightTitle: String,
-    sizeTitle: String,
 ) {
     val savedOpacity by opacityPreference.collectAsState()
     val savedBlur by blurPreference.collectAsState()
     val savedHeight by heightPreference.collectAsState()
+    // Icon scale is edited by its own always-visible slider; here it only feeds the preview.
     val savedScale by scalePreference.collectAsState()
     // Follow the drag live for the preview; persist only when the user lets go.
     var opacity by remember(savedOpacity) { mutableFloatStateOf(savedOpacity.toFloat()) }
     var blur by remember(savedBlur) { mutableFloatStateOf(savedBlur.toFloat()) }
     var height by remember(savedHeight) { mutableFloatStateOf(savedHeight.toFloat()) }
-    var scale by remember(savedScale) { mutableFloatStateOf(savedScale.toFloat()) }
 
     Column(
         modifier = Modifier
@@ -357,7 +400,7 @@ private fun FloatingNavBarPreference(
         NavBarOpacityPreview(
             alpha = opacity / 100f,
             blur = blur.dp,
-            iconScale = scale / 100f,
+            iconScale = savedScale / 100f,
             heightScale = height / 100f,
         )
 
@@ -368,7 +411,6 @@ private fun FloatingNavBarPreference(
             value = opacity,
             valueRange = 0f..100f,
             valueLabel = "${opacity.roundToInt()}%",
-            enabled = floatingEnabled,
             onValueChange = { opacity = it },
             onValueChangeFinished = { opacityPreference.set(opacity.roundToInt()) },
         )
@@ -381,7 +423,6 @@ private fun FloatingNavBarPreference(
             } else {
                 "${blur.roundToInt()} dp"
             },
-            enabled = floatingEnabled,
             onValueChange = { blur = it },
             onValueChangeFinished = { blurPreference.set(blur.roundToInt()) },
         )
@@ -390,12 +431,28 @@ private fun FloatingNavBarPreference(
             value = height,
             valueRange = 70f..130f,
             valueLabel = "${height.roundToInt()}%",
-            enabled = floatingEnabled,
             onValueChange = { height = it },
             onValueChangeFinished = { heightPreference.set(height.roundToInt()) },
         )
+    }
+}
+
+/** Nav bar icon size slider; applies to both the classic and floating bars, so it is always shown. */
+@Composable
+private fun NavBarIconSizePreference(
+    scalePreference: tachiyomi.core.common.preference.Preference<Int>,
+    title: String,
+) {
+    val savedScale by scalePreference.collectAsState()
+    var scale by remember(savedScale) { mutableFloatStateOf(savedScale.toFloat()) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+    ) {
         BackdropSliderRow(
-            title = sizeTitle,
+            title = title,
             value = scale,
             valueRange = 60f..140f,
             valueLabel = "${scale.roundToInt()}%",

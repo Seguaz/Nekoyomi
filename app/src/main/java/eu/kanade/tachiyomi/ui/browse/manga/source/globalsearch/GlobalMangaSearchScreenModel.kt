@@ -1,10 +1,13 @@
 package eu.kanade.tachiyomi.ui.browse.manga.source.globalsearch
 
 import eu.kanade.tachiyomi.source.CatalogueSource
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 
 class GlobalMangaSearchScreenModel(
     initialQuery: String = "",
     initialExtensionFilter: String? = null,
+    // When true, search only novel sources; when false, only non-novel (manga) sources.
+    private val novelOnly: Boolean = false,
 ) : MangaSearchScreenModel(
     State(
         searchQuery = initialQuery,
@@ -24,6 +27,7 @@ class GlobalMangaSearchScreenModel(
 
     override fun getEnabledSources(): List<CatalogueSource> {
         return super.getEnabledSources()
+            .filter { NovelSourceCompat.isNovelSource(it.id) == novelOnly }
             .filter { state.value.sourceFilter != MangaSourceFilter.PinnedOnly || "${it.id}" in pinnedSources }
     }
 }

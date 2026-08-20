@@ -3,9 +3,9 @@ package tachiyomi.data.category.novel
 import kotlinx.coroutines.flow.Flow
 import tachiyomi.data.Database
 import tachiyomi.data.handlers.manga.MangaDatabaseHandler
-import tachiyomi.domain.category.novel.repository.NovelCategoryRepository
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.category.model.CategoryUpdate
+import tachiyomi.domain.category.novel.repository.NovelCategoryRepository
 
 class NovelCategoryRepositoryImpl(
     private val handler: MangaDatabaseHandler,

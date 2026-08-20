@@ -474,6 +474,8 @@
     <string name="action_restart_now">Restart now</string>
     <string name="action_restart_later">Later</string>
     <string name="app_icon_credits">Community icons — special thanks to spacedouttosevenone, im.melancholy, weilong0689_52230 and jigglypug 💜</string>
+    <string name="pref_category_navigation">Navigation bar</string>
+    <string name="pref_category_date_time">Date &amp; time</string>
     <string name="pref_category_cover_backdrop">Cover backdrop</string>
     <string name="pref_entry_backdrop_opacity">Blurred backdrop opacity</string>
     <string name="pref_entry_backdrop_blur">Blurred backdrop blur</string>
@@ -644,6 +646,7 @@
     <string name="label_anime_extensions">Anime Extensions</string>
     <string name="label_migration_manga">Migrate Manga</string>
     <string name="label_migration_anime">Migrate Anime</string>
+    <string name="label_migration_novel">Migrate Novels</string>
     <string name="settings">Settings</string>
     <string name="copied_video_link_to_clipboard">Copied video quality link to clipboard</string>
     <string name="choose_video_quality">Choose video quality:</string>

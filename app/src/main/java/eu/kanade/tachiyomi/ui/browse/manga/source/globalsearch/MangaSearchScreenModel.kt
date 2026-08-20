@@ -173,9 +173,13 @@ abstract class MangaSearchScreenModel(
                             source.getSearchManga(1, query, source.getFilterList())
                         }
 
-                        val titles = page.mangas.map {
-                            networkToLocalManga.await(it.toDomainManga(source.id))
-                        }
+                        val titles = page.mangas
+                            // Drop malformed results whose lateinit `url` isn't set (seen with some
+                            // novel sources), which would otherwise fail the whole source's results.
+                            .filter { runCatching { it.url }.isSuccess }
+                            .map {
+                                networkToLocalManga.await(it.toDomainManga(source.id))
+                            }
 
                         if (isActive) {
                             updateItem(source, MangaSearchItemResult.Success(titles))

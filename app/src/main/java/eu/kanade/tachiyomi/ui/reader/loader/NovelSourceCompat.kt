@@ -61,7 +61,9 @@ object NovelSourceCompat {
             it.name == "fetchPageText" && it.parameterTypes.size == 2
         }
         if (method == null) {
-            logcat(LogPriority.ERROR) { "NovelSourceCompat: fetchPageText method not found on ${source.javaClass.name}" }
+            logcat(LogPriority.ERROR) {
+                "NovelSourceCompat: fetchPageText method not found on ${source.javaClass.name}"
+            }
             return ""
         }
         return try {
