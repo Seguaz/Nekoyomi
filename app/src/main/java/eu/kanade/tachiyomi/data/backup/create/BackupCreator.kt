@@ -15,6 +15,7 @@ import eu.kanade.tachiyomi.data.backup.create.creators.MangaBackupCreator
 import eu.kanade.tachiyomi.data.backup.create.creators.MangaCategoriesBackupCreator
 import eu.kanade.tachiyomi.data.backup.create.creators.MangaExtensionRepoBackupCreator
 import eu.kanade.tachiyomi.data.backup.create.creators.MangaSourcesBackupCreator
+import eu.kanade.tachiyomi.data.backup.create.creators.NovelCategoriesBackupCreator
 import eu.kanade.tachiyomi.data.backup.create.creators.PreferenceBackupCreator
 import eu.kanade.tachiyomi.data.backup.models.Backup
 import eu.kanade.tachiyomi.data.backup.models.BackupAnime
@@ -63,6 +64,7 @@ class BackupCreator(
 
     private val animeCategoriesBackupCreator: AnimeCategoriesBackupCreator = AnimeCategoriesBackupCreator(),
     private val mangaCategoriesBackupCreator: MangaCategoriesBackupCreator = MangaCategoriesBackupCreator(),
+    private val novelCategoriesBackupCreator: NovelCategoriesBackupCreator = NovelCategoriesBackupCreator(),
     private val animeBackupCreator: AnimeBackupCreator = AnimeBackupCreator(),
     private val mangaBackupCreator: MangaBackupCreator = MangaBackupCreator(),
     private val preferenceBackupCreator: PreferenceBackupCreator = PreferenceBackupCreator(),
@@ -112,6 +114,7 @@ class BackupCreator(
             val backup = Backup(
                 backupManga = backupManga,
                 backupCategories = backupMangaCategories(options),
+                backupNovelCategories = backupNovelCategories(options),
                 backupSources = backupMangaSources(backupManga),
                 backupPreferences = backupAppPreferences(options),
                 backupSourcePreferences = backupSourcePreferences(options),
@@ -166,6 +169,12 @@ class BackupCreator(
         if (!options.categories) return emptyList()
 
         return mangaCategoriesBackupCreator()
+    }
+
+    private suspend fun backupNovelCategories(options: BackupOptions): List<BackupCategory> {
+        if (!options.categories) return emptyList()
+
+        return novelCategoriesBackupCreator()
     }
 
     private suspend fun backupMangas(mangas: List<Manga>, options: BackupOptions): List<BackupManga> {
