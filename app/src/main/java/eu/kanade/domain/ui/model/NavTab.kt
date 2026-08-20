@@ -1,6 +1,7 @@
 package eu.kanade.domain.ui.model
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.History
@@ -15,6 +16,7 @@ import eu.kanade.tachiyomi.ui.browse.BrowseTab
 import eu.kanade.tachiyomi.ui.history.HistoriesTab
 import eu.kanade.tachiyomi.ui.library.anime.AnimeLibraryTab
 import eu.kanade.tachiyomi.ui.library.manga.MangaLibraryTab
+import eu.kanade.tachiyomi.ui.library.manga.NovelLibraryTab
 import eu.kanade.tachiyomi.ui.more.MoreTab
 import eu.kanade.tachiyomi.ui.updates.UpdatesTab
 import tachiyomi.i18n.MR
@@ -34,6 +36,7 @@ enum class NavTab(
     Updates(UpdatesTab, "updates", MR.strings.label_recent_updates),
     History(HistoriesTab, "history", MR.strings.history),
     Browse(BrowseTab, "browse", MR.strings.browse),
+    Novel(NovelLibraryTab, "novel", AYMR.strings.label_novel),
     ;
 
     val icon: ImageVector
@@ -44,6 +47,7 @@ enum class NavTab(
             Updates -> ImageVector.vectorResource(id = R.drawable.ic_updates_outline_24dp)
             History -> Icons.Outlined.History
             Browse -> Icons.Outlined.Explore
+            Novel -> Icons.Outlined.AutoStories
         }
 
     companion object {

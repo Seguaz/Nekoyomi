@@ -46,7 +46,10 @@ import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.manga.interactor.GetMangaCategories
 import tachiyomi.domain.category.manga.interactor.SetMangaCategories
+import tachiyomi.domain.category.novel.interactor.GetNovelCategories
+import tachiyomi.domain.category.novel.interactor.SetNovelCategories
 import tachiyomi.domain.category.model.Category
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import tachiyomi.domain.entries.manga.interactor.GetDuplicateLibraryManga
 import tachiyomi.domain.entries.manga.interactor.GetManga
 import tachiyomi.domain.entries.manga.interactor.NetworkToLocalManga
@@ -85,7 +88,9 @@ class BrowseMangaSourceScreenModel(
     private val getRemoteManga: GetRemoteManga = Injekt.get(),
     private val getDuplicateLibraryManga: GetDuplicateLibraryManga = Injekt.get(),
     private val getCategories: GetMangaCategories = Injekt.get(),
+    private val getNovelCategories: GetNovelCategories = Injekt.get(),
     private val setMangaCategories: SetMangaCategories = Injekt.get(),
+    private val setNovelCategories: SetNovelCategories = Injekt.get(),
     private val setMangaDefaultChapterFlags: SetMangaDefaultChapterFlags = Injekt.get(),
     private val getManga: GetManga = Injekt.get(),
     private val networkToLocalManga: NetworkToLocalManga = Injekt.get(),
@@ -100,6 +105,9 @@ class BrowseMangaSourceScreenModel(
     var displayMode by sourcePreferences.sourceDisplayMode().asState(screenModelScope)
 
     val source = sourceManager.getOrStub(sourceId)
+
+    /** Whether this source is a novel source; when true, use novel categories instead of manga ones. */
+    private val isNovel = NovelSourceCompat.isNovelSource(sourceId)
 
     /** Extension package of this source, or null (local/stub) — needed to toggle per-source incognito. */
     val extensionPackage = extensionManager.getExtensionPackage(sourceId)
@@ -295,7 +303,11 @@ class BrowseMangaSourceScreenModel(
     fun addFavorite(manga: Manga) {
         screenModelScope.launch {
             val categories = getCategories()
-            val defaultCategoryId = libraryPreferences.defaultMangaCategory().get()
+            val defaultCategoryId = if (isNovel) {
+                libraryPreferences.defaultNovelCategory().get()
+            } else {
+                libraryPreferences.defaultMangaCategory().get()
+            }
             val defaultCategory = categories.find { it.id == defaultCategoryId.toLong() }
 
             when {
@@ -315,7 +327,11 @@ class BrowseMangaSourceScreenModel(
 
                 // Choose a category
                 else -> {
-                    val preselectedIds = getCategories.await(manga.id).map { it.id }
+                    val preselectedIds = if (isNovel) {
+                        getNovelCategories.await(manga.id)
+                    } else {
+                        getCategories.await(manga.id)
+                    }.map { it.id }
                     setDialog(
                         Dialog.ChangeMangaCategory(
                             manga,
@@ -333,7 +349,8 @@ class BrowseMangaSourceScreenModel(
      * @return List of categories, not including the default category
      */
     suspend fun getCategories(): List<Category> {
-        return getCategories.subscribe()
+        val flow = if (isNovel) getNovelCategories.subscribe() else getCategories.subscribe()
+        return flow
             .firstOrNull()
             ?.filterNot { it.isSystemCategory }
             .orEmpty()
@@ -357,10 +374,17 @@ class BrowseMangaSourceScreenModel(
 
     fun moveMangaToCategories(manga: Manga, categoryIds: List<Long>) {
         screenModelScope.launchIO {
-            setMangaCategories.await(
-                mangaId = manga.id,
-                categoryIds = categoryIds.toList(),
-            )
+            if (isNovel) {
+                setNovelCategories.await(
+                    mangaId = manga.id,
+                    categoryIds = categoryIds.toList(),
+                )
+            } else {
+                setMangaCategories.await(
+                    mangaId = manga.id,
+                    categoryIds = categoryIds.toList(),
+                )
+            }
         }
     }
 

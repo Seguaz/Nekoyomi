@@ -10,8 +10,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import dev.icerock.moko.resources.StringResource
 import eu.kanade.presentation.browse.manga.MangaExtensionScreen
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.components.TabContent
@@ -28,6 +30,9 @@ import tachiyomi.presentation.core.i18n.stringResource
 @Composable
 fun mangaExtensionsTab(
     extensionsScreenModel: MangaExtensionsScreenModel,
+    titleRes: StringResource = AYMR.strings.label_manga_extensions,
+    reposScreen: Screen = MangaExtensionReposScreen(),
+    searchEnabled: Boolean = true,
 ): TabContent {
     val navigator = LocalNavigator.currentOrThrow
     val context = LocalContext.current
@@ -36,9 +41,9 @@ fun mangaExtensionsTab(
     var privateExtensionToUninstall by remember { mutableStateOf<MangaExtension?>(null) }
 
     return TabContent(
-        titleRes = AYMR.strings.label_manga_extensions,
+        titleRes = titleRes,
         badgeNumber = state.updates.takeIf { it > 0 },
-        searchEnabled = true,
+        searchEnabled = searchEnabled,
         actions = persistentListOf(
             AppBar.OverflowAction(
                 title = stringResource(MR.strings.action_filter),
@@ -46,7 +51,7 @@ fun mangaExtensionsTab(
             ),
             AppBar.OverflowAction(
                 title = stringResource(MR.strings.label_extension_repos),
-                onClick = { navigator.push(MangaExtensionReposScreen()) },
+                onClick = { navigator.push(reposScreen) },
             ),
         ),
         content = { contentPadding, _ ->

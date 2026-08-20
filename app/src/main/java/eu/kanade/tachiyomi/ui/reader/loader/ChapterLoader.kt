@@ -111,6 +111,8 @@ class ChapterLoader(
                     }
                 }
             }
+            source is HttpSource && NovelSourceCompat.isNovelSource(source) ->
+                NovelHttpPageLoader(chapter, source)
             source is HttpSource -> HttpPageLoader(chapter, source)
             source is StubMangaSource -> error(
                 context.stringResource(MR.strings.source_not_installed, source.toString()),

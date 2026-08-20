@@ -5,6 +5,7 @@ import eu.kanade.tachiyomi.extension.ExtensionUpdateNotifier
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import eu.kanade.tachiyomi.extension.manga.model.MangaExtension
 import eu.kanade.tachiyomi.extension.manga.model.MangaLoadResult
+import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.tachiyomi.extension.manga.util.MangaExtensionLoader
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.NetworkHelper
@@ -26,10 +27,14 @@ import uy.kohesive.injekt.injectLazy
 import java.time.Instant
 import kotlin.time.Duration.Companion.days
 
+private val JSDELIVR_GH_REGEX =
+    Regex("""^https?://cdn\.jsdelivr\.net/gh/([^/]+)/([^@/]+)@([^/]+)/(.+)$""")
+
 internal class MangaExtensionApi {
 
     private val networkService: NetworkHelper by injectLazy()
     private val preferenceStore: PreferenceStore by injectLazy()
+    private val sourcePreferences: SourcePreferences by injectLazy()
     private val getExtensionRepo: GetMangaExtensionRepo by injectLazy()
     private val updateExtensionRepo: UpdateMangaExtensionRepo by injectLazy()
     private val extensionManager: MangaExtensionManager by injectLazy()
@@ -41,7 +46,20 @@ internal class MangaExtensionApi {
 
     suspend fun findExtensions(): List<MangaExtension.Available> {
         return withIOContext {
-            getExtensionRepo.getAll()
+            // Novel extensions (tsundoku / NovelSourcery) install through the manga extension system,
+            // so their repos are fetched here too. Novel repos are stored as plain URLs in a pref.
+            val mangaRepos = getExtensionRepo.getAll()
+            val novelRepos = sourcePreferences.novelExtensionRepos().get().map { url ->
+                ExtensionRepo(
+                    baseUrl = url.trimEnd('/'),
+                    name = url,
+                    shortName = null,
+                    website = url,
+                    signingKeyFingerprint = "",
+                )
+            }
+            (mangaRepos + novelRepos)
+                .distinctBy { it.baseUrl }
                 .map { async { getExtensions(it) } }
                 .awaitAll()
                 .flatten()
@@ -171,8 +189,11 @@ internal class MangaExtensionApi {
                     versionName = it.versionName,
                     versionCode = it.versionCode.toLongOrNull() ?: 0,
                     libVersion = it.extensionLib.toDouble(),
-                    lang = it.packageName.substringAfter(".extension.").substringBefore('.'),
-                    isNsfw = it.contentWarning != null,
+                    lang = it.packageName.substringAfterLast("extension.").substringBefore('.'),
+                    // Some repos (e.g. NovelSourcery) set contentWarning to a "CONTENT_WARNING_SAFE"
+                    // marker for safe extensions; only treat an actual warning as NSFW.
+                    isNsfw = it.contentWarning != null &&
+                        !it.contentWarning.equals("CONTENT_WARNING_SAFE", ignoreCase = true),
                     sources = it.sources?.map(newExtensionSourceMapper).orEmpty(),
                     apkName = it.resources.apkUrl.substringAfterLast('/'),
                     iconUrl = it.resources.iconUrl ?: "$repoUrl/icon/${it.packageName}.png",
@@ -186,7 +207,19 @@ internal class MangaExtensionApi {
 
     fun getApkUrl(extension: MangaExtension.Available): String {
         // New-format repos give the real download URL directly; classic repos build it from the repo.
-        return extension.apkUrl ?: "${extension.repoUrl}/apk/${extension.apkName}"
+        val url = extension.apkUrl ?: "${extension.repoUrl}/apk/${extension.apkName}"
+        return rewriteJsDelivrToRaw(url)
+    }
+
+    /**
+     * The system DownloadManager stalls on jsDelivr GitHub URLs (the `@branch` in the path);
+     * NovelSourcery serves APKs via jsDelivr. Map `cdn.jsdelivr.net/gh/user/repo@branch/path` to the
+     * equivalent `raw.githubusercontent.com/user/repo/branch/path`, which the DownloadManager handles.
+     */
+    private fun rewriteJsDelivrToRaw(url: String): String {
+        val match = JSDELIVR_GH_REGEX.find(url) ?: return url
+        val (user, repo, branch, path) = match.destructured
+        return "https://raw.githubusercontent.com/$user/$repo/$branch/$path"
     }
 
     private fun ExtensionJsonObject.extractLibVersion(): Double {

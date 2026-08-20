@@ -1,69 +1,72 @@
 package eu.kanade.tachiyomi.extension.manga.util
 
-import android.app.DownloadManager
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.net.Uri
 import android.os.Environment
 import androidx.core.content.ContextCompat
-import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.tachiyomi.extension.InstallStep
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import eu.kanade.tachiyomi.extension.manga.installer.InstallerManga
 import eu.kanade.tachiyomi.extension.manga.model.MangaExtension
+import eu.kanade.tachiyomi.network.GET
+import eu.kanade.tachiyomi.network.NetworkHelper
+import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.util.storage.getUriCompat
 import eu.kanade.tachiyomi.util.system.isPackageInstalled
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.transformWhile
+import kotlinx.coroutines.launch
 import logcat.LogPriority
 import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import uy.kohesive.injekt.injectLazy
 import java.io.File
-import kotlin.time.Duration.Companion.seconds
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * The installer which installs, updates and uninstalls the extensions.
+ *
+ * The APK is downloaded with the app's own network client (OkHttp) rather than the system
+ * DownloadManager, which is unreliable on some devices (it can stall at STATUS_PENDING forever).
+ * Once downloaded, it's handed to the same installer path (PackageInstaller/Shizuku/private) as
+ * anime and manga extensions.
  *
  * @param context The application context.
  */
 internal class MangaExtensionInstaller(private val context: Context) {
 
-    /**
-     * The system's download manager
-     */
-    private val downloadManager = context.getSystemService<DownloadManager>()!!
+    private val network: NetworkHelper by injectLazy()
+
+    private val downloadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /**
-     * The broadcast receiver which listens to download completion events.
-     */
-    private val downloadReceiver = DownloadCompletionReceiver()
-
-    /**
-     * The currently requested downloads, with the package name (unique id) as key, and the id
-     * returned by the download manager.
+     * The currently requested downloads, with the package name (unique id) as key, and a synthetic
+     * download id as value.
      */
     private val activeDownloads = hashMapOf<String, Long>()
 
     private val downloadsStateFlows = hashMapOf<Long, MutableStateFlow<InstallStep>>()
 
+    private val downloadJobs = hashMapOf<Long, Job>()
+
+    private val idCounter = AtomicLong(1)
+
     private val extensionInstaller = Injekt.get<BasePreferences>().extensionInstaller()
 
     /**
-     * Adds the given extension to the downloads queue and returns an observable containing its
-     * step in the installation process.
+     * Downloads the given extension's APK (via OkHttp) and installs it, returning a flow of its step
+     * in the installation process.
      *
      * @param url The url of the apk.
      * @param extension The extension to install.
@@ -71,84 +74,40 @@ internal class MangaExtensionInstaller(private val context: Context) {
     fun downloadAndInstall(url: String, extension: MangaExtension): Flow<InstallStep> {
         val pkgName = extension.pkgName
 
-        val oldDownload = activeDownloads[pkgName]
-        if (oldDownload != null) {
+        if (activeDownloads[pkgName] != null) {
             deleteDownload(pkgName)
         }
 
-        // Register the receiver after removing (and unregistering) the previous download
-        downloadReceiver.register()
-
-        val downloadUri = url.toUri()
-        val request = DownloadManager.Request(downloadUri)
-            .setTitle(extension.name)
-            .setMimeType(APK_MIME)
-            .setDestinationInExternalFilesDir(
-                context,
-                Environment.DIRECTORY_DOWNLOADS,
-                downloadUri.lastPathSegment,
-            )
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-
-        val id = downloadManager.enqueue(request)
+        val id = idCounter.getAndIncrement()
         activeDownloads[pkgName] = id
+        val stateFlow = MutableStateFlow(InstallStep.Pending)
+        downloadsStateFlows[id] = stateFlow
 
-        val downloadStateFlow = MutableStateFlow(InstallStep.Pending)
-        downloadsStateFlows[id] = downloadStateFlow
-
-        // Poll download status
-        val pollStatusFlow = downloadStatusFlow(id).mapNotNull { downloadStatus ->
-            // Map to our model
-            when (downloadStatus) {
-                DownloadManager.STATUS_PENDING -> InstallStep.Pending
-                DownloadManager.STATUS_RUNNING -> InstallStep.Downloading
-                else -> null
+        downloadJobs[id] = downloadScope.launch {
+            try {
+                stateFlow.value = InstallStep.Downloading
+                val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.cacheDir
+                val apkFile = File(dir, "$pkgName.apk")
+                network.client.newCall(GET(url)).awaitSuccess().use { response ->
+                    response.body!!.byteStream().use { input ->
+                        apkFile.outputStream().use { output -> input.copyTo(output) }
+                    }
+                }
+                withUIContext { installApk(id, apkFile.getUriCompat(context)) }
+            } catch (e: Throwable) {
+                logcat(LogPriority.ERROR, e) { "Failed to download extension APK from $url" }
+                stateFlow.value = InstallStep.Error
             }
         }
 
-        return merge(downloadStateFlow, pollStatusFlow).transformWhile {
+        return stateFlow.transformWhile {
             emit(it)
             // Stop when the application is installed or errors
             !it.isCompleted()
         }.onCompletion {
-            // Always notify on main thread
-            withUIContext {
-                // Always remove the download when unsubscribed
-                deleteDownload(pkgName)
-            }
+            withUIContext { deleteDownload(pkgName) }
         }
     }
-
-    /**
-     * Returns a flow that polls the given download id for its status every second, as the
-     * manager doesn't have any notification system. It'll stop once the download finishes.
-     *
-     * @param id The id of the download to poll.
-     */
-    private fun downloadStatusFlow(id: Long): Flow<Int> = flow {
-        val query = DownloadManager.Query().setFilterById(id)
-
-        while (true) {
-            // Get the current download status
-            val downloadStatus = downloadManager.query(query).use { cursor ->
-                if (!cursor.moveToFirst()) return@flow
-                cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
-            }
-
-            emit(downloadStatus)
-
-            // Stop polling when the download fails or finishes
-            if (downloadStatus == DownloadManager.STATUS_SUCCESSFUL ||
-                downloadStatus == DownloadManager.STATUS_FAILED
-            ) {
-                return@flow
-            }
-
-            delay(1.seconds)
-        }
-    }
-        // Ignore duplicate results
-        .distinctUntilChanged()
 
     /**
      * Starts an intent to install the extension at the given uri.
@@ -195,11 +154,12 @@ internal class MangaExtensionInstaller(private val context: Context) {
     }
 
     /**
-     * Cancels extension install and remove from download manager and installer.
+     * Cancels extension install and removes the download.
      */
     fun cancelInstall(pkgName: String) {
         val downloadId = activeDownloads.remove(pkgName) ?: return
-        downloadManager.remove(downloadId)
+        downloadJobs.remove(downloadId)?.cancel()
+        downloadsStateFlows.remove(downloadId)
         InstallerManga.cancelInstallQueue(context, downloadId)
     }
 
@@ -238,74 +198,8 @@ internal class MangaExtensionInstaller(private val context: Context) {
     private fun deleteDownload(pkgName: String) {
         val downloadId = activeDownloads.remove(pkgName)
         if (downloadId != null) {
-            downloadManager.remove(downloadId)
+            downloadJobs.remove(downloadId)?.cancel()
             downloadsStateFlows.remove(downloadId)
-        }
-        if (activeDownloads.isEmpty()) {
-            downloadReceiver.unregister()
-        }
-    }
-
-    /**
-     * Receiver that listens to download status events.
-     */
-    private inner class DownloadCompletionReceiver : BroadcastReceiver() {
-
-        /**
-         * Whether this receiver is currently registered.
-         */
-        private var isRegistered = false
-
-        /**
-         * Registers this receiver if it's not already.
-         */
-        fun register() {
-            if (isRegistered) return
-            isRegistered = true
-
-            val filter = IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
-            ContextCompat.registerReceiver(context, this, filter, ContextCompat.RECEIVER_EXPORTED)
-        }
-
-        /**
-         * Unregisters this receiver if it's not already.
-         */
-        fun unregister() {
-            if (!isRegistered) return
-            isRegistered = false
-
-            context.unregisterReceiver(this)
-        }
-
-        /**
-         * Called when a download event is received. It looks for the download in the current active
-         * downloads and notifies its installation step.
-         */
-        override fun onReceive(context: Context, intent: Intent?) {
-            val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, 0) ?: return
-
-            // Avoid events for downloads we didn't request
-            if (id !in activeDownloads.values) return
-
-            val uri = downloadManager.getUriForDownloadedFile(id)
-
-            // Set next installation step
-            if (uri == null) {
-                logcat(LogPriority.ERROR) { "Couldn't locate downloaded APK" }
-                updateInstallStep(id, InstallStep.Error)
-                return
-            }
-
-            val query = DownloadManager.Query().setFilterById(id)
-            downloadManager.query(query).use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val localUri = cursor.getString(
-                        cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI),
-                    ).removePrefix(FILE_SCHEME)
-
-                    installApk(id, File(localUri).getUriCompat(context))
-                }
-            }
         }
     }
 

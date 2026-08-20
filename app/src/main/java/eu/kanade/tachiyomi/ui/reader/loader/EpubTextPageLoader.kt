@@ -9,7 +9,7 @@ import mihon.core.archive.EpubReader
  * [ReaderPage]; its HTML (with inline images) is fetched on demand via [getHtml] and rendered by the
  * novel viewer (see [eu.kanade.tachiyomi.ui.reader.viewer.text.TextViewer]).
  */
-internal class EpubTextPageLoader(private val reader: EpubReader) : PageLoader() {
+internal class EpubTextPageLoader(private val reader: EpubReader) : PageLoader(), TextPageLoader {
 
     override var isLocal: Boolean = true
 
@@ -28,6 +28,8 @@ internal class EpubTextPageLoader(private val reader: EpubReader) : PageLoader()
         val path = spinePaths.getOrNull(page.index) ?: return ""
         return reader.getSectionHtml(path)
     }
+
+    override suspend fun getPageText(page: ReaderPage): String = getHtml(page)
 
     override suspend fun loadPage(page: ReaderPage) {
         check(!isRecycled)

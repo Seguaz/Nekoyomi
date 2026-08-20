@@ -13,6 +13,7 @@ import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.screen.browse.AnimeExtensionReposScreen
 import eu.kanade.presentation.more.settings.screen.browse.MangaExtensionReposScreen
+import eu.kanade.presentation.more.settings.screen.browse.NovelExtensionReposScreen
 import eu.kanade.tachiyomi.util.system.AuthenticatorUtil.authenticate
 import kotlinx.collections.immutable.persistentListOf
 import mihon.domain.extensionrepo.anime.interactor.GetAnimeExtensionRepoCount
@@ -42,6 +43,8 @@ object SettingsBrowseScreen : SearchableSettings {
 
         val mangaReposCount by getMangaExtensionRepoCount.subscribe().collectAsState(0)
         val animeReposCount by getAnimeExtensionRepoCount.subscribe().collectAsState(0)
+        val novelRepos by sourcePreferences.novelExtensionRepos().changes()
+            .collectAsState(sourcePreferences.novelExtensionRepos().get())
 
         return listOf(
             Preference.PreferenceGroup(
@@ -75,6 +78,17 @@ object SettingsBrowseScreen : SearchableSettings {
                         ),
                         onClick = {
                             navigator.push(MangaExtensionReposScreen())
+                        },
+                    ),
+                    Preference.PreferenceItem.TextPreference(
+                        title = stringResource(AYMR.strings.label_novel_extension_repos),
+                        subtitle = pluralStringResource(
+                            MR.plurals.num_repos,
+                            novelRepos.size,
+                            novelRepos.size,
+                        ),
+                        onClick = {
+                            navigator.push(NovelExtensionReposScreen())
                         },
                     ),
                 ),

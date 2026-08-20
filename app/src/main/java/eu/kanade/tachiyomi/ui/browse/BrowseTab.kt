@@ -25,7 +25,10 @@ import eu.kanade.tachiyomi.ui.browse.manga.extension.MangaExtensionsScreenModel
 import eu.kanade.tachiyomi.ui.browse.manga.extension.mangaExtensionsTab
 import eu.kanade.tachiyomi.ui.browse.manga.migration.sources.migrateMangaSourceTab
 import eu.kanade.tachiyomi.ui.browse.manga.source.mangaSourcesTab
+import eu.kanade.tachiyomi.ui.browse.novel.novelExtensionsTab
+import eu.kanade.tachiyomi.ui.browse.novel.novelSourcesTab
 import eu.kanade.tachiyomi.ui.main.MainActivity
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
@@ -68,8 +71,15 @@ data object BrowseTab : Tab {
         val context = LocalContext.current
 
         // Hoisted for extensions tab's search bar
-        val mangaExtensionsScreenModel = rememberScreenModel { MangaExtensionsScreenModel() }
+        // Manga extensions exclude novel extensions (they show in the Novel extensions tab instead).
+        val mangaExtensionsScreenModel = rememberScreenModel {
+            MangaExtensionsScreenModel(packageFilter = { !NovelSourceCompat.isNovelExtensionPkg(it) })
+        }
         val mangaExtensionsState by mangaExtensionsScreenModel.state.collectAsState()
+
+        val novelExtensionsScreenModel = rememberScreenModel("novel-extensions") {
+            MangaExtensionsScreenModel(packageFilter = { NovelSourceCompat.isNovelExtensionPkg(it) })
+        }
 
         val animeExtensionsScreenModel = rememberScreenModel { AnimeExtensionsScreenModel() }
         val animeExtensionsState by animeExtensionsScreenModel.state.collectAsState()
@@ -81,6 +91,10 @@ data object BrowseTab : Tab {
             mangaExtensionsTab(mangaExtensionsScreenModel),
             migrateAnimeSourceTab(),
             migrateMangaSourceTab(),
+            // Novel tabs appended last so the anime/manga search-query parity (currentPage % 2) is
+            // preserved. Novels reuse the manga source/extension screens, filtered to NovelSource.
+            novelSourcesTab(),
+            novelExtensionsTab(novelExtensionsScreenModel),
         )
 
         val state = rememberPagerState { tabs.size }

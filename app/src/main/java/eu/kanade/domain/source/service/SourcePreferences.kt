@@ -41,6 +41,10 @@ class SourcePreferences(
 
     fun mangaExtensionRepos() = preferenceStore.getStringSet("extension_repos", emptySet())
 
+    // Novel extension repos (tsundoku / NovelSourcery format). Novels install through the manga
+    // extension system, so MangaExtensionApi fetches these in addition to the manga repos.
+    fun novelExtensionRepos() = preferenceStore.getStringSet("novel_extension_repos", emptySet())
+
     fun trustedExtensions() = preferenceStore.getStringSet(
         Preference.appStateKey("trusted_extensions"),
         emptySet(),

@@ -19,6 +19,8 @@ import eu.kanade.tachiyomi.ui.category.anime.animeCategoryTab
 import eu.kanade.tachiyomi.ui.category.manga.MangaCategoryEvent
 import eu.kanade.tachiyomi.ui.category.manga.MangaCategoryScreenModel
 import eu.kanade.tachiyomi.ui.category.manga.mangaCategoryTab
+import eu.kanade.tachiyomi.ui.category.novel.NovelCategoryScreenModel
+import eu.kanade.tachiyomi.ui.category.novel.novelCategoryTab
 import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.persistentListOf
@@ -55,10 +57,12 @@ data object CategoriesTab : Tab {
 
         val animeCategoryScreenModel = rememberScreenModel { AnimeCategoryScreenModel() }
         val mangaCategoryScreenModel = rememberScreenModel { MangaCategoryScreenModel() }
+        val novelCategoryScreenModel = rememberScreenModel { NovelCategoryScreenModel() }
 
         val tabs = persistentListOf(
             animeCategoryTab(),
             mangaCategoryTab(),
+            novelCategoryTab(),
         )
 
         val state = rememberPagerState { tabs.size }
@@ -85,6 +89,11 @@ data object CategoriesTab : Tab {
             }
             animeCategoryScreenModel.events.collectLatest { event ->
                 if (event is AnimeCategoryEvent.LocalizedMessage) {
+                    context.toast(event.stringRes)
+                }
+            }
+            novelCategoryScreenModel.events.collectLatest { event ->
+                if (event is MangaCategoryEvent.LocalizedMessage) {
                     context.toast(event.stringRes)
                 }
             }

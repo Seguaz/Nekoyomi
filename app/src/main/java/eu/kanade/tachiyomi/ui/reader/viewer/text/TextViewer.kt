@@ -10,16 +10,23 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
-import eu.kanade.tachiyomi.ui.reader.loader.EpubTextPageLoader
+import eu.kanade.tachiyomi.ui.reader.loader.TextPageLoader
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.model.ViewerChapters
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.ui.reader.viewer.Viewer
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import logcat.LogPriority
+import tachiyomi.core.common.util.lang.withIOContext
+import tachiyomi.core.common.util.system.logcat
 import uy.kohesive.injekt.injectLazy
 
 /**
@@ -171,7 +178,11 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
         }
 
         override fun onBindViewHolder(holder: TextPageHolder, position: Int) {
-            holder.bind(pages[position], textScale, style)
+            holder.bind(pages[position], textScale, style, scope)
+        }
+
+        override fun onViewRecycled(holder: TextPageHolder) {
+            holder.cancel()
         }
     }
 }
@@ -180,9 +191,32 @@ private class TextPageHolder(
     private val webView: TextWebView,
 ) : RecyclerView.ViewHolder(webView) {
 
-    fun bind(page: ReaderPage, textScale: Int, style: NovelStyle) {
+    private var job: Job? = null
+
+    fun bind(page: ReaderPage, textScale: Int, style: NovelStyle, scope: CoroutineScope) {
+        job?.cancel()
         webView.setTextScale(textScale)
-        val html = (page.chapter.pageLoader as? EpubTextPageLoader)?.getHtml(page).orEmpty()
-        webView.load(html, style)
+        val loader = page.chapter.pageLoader as? TextPageLoader
+        if (loader == null) {
+            webView.load("", style)
+            return
+        }
+        // Show a placeholder, then load the (possibly network-fetched) text.
+        webView.load("<p style=\"opacity:0.5\">…</p>", style)
+        job = scope.launch {
+            val html = try {
+                withIOContext { loader.getPageText(page) }
+            } catch (e: Throwable) {
+                if (e is CancellationException) throw e
+                logcat(LogPriority.ERROR, e) { "TextViewer: failed to load page text" }
+                ""
+            }
+            webView.load(html.ifBlank { "<p style=\"opacity:0.5\">(empty)</p>" }, style)
+        }
+    }
+
+    fun cancel() {
+        job?.cancel()
+        job = null
     }
 }

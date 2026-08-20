@@ -26,7 +26,16 @@ class MangaLibrarySettingsScreenModel(
     private val setMangaDisplayMode: SetMangaDisplayMode = Injekt.get(),
     private val setSortModeForCategory: SetSortModeForMangaCategory = Injekt.get(),
     trackerManager: TrackerManager = Injekt.get(),
+    // When true this backs the Novel library, so category-tab visibility uses the novel-only pref.
+    val novelOnly: Boolean = false,
 ) : ScreenModel {
+
+    /** Category-tabs toggle for the active library (novels keep their own, independent of manga). */
+    fun categoryTabsPref() = if (novelOnly) {
+        libraryPreferences.categoryTabsNovel()
+    } else {
+        libraryPreferences.categoryTabs()
+    }
 
     val trackersFlow = trackerManager.loggedInTrackersFlow()
         .stateIn(

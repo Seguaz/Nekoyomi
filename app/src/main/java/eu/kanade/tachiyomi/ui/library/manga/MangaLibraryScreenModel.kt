@@ -65,10 +65,14 @@ import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.manga.interactor.GetVisibleMangaCategories
+import tachiyomi.domain.category.novel.interactor.GetVisibleNovelCategories
+import tachiyomi.domain.category.novel.interactor.SetNovelCategories
 import tachiyomi.domain.category.manga.interactor.SetMangaCategories
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.entries.applyFilter
 import tachiyomi.domain.entries.manga.interactor.GetLibraryManga
+import tachiyomi.domain.entries.manga.interactor.GetNovelLibraryManga
 import tachiyomi.domain.entries.manga.model.Manga
 import tachiyomi.domain.entries.manga.model.MangaCover
 import tachiyomi.domain.entries.manga.model.MangaUpdate
@@ -96,13 +100,16 @@ typealias MangaLibraryMap = Map<Category, List<MangaLibraryItem>>
 
 class MangaLibraryScreenModel(
     private val getLibraryManga: GetLibraryManga = Injekt.get(),
+    private val getNovelLibraryManga: GetNovelLibraryManga = Injekt.get(),
     private val getCategories: GetVisibleMangaCategories = Injekt.get(),
+    private val getNovelCategories: GetVisibleNovelCategories = Injekt.get(),
     private val getTracksPerManga: GetTracksPerManga = Injekt.get(),
     private val getNextChapters: GetNextChapters = Injekt.get(),
     private val getChaptersByMangaId: GetChaptersByMangaId = Injekt.get(),
     private val setReadStatus: SetReadStatus = Injekt.get(),
     private val updateManga: UpdateManga = Injekt.get(),
     private val setMangaCategories: SetMangaCategories = Injekt.get(),
+    private val setNovelCategories: SetNovelCategories = Injekt.get(),
     private val preferences: BasePreferences = Injekt.get(),
     private val libraryPreferences: LibraryPreferences = Injekt.get(),
     private val coverCache: MangaCoverCache = Injekt.get(),
@@ -110,9 +117,14 @@ class MangaLibraryScreenModel(
     private val downloadManager: MangaDownloadManager = Injekt.get(),
     private val downloadCache: MangaDownloadCache = Injekt.get(),
     private val trackerManager: TrackerManager = Injekt.get(),
+    // When true this is the Novel library (only NovelSource entries); when false it's the Manga
+    // library (novels excluded). Novels are manga entries with a NovelSource, so both reuse this model.
+    private val novelOnly: Boolean = false,
 ) : StateScreenModel<MangaLibraryScreenModel.State>(State()) {
 
-    var activeCategoryIndex: Int by libraryPreferences.lastUsedMangaCategory().asState(
+    var activeCategoryIndex: Int by (
+        if (novelOnly) libraryPreferences.lastUsedNovelCategory() else libraryPreferences.lastUsedMangaCategory()
+        ).asState(
         screenModelScope,
     )
 
@@ -159,7 +171,7 @@ class MangaLibraryScreenModel(
         }
 
         combine(
-            libraryPreferences.categoryTabs().changes(),
+            (if (novelOnly) libraryPreferences.categoryTabsNovel() else libraryPreferences.categoryTabs()).changes(),
             libraryPreferences.categoryNumberOfItems().changes(),
             libraryPreferences.showContinueViewingButton().changes(),
             libraryPreferences.libraryGroupModeManga().changes(),
@@ -493,7 +505,9 @@ class MangaLibraryScreenModel(
      */
     private fun getLibraryFlow(): Flow<MangaLibraryMap> {
         val libraryMangasFlow = combine(
-            getLibraryManga.subscribe(),
+            // Novels use their own library view (joined on the novel category junction) so each entry
+            // arrives already tagged with its novel category — exactly like the manga library.
+            if (novelOnly) getNovelLibraryManga.subscribe() else getLibraryManga.subscribe(),
             getLibraryItemPreferencesFlow(),
             downloadCache.changes,
             libraryPreferences.pinnedMangaIds().changes(),
@@ -501,6 +515,8 @@ class MangaLibraryScreenModel(
         ) { libraryMangaList, prefs, _, pinnedIds, seriesSet ->
             val seriesById = SeriesGrouping.decode(seriesSet)
             libraryMangaList
+                // Partition manga vs novel libraries (novels = manga entries with a NovelSource).
+                .filter { NovelSourceCompat.isNovelSource(it.manga.source) == novelOnly }
                 .map { libraryManga ->
                     // Display mode based on user preference: take it from global library setting or category
                     MangaLibraryItem(
@@ -524,7 +540,7 @@ class MangaLibraryScreenModel(
         }
 
         return combine(
-            getCategories.subscribe(),
+            if (novelOnly) getNovelCategories.subscribe() else getCategories.subscribe(),
             libraryMangasFlow,
             libraryPreferences.libraryGroupModeManga().changes(),
             getTracksPerManga.subscribe(),
@@ -684,7 +700,7 @@ class MangaLibraryScreenModel(
     private suspend fun getCommonCategories(mangas: List<Manga>): Collection<Category> {
         if (mangas.isEmpty()) return emptyList()
         return mangas
-            .map { getCategories.await(it.id).toSet() }
+            .map { categoriesOf(it.id).toSet() }
             .reduce { set1, set2 -> set1.intersect(set2) }
     }
 
@@ -699,7 +715,7 @@ class MangaLibraryScreenModel(
      */
     private suspend fun getMixCategories(mangas: List<Manga>): Collection<Category> {
         if (mangas.isEmpty()) return emptyList()
-        val mangaCategories = mangas.map { getCategories.await(it.id).toSet() }
+        val mangaCategories = mangas.map { categoriesOf(it.id).toSet() }
         val common = mangaCategories.reduce { set1, set2 -> set1.intersect(set2) }
         return mangaCategories.flatten().distinct().subtract(common)
     }
@@ -959,15 +975,27 @@ class MangaLibraryScreenModel(
     ) {
         screenModelScope.launchNonCancellable {
             mangaList.forEach { manga ->
-                val categoryIds = getCategories.await(manga.id)
+                val categoryIds = categoriesOf(manga.id)
                     .map { it.id }
                     .subtract(removeCategories.toSet())
                     .plus(addCategories)
                     .toList()
 
-                setMangaCategories.await(manga.id, categoryIds)
+                if (novelOnly) {
+                    setNovelCategories.await(manga.id, categoryIds)
+                } else {
+                    setMangaCategories.await(manga.id, categoryIds)
+                }
             }
         }
+    }
+
+    /**
+     * Returns the categories for the given entry id, using the novel category tables when this is
+     * the Novel library and the manga category tables otherwise.
+     */
+    private suspend fun categoriesOf(mangaId: Long): List<Category> {
+        return if (novelOnly) getNovelCategories.await(mangaId) else getCategories.await(mangaId)
     }
 
     fun getDisplayMode(): PreferenceMutableState<LibraryDisplayMode> {

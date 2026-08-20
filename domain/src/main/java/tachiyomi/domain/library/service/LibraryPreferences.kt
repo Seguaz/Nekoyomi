@@ -72,6 +72,7 @@ class LibraryPreferences(
     // Common Category
 
     fun categoryTabs() = preferenceStore.getBoolean("display_category_tabs", true)
+    fun categoryTabsNovel() = preferenceStore.getBoolean("display_category_tabs_novel", true)
 
     fun categoryNumberOfItems() = preferenceStore.getBoolean("display_number_of_items", false)
 
@@ -187,9 +188,11 @@ class LibraryPreferences(
 
     fun defaultAnimeCategory() = preferenceStore.getInt(DEFAULT_ANIME_CATEGORY_PREF_KEY, -1)
     fun defaultMangaCategory() = preferenceStore.getInt(DEFAULT_MANGA_CATEGORY_PREF_KEY, -1)
+    fun defaultNovelCategory() = preferenceStore.getInt(DEFAULT_NOVEL_CATEGORY_PREF_KEY, -1)
 
     fun lastUsedAnimeCategory() = preferenceStore.getInt(Preference.appStateKey("last_used_anime_category"), 0)
     fun lastUsedMangaCategory() = preferenceStore.getInt(Preference.appStateKey("last_used_category"), 0)
+    fun lastUsedNovelCategory() = preferenceStore.getInt(Preference.appStateKey("last_used_novel_category"), 0)
 
     // Entries pinned to the top of the library.
     fun pinnedAnimeIds() = preferenceStore.getStringSet("library_pinned_anime_ids", emptySet())
@@ -463,6 +466,7 @@ class LibraryPreferences(
 
         const val DEFAULT_MANGA_CATEGORY_PREF_KEY = "default_category"
         const val DEFAULT_ANIME_CATEGORY_PREF_KEY = "default_anime_category"
+        const val DEFAULT_NOVEL_CATEGORY_PREF_KEY = "default_novel_category"
         private const val LIBRARY_UPDATE_MANGA_CATEGORIES_PREF_KEY = "library_update_categories"
         private const val LIBRARY_UPDATE_ANIME_CATEGORIES_PREF_KEY = "animelib_update_categories"
         private const val LIBRARY_UPDATE_MANGA_CATEGORIES_EXCLUDE_PREF_KEY = "library_update_categories_exclude"

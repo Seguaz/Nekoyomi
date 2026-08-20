@@ -41,6 +41,9 @@ class MangaExtensionsScreenModel(
     private val extensionManager: MangaExtensionManager = Injekt.get(),
     private val getExtensions: GetMangaExtensionsByType = Injekt.get(),
     private val getExtensionRepo: GetMangaExtensionRepo = Injekt.get(),
+    // Filters which extensions this screen shows by package name. Used to split manga vs novel
+    // extensions (novels are manga extensions in the tsundoku/NovelSourcery format).
+    private val packageFilter: (String) -> Boolean = { true },
 ) : StateScreenModel<MangaExtensionsScreenModel.State>(State()) {
 
     private val currentDownloads = MutableStateFlow<Map<String, InstallStep>>(hashMapOf())
@@ -115,17 +118,17 @@ class MangaExtensionsScreenModel(
 
                 val itemsGroups: ItemGroups = mutableMapOf()
 
-                val updates = _updates.filter(queryFilter(searchQuery)).map(
+                val updates = _updates.filter { packageFilter(it.pkgName) }.filter(queryFilter(searchQuery)).map(
                     extensionMapper(downloads, reposMap),
                 )
                 if (updates.isNotEmpty()) {
                     itemsGroups[MangaExtensionUiModel.Header.Resource(MR.strings.ext_updates_pending)] = updates
                 }
 
-                val installed = _installed.filter(queryFilter(searchQuery)).map(
+                val installed = _installed.filter { packageFilter(it.pkgName) }.filter(queryFilter(searchQuery)).map(
                     extensionMapper(downloads, reposMap),
                 )
-                val untrusted = _untrusted.filter(queryFilter(searchQuery)).map(
+                val untrusted = _untrusted.filter { packageFilter(it.pkgName) }.filter(queryFilter(searchQuery)).map(
                     extensionMapper(downloads, reposMap),
                 )
                 if (installed.isNotEmpty() || untrusted.isNotEmpty()) {
@@ -133,6 +136,7 @@ class MangaExtensionsScreenModel(
                 }
 
                 val languagesWithExtensions = _available
+                    .filter { packageFilter(it.pkgName) }
                     .filter(queryFilter(searchQuery))
                     .groupBy { it.lang }
                     .toSortedMap(LocaleHelper.comparator)

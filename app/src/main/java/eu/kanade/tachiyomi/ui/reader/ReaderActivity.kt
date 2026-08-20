@@ -65,7 +65,7 @@ import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.reader.ReaderViewModel.SetAsCoverResult.AddToLibraryFirst
 import eu.kanade.tachiyomi.ui.reader.ReaderViewModel.SetAsCoverResult.Error
 import eu.kanade.tachiyomi.ui.reader.ReaderViewModel.SetAsCoverResult.Success
-import eu.kanade.tachiyomi.ui.reader.loader.EpubTextPageLoader
+import eu.kanade.tachiyomi.ui.reader.loader.TextPageLoader
 import eu.kanade.tachiyomi.ui.reader.model.ReaderChapter
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.model.ViewerChapters
@@ -576,7 +576,7 @@ class ReaderActivity : BaseActivity() {
      * chapter format is known, so this corrects it once the pages (and their loader) are available.
      */
     private fun ensureViewerForContent(viewerChapters: ViewerChapters) {
-        val isNovel = viewerChapters.currChapter.pageLoader is EpubTextPageLoader
+        val isNovel = viewerChapters.currChapter.pageLoader is TextPageLoader
         val currentViewer = viewModel.state.value.viewer
         if (isNovel == (currentViewer is TextViewer)) return
 

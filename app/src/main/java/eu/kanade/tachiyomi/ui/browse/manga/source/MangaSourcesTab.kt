@@ -11,12 +11,14 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import dev.icerock.moko.resources.StringResource
 import eu.kanade.presentation.browse.manga.MangaSourceOptionsDialog
 import eu.kanade.presentation.browse.manga.MangaSourcesScreen
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.components.TabContent
 import eu.kanade.tachiyomi.ui.browse.manga.source.browse.BrowseMangaSourceScreen
 import eu.kanade.tachiyomi.ui.browse.manga.source.globalsearch.GlobalMangaSearchScreen
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -25,13 +27,18 @@ import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.i18n.stringResource
 
 @Composable
-fun Screen.mangaSourcesTab(): TabContent {
+fun Screen.mangaSourcesTab(
+    // Manga sources exclude novel sources by default (they show in the Novel sources tab instead).
+    screenModel: MangaSourcesScreenModel = rememberScreenModel {
+        MangaSourcesScreenModel(sourceFilter = { !NovelSourceCompat.isNovelSource(it.id) })
+    },
+    titleRes: StringResource = AYMR.strings.label_manga_sources,
+): TabContent {
     val navigator = LocalNavigator.currentOrThrow
-    val screenModel = rememberScreenModel { MangaSourcesScreenModel() }
     val state by screenModel.state.collectAsState()
 
     return TabContent(
-        titleRes = AYMR.strings.label_manga_sources,
+        titleRes = titleRes,
         actions = persistentListOf(
             AppBar.Action(
                 title = stringResource(MR.strings.action_global_search),

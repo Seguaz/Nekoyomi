@@ -53,6 +53,15 @@ internal object MangaExtensionLoader {
     private const val METADATA_SOURCE_CLASS = "tachiyomi.extension.class"
     private const val METADATA_SOURCE_FACTORY = "tachiyomi.extension.factory"
     private const val METADATA_NSFW = "tachiyomi.extension.nsfw"
+
+    // Novel extensions (tsundoku / NovelSourcery / Tadami format) are manga extensions that also
+    // implement NovelSource. They declare a different feature + metadata namespace but are otherwise
+    // loaded exactly like manga extensions (their sources are HttpSource + NovelSource).
+    private const val NOVEL_EXTENSION_FEATURE = "tachiyomi.novelextension"
+    private const val METADATA_NOVEL_SOURCE_CLASS = "tachiyomi.novelextension.class"
+    private const val METADATA_NOVEL_SOURCE_FACTORY = "tachiyomi.novelextension.factory"
+    private const val METADATA_NOVEL_NSFW = "tachiyomi.novelextension.nsfw"
+
     const val LIB_VERSION_MIN = 1.4
     const val LIB_VERSION_MAX = 1.6
 
@@ -287,7 +296,8 @@ internal object MangaExtensionLoader {
             return MangaLoadResult.Untrusted(extension)
         }
 
-        val isNsfw = appInfo.metaData.getInt(METADATA_NSFW) == 1
+        val isNsfw = appInfo.metaData.getInt(METADATA_NSFW) == 1 ||
+            appInfo.metaData.getInt(METADATA_NOVEL_NSFW) == 1
         if (!loadNsfwSource && isNsfw) {
             logcat(LogPriority.WARN) { "NSFW extension $pkgName not allowed" }
             return MangaLoadResult.Error
@@ -300,7 +310,10 @@ internal object MangaExtensionLoader {
             return MangaLoadResult.Error
         }
 
-        val sources = appInfo.metaData.getString(METADATA_SOURCE_CLASS)!!
+        val sources = (
+            appInfo.metaData.getString(METADATA_SOURCE_CLASS)
+                ?: appInfo.metaData.getString(METADATA_NOVEL_SOURCE_CLASS)
+            )!!
             .split(";")
             .map {
                 val sourceClass = it.trim()
@@ -361,7 +374,8 @@ internal object MangaExtensionLoader {
             lang = lang,
             isNsfw = isNsfw,
             sources = sources,
-            pkgFactory = appInfo.metaData.getString(METADATA_SOURCE_FACTORY),
+            pkgFactory = appInfo.metaData.getString(METADATA_SOURCE_FACTORY)
+                ?: appInfo.metaData.getString(METADATA_NOVEL_SOURCE_FACTORY),
             icon = appInfo.loadIcon(pkgManager),
             isShared = extensionInfo.isShared,
         )
@@ -396,7 +410,9 @@ internal object MangaExtensionLoader {
      * @param pkgInfo The package info of the application.
      */
     private fun isPackageAnExtension(pkgInfo: PackageInfo): Boolean {
-        return pkgInfo.reqFeatures.orEmpty().any { it.name == EXTENSION_FEATURE }
+        return pkgInfo.reqFeatures.orEmpty().any {
+            it.name == EXTENSION_FEATURE || it.name == NOVEL_EXTENSION_FEATURE
+        }
     }
 
     /**

@@ -41,6 +41,9 @@ class MangaSourcesScreenModel(
     // SY -->
     private val toggleExcludeFromMangaDataSaver: ToggleExcludeFromMangaDataSaver = Injekt.get(),
     // SY <--
+    // Filters which sources this screen shows. Used to split manga vs novel sources (novels are
+    // manga sources implementing the NovelSource marker).
+    private val sourceFilter: (Source) -> Boolean = { true },
 ) : StateScreenModel<MangaSourcesScreenModel.State>(State()) {
 
     private val _events = Channel<Event>(Int.MAX_VALUE)
@@ -68,7 +71,8 @@ class MangaSourcesScreenModel(
         // SY <--
     }
 
-    private fun collectLatestSources(sources: List<Source>) {
+    private fun collectLatestSources(allSources: List<Source>) {
+        val sources = allSources.filter(sourceFilter)
         mutableState.update { state ->
             val map = TreeMap<String, MutableList<Source>> { d1, d2 ->
                 // Sources without a lang defined will be placed at the end

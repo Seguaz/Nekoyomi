@@ -70,6 +70,7 @@ import mihon.domain.upcoming.anime.interactor.GetUpcomingAnime
 import mihon.domain.upcoming.manga.interactor.GetUpcomingManga
 import tachiyomi.data.category.anime.AnimeCategoryRepositoryImpl
 import tachiyomi.data.category.manga.MangaCategoryRepositoryImpl
+import tachiyomi.data.category.novel.NovelCategoryRepositoryImpl
 import tachiyomi.data.custombutton.CustomButtonRepositoryImpl
 import tachiyomi.data.entries.anime.AnimeRepositoryImpl
 import tachiyomi.data.entries.manga.MangaRepositoryImpl
@@ -112,6 +113,15 @@ import tachiyomi.domain.category.manga.interactor.SetMangaDisplayMode
 import tachiyomi.domain.category.manga.interactor.SetSortModeForMangaCategory
 import tachiyomi.domain.category.manga.interactor.UpdateMangaCategory
 import tachiyomi.domain.category.manga.repository.MangaCategoryRepository
+import tachiyomi.domain.category.novel.interactor.CreateNovelCategoryWithName
+import tachiyomi.domain.category.novel.interactor.DeleteNovelCategory
+import tachiyomi.domain.category.novel.interactor.GetNovelCategories
+import tachiyomi.domain.category.novel.interactor.GetVisibleNovelCategories
+import tachiyomi.domain.category.novel.interactor.HideNovelCategory
+import tachiyomi.domain.category.novel.interactor.RenameNovelCategory
+import tachiyomi.domain.category.novel.interactor.ReorderNovelCategory
+import tachiyomi.domain.category.novel.interactor.SetNovelCategories
+import tachiyomi.domain.category.novel.repository.NovelCategoryRepository
 import tachiyomi.domain.custombuttons.interactor.CreateCustomButton
 import tachiyomi.domain.custombuttons.interactor.DeleteCustomButton
 import tachiyomi.domain.custombuttons.interactor.GetCustomButtons
@@ -133,6 +143,7 @@ import tachiyomi.domain.entries.anime.interactor.SetAnimeSeasonFlags
 import tachiyomi.domain.entries.anime.repository.AnimeRepository
 import tachiyomi.domain.entries.manga.interactor.GetDuplicateLibraryManga
 import tachiyomi.domain.entries.manga.interactor.GetLibraryManga
+import tachiyomi.domain.entries.manga.interactor.GetNovelLibraryManga
 import tachiyomi.domain.entries.manga.interactor.GetManga
 import tachiyomi.domain.entries.manga.interactor.GetMangaByUrlAndSourceId
 import tachiyomi.domain.entries.manga.interactor.GetMangaFavorites
@@ -229,6 +240,16 @@ class DomainModule : InjektModule {
         addFactory { HideMangaCategory(get()) }
         addFactory { DeleteMangaCategory(get(), get(), get()) }
 
+        addSingletonFactory<NovelCategoryRepository> { NovelCategoryRepositoryImpl(get()) }
+        addFactory { GetNovelCategories(get()) }
+        addFactory { GetVisibleNovelCategories(get()) }
+        addFactory { CreateNovelCategoryWithName(get(), get()) }
+        addFactory { RenameNovelCategory(get()) }
+        addFactory { ReorderNovelCategory(get()) }
+        addFactory { HideNovelCategory(get()) }
+        addFactory { DeleteNovelCategory(get()) }
+        addFactory { SetNovelCategories(get()) }
+
         addSingletonFactory<AnimeRepository> { AnimeRepositoryImpl(get()) }
         addFactory { GetDuplicateLibraryAnime(get()) }
         addFactory { GetAnimeFavorites(get()) }
@@ -256,6 +277,7 @@ class DomainModule : InjektModule {
         addFactory { GetDuplicateLibraryManga(get()) }
         addFactory { GetMangaFavorites(get()) }
         addFactory { GetLibraryManga(get()) }
+        addFactory { GetNovelLibraryManga(get()) }
         addFactory { GetMangaWithChapters(get(), get()) }
         addFactory { GetMangaByUrlAndSourceId(get()) }
         addFactory { GetManga(get()) }

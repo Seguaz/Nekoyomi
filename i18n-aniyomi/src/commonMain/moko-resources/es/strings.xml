@@ -507,6 +507,10 @@
     <string name="action_auto_scroll">Desplazamiento automático</string>
     <string name="pref_auto_scroll_speed">Velocidad del desplazamiento</string>
     <string name="novel_viewer">Novela</string>
+    <string name="label_novel">Novelas</string>
+    <string name="label_novel_sources">Fuentes de novela</string>
+    <string name="label_novel_extensions">Extensiones de novela</string>
+    <string name="label_novel_extension_repos">Repos de extensiones de novela</string>
     <string name="pref_novel_text_size">Tamaño del texto</string>
     <string name="pref_novel_font">Fuente</string>
     <string name="pref_novel_line_height">Interlineado</string>

@@ -68,6 +68,9 @@ import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.manga.interactor.GetMangaCategories
 import tachiyomi.domain.category.manga.interactor.SetMangaCategories
+import tachiyomi.domain.category.novel.interactor.GetNovelCategories
+import tachiyomi.domain.category.novel.interactor.SetNovelCategories
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.entries.applyFilter
 import tachiyomi.domain.entries.manga.interactor.GetDuplicateLibraryManga
@@ -118,9 +121,11 @@ class MangaScreenModel(
     private val updateManga: UpdateManga = Injekt.get(),
     private val syncChaptersWithSource: SyncChaptersWithSource = Injekt.get(),
     private val getCategories: GetMangaCategories = Injekt.get(),
+    private val getNovelCategories: GetNovelCategories = Injekt.get(),
     private val getTracks: GetMangaTracks = Injekt.get(),
     private val addTracks: AddMangaTracks = Injekt.get(),
     private val setMangaCategories: SetMangaCategories = Injekt.get(),
+    private val setNovelCategories: SetNovelCategories = Injekt.get(),
     private val mangaRepository: MangaRepository = Injekt.get(),
     private val filterChaptersForDownload: FilterChaptersForDownload = Injekt.get(),
     val snackbarHostState: SnackbarHostState = SnackbarHostState(),
@@ -137,6 +142,9 @@ class MangaScreenModel(
 
     private val isFavorited: Boolean
         get() = manga?.favorite ?: false
+
+    private val isNovel: Boolean
+        get() = manga?.let { NovelSourceCompat.isNovelSource(it.source) } ?: false
 
     private val allChapters: List<ChapterList.Item>?
         get() = successState?.chapters
@@ -389,7 +397,11 @@ class MangaScreenModel(
 
                 // Now check if user previously set categories, when available
                 val categories = getCategories()
-                val defaultCategoryId = libraryPreferences.defaultMangaCategory().get().toLong()
+                val defaultCategoryId = if (isNovel) {
+                    libraryPreferences.defaultNovelCategory().get().toLong()
+                } else {
+                    libraryPreferences.defaultMangaCategory().get().toLong()
+                }
                 val defaultCategory = categories.find { it.id == defaultCategoryId }
                 when {
                     // Default category set
@@ -481,7 +493,8 @@ class MangaScreenModel(
      * @return List of categories, not including the default category
      */
     suspend fun getCategories(): List<Category> {
-        return getCategories.await().filterNot { it.isSystemCategory }
+        val categories = if (isNovel) getNovelCategories.await() else getCategories.await()
+        return categories.filterNot { it.isSystemCategory }
     }
 
     /**
@@ -491,8 +504,8 @@ class MangaScreenModel(
      * @return Array of category ids the manga is in, if none returns default id
      */
     private suspend fun getMangaCategoryIds(manga: Manga): List<Long> {
-        return getCategories.await(manga.id)
-            .map { it.id }
+        val categories = if (isNovel) getNovelCategories.await(manga.id) else getCategories.await(manga.id)
+        return categories.map { it.id }
     }
 
     fun moveMangaToCategoriesAndAddToLibrary(manga: Manga, categories: List<Long>) {
@@ -516,7 +529,11 @@ class MangaScreenModel(
 
     private fun moveMangaToCategory(categoryIds: List<Long>) {
         screenModelScope.launchIO {
-            setMangaCategories.await(mangaId, categoryIds)
+            if (isNovel) {
+                setNovelCategories.await(mangaId, categoryIds)
+            } else {
+                setMangaCategories.await(mangaId, categoryIds)
+            }
         }
     }
 
