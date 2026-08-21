@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import com.google.android.material.color.MaterialColors
 
 /** Typography options for the novel reader, applied as CSS. */
@@ -52,6 +53,15 @@ class TextWebView(
     private var body: String = ""
     private var style: NovelStyle = DEFAULT_STYLE
 
+    /** Invoked once per loaded section when the reader reaches the end of its text. */
+    var onReachedBottom: (() -> Unit)? = null
+    private var bottomReported = false
+
+    // Off while a placeholder is showing so it doesn't count as "reached the end" before the real
+    // text has loaded; armed once the section's actual text is rendered.
+    private var trackReading = false
+    private val bottomThresholdPx = (context.resources.displayMetrics.density * 24).toInt()
+
     init {
         isVerticalScrollBarEnabled = true
         isHorizontalScrollBarEnabled = false
@@ -59,6 +69,35 @@ class TextWebView(
         settings.allowFileAccess = false
         settings.allowContentAccess = false
         setBackgroundColor(backgroundColor)
+        webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                // A section shorter than the viewport can't be scrolled, so it's fully read on
+                // display. Re-check after layout settles (delay lets the content height measure so a
+                // long chapter isn't briefly seen as non-scrollable and marked read on open).
+                postDelayed({ reportBottomIfNotScrollable() }, 350)
+            }
+        }
+    }
+
+    override fun onScrollChanged(l: Int, t: Int, oldl: Int, oldt: Int) {
+        super.onScrollChanged(l, t, oldl, oldt)
+        if (!trackReading) return
+        if (t + computeVerticalScrollExtent() >= computeVerticalScrollRange() - bottomThresholdPx) {
+            reportBottom()
+        }
+    }
+
+    private fun reportBottomIfNotScrollable() {
+        if (!trackReading) return
+        if (computeVerticalScrollRange() <= computeVerticalScrollExtent() + bottomThresholdPx) {
+            reportBottom()
+        }
+    }
+
+    private fun reportBottom() {
+        if (bottomReported || !trackReading) return
+        bottomReported = true
+        onReachedBottom?.invoke()
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -72,10 +111,15 @@ class TextWebView(
         settings.textZoom = scale
     }
 
-    /** Renders the given section [body] HTML with the given typography. */
-    fun load(body: String, style: NovelStyle) {
+    /**
+     * Renders the given section [body] HTML with the given typography. [trackReading] arms the
+     * end-of-text detection; pass false for placeholders so they don't count as reaching the end.
+     */
+    fun load(body: String, style: NovelStyle, trackReading: Boolean = true) {
         this.body = body
         this.style = style
+        this.trackReading = trackReading
+        bottomReported = false
         render()
     }
 

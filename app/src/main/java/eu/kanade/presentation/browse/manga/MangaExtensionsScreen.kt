@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.icerock.moko.resources.StringResource
@@ -85,6 +86,9 @@ fun MangaExtensionScreen(
     onOpenExtension: (MangaExtension.Installed) -> Unit,
     onClickUpdateAll: () -> Unit,
     onRefresh: () -> Unit,
+    // Repos screen to open from the empty-state shortcut. Novels pass their own repos screen so a
+    // new user landing on the empty novel extensions list doesn't get sent to the manga repos.
+    reposScreen: Screen = MangaExtensionReposScreen(),
 ) {
     val navigator = LocalNavigator.currentOrThrow
 
@@ -108,7 +112,7 @@ fun MangaExtensionScreen(
                         EmptyScreenAction(
                             stringRes = MR.strings.label_extension_repos,
                             icon = Icons.Outlined.Settings,
-                            onClick = { navigator.push(MangaExtensionReposScreen()) },
+                            onClick = { navigator.push(reposScreen) },
                         ),
                     ),
                 )
@@ -205,10 +209,13 @@ private fun ExtensionContent(
                 items = items,
                 contentType = { "item" },
                 key = { item ->
+                    // Key by the stable, unique package name. Using item.hashCode() was fragile:
+                    // it changes while an extension is installing (installStep is part of the hash)
+                    // and can collide, which crashed the list with "key was already used".
                     when (item.extension) {
-                        is MangaExtension.Untrusted -> "extension-untrusted-${item.hashCode()}"
-                        is MangaExtension.Installed -> "extension-installed-${item.hashCode()}"
-                        is MangaExtension.Available -> "extension-available-${item.hashCode()}"
+                        is MangaExtension.Untrusted -> "extension-untrusted-${item.extension.pkgName}"
+                        is MangaExtension.Installed -> "extension-installed-${item.extension.pkgName}"
+                        is MangaExtension.Available -> "extension-available-${item.extension.pkgName}"
                     }
                 },
             ) { item ->

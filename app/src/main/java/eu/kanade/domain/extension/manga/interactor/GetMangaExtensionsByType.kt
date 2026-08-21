@@ -52,6 +52,9 @@ class GetMangaExtensionsByType(
                             )
                         }
                 }
+                // Guard against repos that expose duplicate source ids (seen with some novel repos):
+                // two entries sharing the synthetic "pkg-id" would produce a duplicate list key.
+                .distinctBy { it.pkgName }
                 .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
 
             MangaExtensions(updates, installed, available, untrusted)

@@ -34,9 +34,9 @@ fun novelExtensionsTab(screenModel: MangaExtensionsScreenModel): TabContent {
         extensionsScreenModel = screenModel,
         titleRes = AYMR.strings.label_novel_extensions,
         reposScreen = NovelExtensionReposScreen(),
-        // TODO: novel search needs a 3rd query slot in TabbedScreen (the anime/manga % 2 mapping);
-        //  disabled for now to avoid feeding the novel search into the manga model.
-        searchEnabled = false,
+        // The tab now carries its own search binding (see TabContent.onChangeSearchQuery), so the
+        // novel search stays on the novel model regardless of tab position.
+        searchEnabled = true,
     )
 }
 

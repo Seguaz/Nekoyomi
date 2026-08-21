@@ -18,6 +18,7 @@ import mihon.domain.extensionrepo.manga.interactor.UpdateMangaExtensionRepo
 import mihon.domain.extensionrepo.model.ExtensionRepo
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.aniyomi.AYMR
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
@@ -119,6 +120,7 @@ sealed class RepoEvent {
     sealed class LocalizedMessage(val stringRes: StringResource) : RepoEvent()
     data object InvalidUrl : LocalizedMessage(MR.strings.invalid_repo_name)
     data object RepoAlreadyExists : LocalizedMessage(MR.strings.error_repo_exists)
+    data object IncompatibleFormat : LocalizedMessage(AYMR.strings.error_repo_incompatible_format)
 }
 
 sealed class RepoDialog {

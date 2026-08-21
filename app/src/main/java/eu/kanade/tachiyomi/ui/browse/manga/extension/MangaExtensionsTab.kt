@@ -44,6 +44,9 @@ fun mangaExtensionsTab(
         titleRes = titleRes,
         badgeNumber = state.updates.takeIf { it > 0 },
         searchEnabled = searchEnabled,
+        // Own search binding so the query follows this tab's model regardless of tab position.
+        searchQuery = state.searchQuery,
+        onChangeSearchQuery = extensionsScreenModel::search,
         actions = persistentListOf(
             AppBar.OverflowAction(
                 title = stringResource(MR.strings.action_filter),
@@ -92,6 +95,7 @@ fun mangaExtensionsTab(
                 onUninstallExtension = { extensionsScreenModel.uninstallExtension(it) },
                 onUpdateExtension = extensionsScreenModel::updateExtension,
                 onRefresh = extensionsScreenModel::findAvailableExtensions,
+                reposScreen = reposScreen,
             )
 
             privateExtensionToUninstall?.let { extension ->

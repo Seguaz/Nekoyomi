@@ -60,11 +60,11 @@ data object BrowseTab : Tab {
     private val switchToTabNumberChannel = Channel<Int>(1, BufferOverflow.DROP_OLDEST)
 
     fun showExtension() {
-        switchToTabNumberChannel.trySend(3) // Manga extensions: tab no. 3
+        switchToTabNumberChannel.trySend(4) // Manga extensions: tab no. 4
     }
 
     fun showAnimeExtension() {
-        switchToTabNumberChannel.trySend(2) // Anime extensions: tab no. 2
+        switchToTabNumberChannel.trySend(3) // Anime extensions: tab no. 3
     }
 
     @Composable
@@ -85,16 +85,16 @@ data object BrowseTab : Tab {
         val animeExtensionsScreenModel = rememberScreenModel { AnimeExtensionsScreenModel() }
         val animeExtensionsState by animeExtensionsScreenModel.state.collectAsState()
 
-        // Order: sources & extensions grouped by type (anime, manga, novel), then all migration tabs.
-        // The anime/manga search-query parity (currentPage % 2 in TabbedScreen) is preserved because
-        // anime tabs stay on even indices and manga tabs on odd ones; the two novel tabs (a pair) keep
-        // that alignment intact.
+        // Order grouped by function: all Sources, then all Extensions, then all Migrate (each in
+        // anime/manga/novel order). The extension tabs carry their own search binding (see
+        // TabContent.onChangeSearchQuery), so this order no longer depends on the legacy
+        // currentPage % 2 parity in TabbedScreen.
         val tabs = persistentListOf(
             animeSourcesTab(),
             mangaSourcesTab(),
+            novelSourcesTab(),
             animeExtensionsTab(animeExtensionsScreenModel),
             mangaExtensionsTab(mangaExtensionsScreenModel),
-            novelSourcesTab(),
             novelExtensionsTab(novelExtensionsScreenModel),
             migrateAnimeSourceTab(),
             migrateMangaSourceTab(),

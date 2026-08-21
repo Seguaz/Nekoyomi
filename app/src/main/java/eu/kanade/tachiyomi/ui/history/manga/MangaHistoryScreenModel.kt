@@ -8,6 +8,7 @@ import eu.kanade.core.util.insertSeparators
 import eu.kanade.domain.entries.manga.interactor.UpdateManga
 import eu.kanade.domain.track.manga.interactor.AddMangaTracks
 import eu.kanade.presentation.history.manga.MangaHistoryUiModel
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import eu.kanade.tachiyomi.util.lang.toLocalDate
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
@@ -185,7 +186,11 @@ class MangaHistoryScreenModel(
         screenModelScope.launchIO {
             val manga = getManga.await(mangaId) ?: return@launchIO
 
-            val duplicate = getDuplicateLibraryManga.await(manga).getOrNull(0)
+            val duplicate = getDuplicateLibraryManga.await(manga)
+                .firstOrNull {
+                    NovelSourceCompat.isNovelSource(it.source) ==
+                        NovelSourceCompat.isNovelSource(manga.source)
+                }
             if (duplicate != null) {
                 mutableState.update { it.copy(dialog = Dialog.DuplicateManga(manga, duplicate)) }
                 return@launchIO

@@ -27,6 +27,7 @@ import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.ui.reader.loader.ChapterLoader
 import eu.kanade.tachiyomi.ui.reader.loader.DownloadPageLoader
+import eu.kanade.tachiyomi.ui.reader.loader.TextPageLoader
 import eu.kanade.tachiyomi.ui.reader.model.InsertPage
 import eu.kanade.tachiyomi.ui.reader.model.ReaderChapter
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
@@ -553,7 +554,10 @@ class ReaderViewModel @JvmOverloads constructor(
         if (!incognitoMode && page.status != Page.State.ERROR) {
             readerChapter.chapter.last_page_read = pageIndex
 
-            if (readerChapter.pages?.lastIndex == pageIndex) {
+            // Text (novel) chapters are a single page but many screens of scrolling. Don't mark them
+            // read just for opening/selecting the last page — completion is driven by scrolling to
+            // the end of the text instead (see onNovelChapterReachedEnd).
+            if (readerChapter.pages?.lastIndex == pageIndex && readerChapter.pageLoader !is TextPageLoader) {
                 updateChapterProgressOnComplete(readerChapter)
             }
 
@@ -564,6 +568,29 @@ class ReaderViewModel @JvmOverloads constructor(
                     lastPageRead = readerChapter.chapter.last_page_read.toLong(),
                 ),
             )
+        }
+    }
+
+    /**
+     * Called by the text (novel) viewer when the reader reaches the end of a section's text (either
+     * scrolled to the bottom or the whole section fits on screen). Marks the chapter read only when
+     * it's the last section, so novels are completed by reaching the end of the text rather than by
+     * merely opening the single-page chapter.
+     */
+    fun onNovelChapterReachedEnd(page: ReaderPage) {
+        val readerChapter = page.chapter
+        if (readerChapter.pages?.lastIndex != page.index) return
+        viewModelScope.launchNonCancellable {
+            if (!incognitoMode && page.status != Page.State.ERROR && !readerChapter.chapter.read) {
+                updateChapterProgressOnComplete(readerChapter)
+                updateChapter.await(
+                    ChapterUpdate(
+                        id = readerChapter.chapter.id!!,
+                        read = readerChapter.chapter.read,
+                        lastPageRead = readerChapter.chapter.last_page_read.toLong(),
+                    ),
+                )
+            }
         }
     }
 

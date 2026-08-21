@@ -203,10 +203,13 @@ private fun AnimeExtensionContent(
                 items = items,
                 contentType = { "item" },
                 key = { item ->
+                    // Key by the stable, unique package name. Using item.hashCode() was fragile:
+                    // it changes while an extension is installing (installStep is part of the hash)
+                    // and can collide, which crashed the list with "key was already used".
                     when (item.extension) {
-                        is AnimeExtension.Untrusted -> "extension-untrusted-${item.hashCode()}"
-                        is AnimeExtension.Installed -> "extension-installed-${item.hashCode()}"
-                        is AnimeExtension.Available -> "extension-available-${item.hashCode()}"
+                        is AnimeExtension.Untrusted -> "extension-untrusted-${item.extension.pkgName}"
+                        is AnimeExtension.Installed -> "extension-installed-${item.extension.pkgName}"
+                        is AnimeExtension.Available -> "extension-available-${item.extension.pkgName}"
                     }
                 },
             ) { item ->

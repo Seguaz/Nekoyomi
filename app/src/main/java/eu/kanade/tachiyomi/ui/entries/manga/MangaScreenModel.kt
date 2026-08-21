@@ -383,7 +383,12 @@ class MangaScreenModel(
                 // Add to library
                 // First, check if duplicate exists if callback is provided
                 if (checkDuplicate) {
-                    val duplicate = getDuplicateLibraryManga.await(manga).getOrNull(0)
+                    // Same-media-type only: a novel and a manga sharing a title must not clash.
+                    val duplicate = getDuplicateLibraryManga.await(manga)
+                        .firstOrNull {
+                            NovelSourceCompat.isNovelSource(it.source) ==
+                                NovelSourceCompat.isNovelSource(manga.source)
+                        }
 
                     if (duplicate != null) {
                         updateSuccessState {

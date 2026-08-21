@@ -52,6 +52,9 @@ class GetAnimeExtensionsByType(
                             )
                         }
                 }
+                // Guard against repos that expose duplicate source ids: two entries sharing the
+                // synthetic "pkg-id" would produce a duplicate list key and crash the extensions list.
+                .distinctBy { it.pkgName }
                 .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
 
             AnimeExtensions(updates, installed, available, untrusted)

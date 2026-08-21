@@ -514,6 +514,7 @@
     <string name="label_novel_sources">Fuentes de novela</string>
     <string name="label_novel_extensions">Extensiones de novela</string>
     <string name="label_novel_extension_repos">Repos de extensiones de novela</string>
+    <string name="error_repo_incompatible_format">Esto parece un repo de Mangayomi/LNReader. Usan un formato JavaScript/Dart que no es compatible. Añade un repo en formato tsundoku / NovelSourcery.</string>
     <string name="pref_novel_text_size">Tamaño del texto</string>
     <string name="pref_novel_font">Fuente</string>
     <string name="pref_novel_line_height">Interlineado</string>

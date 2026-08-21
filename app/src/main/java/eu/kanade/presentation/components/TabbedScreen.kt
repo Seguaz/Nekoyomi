@@ -53,15 +53,25 @@ fun TabbedScreen(
                 val tab = tabs[state.currentPage]
                 val searchEnabled = tab.searchEnabled
 
-                val actualQuery = when (state.currentPage % 2) {
-                    1 -> mangaSearchQuery // History and Browse
-                    else -> animeSearchQuery
+                // A tab can carry its own search binding. When it does, use it; otherwise fall back
+                // to the legacy anime(even)/manga(odd) selection by page parity (still used by
+                // History). Per-tab bindings are needed once novels add a 3rd media type that breaks
+                // the even/odd assumption.
+                val hasOwnSearch = tab.onChangeSearchQuery != null
+                val actualQuery = if (hasOwnSearch) {
+                    tab.searchQuery
+                } else {
+                    when (state.currentPage % 2) {
+                        1 -> mangaSearchQuery
+                        else -> animeSearchQuery
+                    }
                 }
 
-                val actualOnChange = when (state.currentPage % 2) {
-                    1 -> onChangeMangaSearchQuery // History and Browse
-                    else -> onChangeAnimeSearchQuery
-                }
+                val actualOnChange = tab.onChangeSearchQuery
+                    ?: when (state.currentPage % 2) {
+                        1 -> onChangeMangaSearchQuery
+                        else -> onChangeAnimeSearchQuery
+                    }
 
                 SearchToolbar(
                     titleContent = {
@@ -134,6 +144,10 @@ data class TabContent(
     val numberTitle: Int = 0,
     val cancelAction: () -> Unit = {},
     val navigateUp: (() -> Unit)? = null,
+    // Optional per-tab search binding. When set it takes precedence over the legacy anime/manga
+    // (currentPage % 2) selection, so a tab manages its own search regardless of its position.
+    val searchQuery: String? = null,
+    val onChangeSearchQuery: ((String?) -> Unit)? = null,
 )
 
 @Composable

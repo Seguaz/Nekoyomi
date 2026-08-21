@@ -48,6 +48,10 @@ class NovelExtensionReposScreenModel(
                 _events.send(RepoEvent.InvalidUrl)
                 return@launchIO
             }
+            if (url.isIncompatibleNovelRepo()) {
+                _events.send(RepoEvent.IncompatibleFormat)
+                return@launchIO
+            }
             if (url in preferences.novelExtensionRepos().get()) {
                 _events.send(RepoEvent.RepoAlreadyExists)
                 return@launchIO
@@ -97,6 +101,20 @@ class NovelExtensionReposScreenModel(
         .removeSuffix("/index.json")
         .removeSuffix("/index.pb")
         .trimEnd('/')
+
+    /**
+     * Detects the popular Mangayomi / LNReader novel repos users keep trying to add. Those are
+     * JavaScript/Dart plugin repos for a different app and can never work here (this app runs
+     * compiled Kotlin extensions), so we reject them upfront with a clear message instead of adding
+     * an empty repo. tsundoku / NovelSourcery repos (index.min.json / index.pb) are unaffected.
+     */
+    private fun String.isIncompatibleNovelRepo(): Boolean {
+        val u = lowercase()
+        return "mangayomi-extensions" in u ||
+            "lnreader" in u ||
+            "novel_index.json" in u ||
+            "plugins.min.json" in u
+    }
 
     private fun String.toRepoShim() = ExtensionRepo(
         baseUrl = this,

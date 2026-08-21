@@ -719,6 +719,14 @@ class ReaderActivity : BaseActivity() {
     }
 
     /**
+     * Called from the text (novel) viewer when the reader reaches the end of a section's text, so
+     * the chapter is marked read on finishing the text rather than on opening it.
+     */
+    fun onTextPageReachedEnd(page: ReaderPage) {
+        viewModel.onNovelChapterReachedEnd(page)
+    }
+
+    /**
      * Called from the viewer whenever a [page] is long clicked. A bottom sheet with a list of
      * actions to perform is shown.
      */

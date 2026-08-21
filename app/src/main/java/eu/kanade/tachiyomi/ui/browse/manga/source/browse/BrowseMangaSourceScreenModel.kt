@@ -357,7 +357,10 @@ class BrowseMangaSourceScreenModel(
     }
 
     suspend fun getDuplicateLibraryManga(manga: Manga): Manga? {
-        return getDuplicateLibraryManga.await(manga).getOrNull(0)
+        // Only treat same-media-type entries as duplicates. Novels and manga share the mangas
+        // table, so a novel and a manga with the same title must not prompt to migrate each other.
+        return getDuplicateLibraryManga.await(manga)
+            .firstOrNull { NovelSourceCompat.isNovelSource(it.source) == isNovel }
     }
 
     /**

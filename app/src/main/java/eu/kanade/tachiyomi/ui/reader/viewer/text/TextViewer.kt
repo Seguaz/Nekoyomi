@@ -141,6 +141,17 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
         pages.getOrNull(position)?.let(activity::onPageSelected)
     }
 
+    /**
+     * Reports that the reader reached the end of a section's text. Guarded to the section actually
+     * on screen because the RecyclerView may lay out neighbouring sections off-screen.
+     */
+    private fun onPageReachedEnd(page: ReaderPage) {
+        val snapView = snapHelper.findSnapView(layoutManager) ?: return
+        if (pages.getOrNull(layoutManager.getPosition(snapView)) == page) {
+            activity.onTextPageReachedEnd(page)
+        }
+    }
+
     private fun currentStyle() = NovelStyle(
         fontFamily = when (readerPreferences.novelFontFamily().get()) {
             1 -> "sans-serif"
@@ -178,7 +189,7 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
         }
 
         override fun onBindViewHolder(holder: TextPageHolder, position: Int) {
-            holder.bind(pages[position], textScale, style, scope)
+            holder.bind(pages[position], textScale, style, scope, ::onPageReachedEnd)
         }
 
         override fun onViewRecycled(holder: TextPageHolder) {
@@ -193,16 +204,25 @@ private class TextPageHolder(
 
     private var job: Job? = null
 
-    fun bind(page: ReaderPage, textScale: Int, style: NovelStyle, scope: CoroutineScope) {
+    fun bind(
+        page: ReaderPage,
+        textScale: Int,
+        style: NovelStyle,
+        scope: CoroutineScope,
+        onReachedEnd: (ReaderPage) -> Unit,
+    ) {
         job?.cancel()
         webView.setTextScale(textScale)
+        webView.onReachedBottom = { onReachedEnd(page) }
         val loader = page.chapter.pageLoader as? TextPageLoader
         if (loader == null) {
-            webView.load("", style)
+            webView.load("", style, trackReading = false)
             return
         }
-        // Show a placeholder, then load the (possibly network-fetched) text.
-        webView.load("<p style=\"opacity:0.5\">…</p>", style)
+        // Show a placeholder (not tracked), then load the (possibly network-fetched) text and only
+        // then arm end-of-text tracking — and only when there's actual text, so a failed/empty fetch
+        // isn't counted as read.
+        webView.load("<p style=\"opacity:0.5\">…</p>", style, trackReading = false)
         job = scope.launch {
             val html = try {
                 withIOContext { loader.getPageText(page) }
@@ -211,7 +231,12 @@ private class TextPageHolder(
                 logcat(LogPriority.ERROR, e) { "TextViewer: failed to load page text" }
                 ""
             }
-            webView.load(html.ifBlank { "<p style=\"opacity:0.5\">(empty)</p>" }, style)
+            val hasText = html.isNotBlank()
+            webView.load(
+                html.ifBlank { "<p style=\"opacity:0.5\">(empty)</p>" },
+                style,
+                trackReading = hasText,
+            )
         }
     }
 

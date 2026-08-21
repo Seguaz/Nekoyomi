@@ -85,6 +85,7 @@
     <string name="label_novel_sources">Novel sources</string>
     <string name="label_novel_extensions">Novel extensions</string>
     <string name="label_novel_extension_repos">Novel extension repos</string>
+    <string name="error_repo_incompatible_format">This looks like a Mangayomi/LNReader repo. Those use a JavaScript/Dart format that isn\'t compatible. Add a repo in the tsundoku / NovelSourcery format instead.</string>
     <string name="pref_novel_text_size">Text size</string>
     <string name="pref_novel_font">Font</string>
     <string name="pref_novel_line_height">Line spacing</string>
