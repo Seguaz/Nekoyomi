@@ -34,6 +34,7 @@ import eu.kanade.tachiyomi.extension.manga.util.MangaExtensionLoader
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.source.manga.model.Source
 import tachiyomi.source.local.entries.manga.LocalMangaSource
+import tachiyomi.source.local.entries.novel.LocalNovelSource
 
 private val defaultModifier = Modifier
     .height(40.dp)
@@ -62,7 +63,7 @@ fun MangaSourceIcon(
                 modifier = modifier.then(defaultModifier),
             )
         }
-        source.id == LocalMangaSource.ID -> {
+        source.id == LocalMangaSource.ID || source.id == LocalNovelSource.ID -> {
             Image(
                 painter = painterResource(R.mipmap.ic_local_source),
                 contentDescription = null,

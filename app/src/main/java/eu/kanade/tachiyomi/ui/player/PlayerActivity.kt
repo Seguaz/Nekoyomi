@@ -785,11 +785,14 @@ class PlayerActivity : BaseActivity() {
             ),
         )
         builder.setSourceRectHint(pipRect)
-        player.videoH?.let {
-            val height = it
-            val width = it * player.getVideoOutAspect()!!
-            val rational = Rational(height, width.toInt()).toFloat()
-            if (rational in 0.42..2.38) builder.setAspectRatio(Rational(width.toInt(), height))
+        val videoH = player.videoH
+        // getVideoOutAspect() is null until MPV has loaded the file and reported video-params, which
+        // can happen after onStart() first builds the PiP params. Skip the aspect ratio until then.
+        val aspect = player.getVideoOutAspect()
+        if (videoH != null && aspect != null) {
+            val width = videoH * aspect
+            val rational = Rational(videoH, width.toInt()).toFloat()
+            if (rational in 0.42..2.38) builder.setAspectRatio(Rational(width.toInt(), videoH))
         }
         return builder.build()
     }

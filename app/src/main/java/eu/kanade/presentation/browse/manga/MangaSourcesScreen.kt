@@ -38,6 +38,7 @@ import tachiyomi.presentation.core.screens.LoadingScreen
 import tachiyomi.presentation.core.theme.header
 import tachiyomi.presentation.core.util.plus
 import tachiyomi.source.local.entries.manga.LocalMangaSource
+import tachiyomi.source.local.entries.novel.LocalNovelSource
 
 @Composable
 fun MangaSourcesScreen(
@@ -189,7 +190,7 @@ fun MangaSourceOptionsDialog(
                         .fillMaxWidth()
                         .padding(vertical = 16.dp),
                 )
-                if (source.id != LocalMangaSource.ID) {
+                if (source.id != LocalMangaSource.ID && source.id != LocalNovelSource.ID) {
                     Text(
                         text = stringResource(MR.strings.action_disable),
                         modifier = Modifier

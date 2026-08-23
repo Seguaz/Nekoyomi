@@ -9,6 +9,7 @@ import tachiyomi.domain.source.manga.model.Pins
 import tachiyomi.domain.source.manga.model.Source
 import tachiyomi.domain.source.manga.repository.MangaSourceRepository
 import tachiyomi.source.local.entries.manga.LocalMangaSource
+import tachiyomi.source.local.entries.novel.LocalNovelSource
 
 class GetEnabledMangaSources(
     private val repository: MangaSourceRepository,
@@ -29,7 +30,11 @@ class GetEnabledMangaSources(
             repository.getMangaSources(),
         ) { pinnedSourceIds, enabledLanguages, (disabledSources, lastUsedSource, excludedFromDataSaver), sources ->
             sources
-                .filter { it.lang in enabledLanguages || it.id == LocalMangaSource.ID }
+                .filter {
+                    it.lang in enabledLanguages ||
+                        it.id == LocalMangaSource.ID ||
+                        it.id == LocalNovelSource.ID
+                }
                 .filterNot { it.id.toString() in disabledSources }
                 .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
                 .flatMap {

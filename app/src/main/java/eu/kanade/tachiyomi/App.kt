@@ -151,6 +151,12 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE,
                         )
                         setContentIntent(pendingIntent)
+                        // Explicit button so it's obvious the notification turns incognito off on tap.
+                        addAction(
+                            R.drawable.ic_glasses_24dp,
+                            stringResource(MR.strings.action_disable),
+                            pendingIntent,
+                        )
                     }
                 } else {
                     disableIncognitoReceiver.unregister()

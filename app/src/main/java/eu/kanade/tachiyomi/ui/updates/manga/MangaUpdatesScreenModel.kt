@@ -16,6 +16,7 @@ import eu.kanade.tachiyomi.data.download.manga.MangaDownloadCache
 import eu.kanade.tachiyomi.data.download.manga.MangaDownloadManager
 import eu.kanade.tachiyomi.data.download.manga.model.MangaDownload
 import eu.kanade.tachiyomi.data.library.manga.MangaLibraryUpdateJob
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import eu.kanade.tachiyomi.util.lang.toLocalDate
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.mutate
@@ -48,6 +49,9 @@ import uy.kohesive.injekt.api.get
 import java.time.ZonedDateTime
 
 class MangaUpdatesScreenModel(
+    // When true this feed shows only novel updates; when false novels are excluded so they don't
+    // bury manga updates. Novels are manga entries backed by a NovelSource.
+    private val novelOnly: Boolean = false,
     private val sourceManager: MangaSourceManager = Injekt.get(),
     private val downloadManager: MangaDownloadManager = Injekt.get(),
     private val downloadCache: MangaDownloadCache = Injekt.get(),
@@ -78,7 +82,9 @@ class MangaUpdatesScreenModel(
                 getUpdates.subscribe(limit).distinctUntilChanged(),
                 downloadCache.changes,
                 downloadManager.queueState,
-            ) { updates, _, _ -> updates }
+            ) { updates, _, _ ->
+                updates.filter { NovelSourceCompat.isNovelSource(it.sourceId) == novelOnly }
+            }
                 .catch {
                     logcat(LogPriority.ERROR, it)
                     _events.send(Event.InternalError)

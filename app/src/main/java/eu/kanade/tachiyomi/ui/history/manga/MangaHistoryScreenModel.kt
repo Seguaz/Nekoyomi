@@ -49,6 +49,9 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
 class MangaHistoryScreenModel(
+    // When true this feed shows only novel history; when false novels are excluded so they don't
+    // clutter the manga history. Novels are manga entries backed by a NovelSource.
+    private val novelOnly: Boolean = false,
     private val addTracks: AddMangaTracks = Injekt.get(),
     private val getCategories: GetMangaCategories = Injekt.get(),
     private val getDuplicateLibraryManga: GetDuplicateLibraryManga = Injekt.get(),
@@ -92,7 +95,8 @@ class MangaHistoryScreenModel(
     }
 
     private fun List<MangaHistoryWithRelations>.toHistoryUiModels(): List<MangaHistoryUiModel> {
-        return map { MangaHistoryUiModel.Item(it) }
+        return filter { NovelSourceCompat.isNovelSource(it.coverData.sourceId) == novelOnly }
+            .map { MangaHistoryUiModel.Item(it) }
             .insertSeparators { before, after ->
                 val beforeDate = before?.item?.readAt?.time?.toLocalDate()
                 val afterDate = after?.item?.readAt?.time?.toLocalDate()

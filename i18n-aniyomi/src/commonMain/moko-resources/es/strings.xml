@@ -215,7 +215,9 @@
     <string name="trackers_updated_summary_anime">Rastreadores actualizados al episodio %d</string>
     <string name="download_notifier_download_finish">Descarga finalizada</string>
     <string name="action_hide">Ocultar</string>
+    <string name="action_show">Mostrar</string>
     <string name="action_auto_hide_category">Auto-ocultar al cerrar la app (privada)</string>
+    <string name="action_dont_auto_hide_category">No auto-ocultar al cerrar la app (privada)</string>
     <string name="action_category_reading_mode">Modo de lectura por defecto de esta categoría</string>
     <string name="category_reading_mode_title">Modo de lectura para \"%1$s\"</string>
     <string name="label_all">Todo</string>
@@ -375,6 +377,7 @@
     <string name="downloaded_episodes">Episodios descargados</string>
     <string name="local_manga_source">Fuente local de manga</string>
     <string name="local_anime_source">Fuente local de anime</string>
+    <string name="local_novel_source">Fuente local de novelas</string>
     <string name="episode_not_found">Episodio no encontrado</string>
     <string name="local_invalid_episode_format">Formato de episodio no válido</string>
     <string name="unknown_studio">Estudio desconocido</string>

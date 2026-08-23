@@ -47,13 +47,35 @@ data object UpdatesTab : Tab {
     @Composable
     override fun Content() {
         val context = LocalContext.current
-        val fromMore = NavTab.Updates.prefKey !in currentBottomNavTabs()
+        val enabledTabs = currentBottomNavTabs()
+        val fromMore = NavTab.Updates.prefKey !in enabledTabs
+        // Show a dedicated "Novels" updates feed (novels are excluded from the manga one) when the
+        // user actually uses novels, i.e. has the Novel tab enabled.
+        val showNovel = NavTab.Novel.prefKey in enabledTabs
         val mode = remember { Injekt.get<UiPreferences>() }.homeTabsMode().get()
 
         val tabs = when (mode) {
             HomeTabsMode.ANIME_ONLY -> persistentListOf(animeUpdatesTab(context, fromMore))
-            HomeTabsMode.MANGA_ONLY -> persistentListOf(mangaUpdatesTab(context, fromMore))
-            else -> persistentListOf(animeUpdatesTab(context, fromMore), mangaUpdatesTab(context, fromMore))
+            HomeTabsMode.MANGA_ONLY -> if (showNovel) {
+                persistentListOf(
+                    mangaUpdatesTab(context, fromMore),
+                    mangaUpdatesTab(context, fromMore, novelOnly = true),
+                )
+            } else {
+                persistentListOf(mangaUpdatesTab(context, fromMore))
+            }
+            else -> if (showNovel) {
+                persistentListOf(
+                    animeUpdatesTab(context, fromMore),
+                    mangaUpdatesTab(context, fromMore),
+                    mangaUpdatesTab(context, fromMore, novelOnly = true),
+                )
+            } else {
+                persistentListOf(
+                    animeUpdatesTab(context, fromMore),
+                    mangaUpdatesTab(context, fromMore),
+                )
+            }
         }
 
         TabbedScreen(

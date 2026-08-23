@@ -15,13 +15,15 @@ import kotlinx.coroutines.flow.collectLatest
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.screens.LoadingScreen
 
-class MangaExtensionFilterScreen : Screen() {
+class MangaExtensionFilterScreen(
+    private val novelOnly: Boolean = false,
+) : Screen() {
 
     @Composable
     override fun Content() {
         val context = LocalContext.current
         val navigator = LocalNavigator.currentOrThrow
-        val screenModel = rememberScreenModel { MangaExtensionFilterScreenModel() }
+        val screenModel = rememberScreenModel { MangaExtensionFilterScreenModel(novelOnly = novelOnly) }
         val state by screenModel.state.collectAsState()
 
         if (state is MangaExtensionFilterState.Loading) {

@@ -36,6 +36,7 @@ import tachiyomi.domain.entries.manga.model.Manga
 import tachiyomi.domain.items.chapter.service.ChapterRecognition
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
+import tachiyomi.source.local.entries.novel.LocalNovelSource
 import tachiyomi.source.local.filter.manga.MangaOrderBy
 import tachiyomi.source.local.image.manga.LocalMangaCoverManager
 import tachiyomi.source.local.io.ArchiveManga
@@ -382,6 +383,8 @@ actual class LocalMangaSource(
     }
 }
 
-fun Manga.isLocal(): Boolean = source == LocalMangaSource.ID
+// Local novels (LocalNovelSource) are backed by the same machinery and must behave as local too
+// (no online updates, editable info, read from disk), so treat their id as local as well.
+fun Manga.isLocal(): Boolean = source == LocalMangaSource.ID || source == LocalNovelSource.ID
 
-fun MangaSource.isLocal(): Boolean = id == LocalMangaSource.ID
+fun MangaSource.isLocal(): Boolean = id == LocalMangaSource.ID || id == LocalNovelSource.ID

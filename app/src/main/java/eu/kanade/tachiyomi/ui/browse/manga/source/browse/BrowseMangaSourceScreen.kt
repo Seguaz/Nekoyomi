@@ -66,6 +66,7 @@ import eu.kanade.tachiyomi.ui.entries.manga.MangaScreen
 import eu.kanade.tachiyomi.ui.webview.WebViewScreen
 import eu.kanade.tachiyomi.util.storage.ImportResult
 import eu.kanade.tachiyomi.util.storage.LocalSourceImporter
+import eu.kanade.tachiyomi.util.storage.LocalSourceType
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -80,6 +81,7 @@ import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.screens.LoadingScreen
 import tachiyomi.source.local.entries.manga.LocalMangaSource
+import tachiyomi.source.local.entries.novel.LocalNovelSource
 
 data class BrowseMangaSourceScreen(
     val sourceId: Long,
@@ -137,7 +139,12 @@ data class BrowseMangaSourceScreen(
 
         // In-app import into the local source (pick chapter files/archives or a folder).
         val context = LocalContext.current
-        val isLocalSource = screenModel.source is LocalMangaSource
+        val isLocalSource = screenModel.source is LocalMangaSource || screenModel.source is LocalNovelSource
+        val localType = if (screenModel.source is LocalNovelSource) {
+            LocalSourceType.NOVEL
+        } else {
+            LocalSourceType.MANGA
+        }
         val importer = remember { LocalSourceImporter(context) }
         var showImportDialog by remember { mutableStateOf(false) }
         var importTitle by remember { mutableStateOf("") }
@@ -147,7 +154,7 @@ data class BrowseMangaSourceScreen(
             ActivityResultContracts.OpenMultipleDocuments(),
         ) { uris ->
             val picked = uris.mapNotNull { UniFile.fromUri(context, it) }
-            importSources.addAll(LocalSourceImporter.filterSupported(picked, isAnime = false))
+            importSources.addAll(LocalSourceImporter.filterSupported(picked, localType))
         }
         val importFolderPicker = rememberLauncherForActivityResult(
             ActivityResultContracts.OpenDocumentTree(),
@@ -157,7 +164,7 @@ data class BrowseMangaSourceScreen(
                 // Add the folder's children (files and chapter subfolders); the importer recurses
                 // into subfolders, so they're copied directly under the entry (no extra nesting).
                 importSources.addAll(
-                    LocalSourceImporter.filterImportable(tree.listFiles().orEmpty().toList(), isAnime = false),
+                    LocalSourceImporter.filterImportable(tree.listFiles().orEmpty().toList(), localType),
                 )
                 if (importTitle.isBlank()) importTitle = tree.name.orEmpty()
             }
@@ -358,7 +365,7 @@ data class BrowseMangaSourceScreen(
                     onDismissRequest = onDismissRequest,
                     onConfirm = {
                         scope.launchIO {
-                            importer.delete(isAnime = false, url = dialog.manga.url)
+                            importer.delete(localType, url = dialog.manga.url)
                             screenModel.deleteCachedLocalEntry(dialog.manga.id)
                             withUIContext { mangaList.refresh() }
                         }
@@ -396,7 +403,7 @@ data class BrowseMangaSourceScreen(
                     val title = importTitle
                     val sources = importSources.toList()
                     scope.launchIO {
-                        val result = importer.import(isAnime = false, title = title, sources = sources)
+                        val result = importer.import(localType, title = title, sources = sources)
                         withUIContext {
                             importing = false
                             resetImport()

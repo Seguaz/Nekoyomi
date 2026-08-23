@@ -50,7 +50,7 @@ fun Screen.mangaSourcesTab(
             AppBar.Action(
                 title = stringResource(MR.strings.action_filter),
                 icon = Icons.Outlined.FilterList,
-                onClick = { navigator.push(MangaSourcesFilterScreen()) },
+                onClick = { navigator.push(MangaSourcesFilterScreen(novelOnly = novelOnly)) },
             ),
         ),
         content = { contentPadding, snackbarHostState ->

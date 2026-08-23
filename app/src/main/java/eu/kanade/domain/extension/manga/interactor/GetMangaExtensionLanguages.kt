@@ -10,12 +10,13 @@ class GetMangaExtensionLanguages(
     private val preferences: SourcePreferences,
     private val extensionManager: MangaExtensionManager,
 ) {
-    fun subscribe(): Flow<List<String>> {
+    fun subscribe(packageFilter: (String) -> Boolean = { true }): Flow<List<String>> {
         return combine(
             preferences.enabledLanguages().changes(),
             extensionManager.availableExtensionsFlow,
         ) { enabledLanguage, availableExtensions ->
             availableExtensions
+                .filter { packageFilter(it.pkgName) }
                 .flatMap { ext ->
                     if (ext.sources.isEmpty()) {
                         listOf(ext.lang)

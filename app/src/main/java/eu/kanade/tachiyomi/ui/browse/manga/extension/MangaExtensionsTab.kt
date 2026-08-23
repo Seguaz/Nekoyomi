@@ -33,6 +33,8 @@ fun mangaExtensionsTab(
     titleRes: StringResource = AYMR.strings.label_manga_extensions,
     reposScreen: Screen = MangaExtensionReposScreen(),
     searchEnabled: Boolean = true,
+    // When true this is the Novel extensions tab, so the language filter scopes to novel extensions.
+    novelOnly: Boolean = false,
 ): TabContent {
     val navigator = LocalNavigator.currentOrThrow
     val context = LocalContext.current
@@ -50,7 +52,7 @@ fun mangaExtensionsTab(
         actions = persistentListOf(
             AppBar.OverflowAction(
                 title = stringResource(MR.strings.action_filter),
-                onClick = { navigator.push(MangaExtensionFilterScreen()) },
+                onClick = { navigator.push(MangaExtensionFilterScreen(novelOnly = novelOnly)) },
             ),
             AppBar.OverflowAction(
                 title = stringResource(MR.strings.label_extension_repos),

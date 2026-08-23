@@ -53,7 +53,11 @@ data object HistoriesTab : Tab {
     @Composable
     override fun Content() {
         val context = LocalContext.current
-        val fromMore = NavTab.History.prefKey !in currentBottomNavTabs()
+        val enabledTabs = currentBottomNavTabs()
+        val fromMore = NavTab.History.prefKey !in enabledTabs
+        // Show a dedicated "Novels" history feed (novels are excluded from the manga one) when the
+        // user actually uses novels, i.e. has the Novel tab enabled.
+        val showNovel = NavTab.Novel.prefKey in enabledTabs
         val mode = remember { Injekt.get<UiPreferences>() }.homeTabsMode().get()
         // Hoisted for history tab's search bar
         val mangaHistoryScreenModel = rememberScreenModel { MangaHistoryScreenModel() }
@@ -64,8 +68,26 @@ data object HistoriesTab : Tab {
 
         val tabs = when (mode) {
             HomeTabsMode.ANIME_ONLY -> persistentListOf(animeHistoryTab(context, fromMore))
-            HomeTabsMode.MANGA_ONLY -> persistentListOf(mangaHistoryTab(context, fromMore))
-            else -> persistentListOf(animeHistoryTab(context, fromMore), mangaHistoryTab(context, fromMore))
+            HomeTabsMode.MANGA_ONLY -> if (showNovel) {
+                persistentListOf(
+                    mangaHistoryTab(context, fromMore),
+                    mangaHistoryTab(context, fromMore, novelOnly = true),
+                )
+            } else {
+                persistentListOf(mangaHistoryTab(context, fromMore))
+            }
+            else -> if (showNovel) {
+                persistentListOf(
+                    animeHistoryTab(context, fromMore),
+                    mangaHistoryTab(context, fromMore),
+                    mangaHistoryTab(context, fromMore, novelOnly = true),
+                )
+            } else {
+                persistentListOf(
+                    animeHistoryTab(context, fromMore),
+                    mangaHistoryTab(context, fromMore),
+                )
+            }
         }
         // TabbedScreen maps the search query by currentPage % 2 (anime = even). A lone manga tab sits at
         // index 0 (even), so feed the manga query into the anime slot there so its search still works.

@@ -21,6 +21,9 @@ import tachiyomi.domain.source.manga.model.StubMangaSource
 import tachiyomi.domain.source.manga.repository.MangaStubSourceRepository
 import tachiyomi.domain.source.manga.service.MangaSourceManager
 import tachiyomi.source.local.entries.manga.LocalMangaSource
+import tachiyomi.source.local.entries.novel.LocalNovelSource
+import tachiyomi.source.local.image.manga.LocalMangaCoverManager
+import tachiyomi.source.local.io.manga.LocalMangaSourceFileSystem
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
@@ -51,12 +54,20 @@ class AndroidMangaSourceManager(
         scope.launch {
             extensionManager.installedExtensionsFlow
                 .collectLatest { extensions ->
+                    // A dedicated local novel source, backed by the same machinery pointed at the
+                    // `localnovel` dir, so local epub novels classify as novels instead of manga.
+                    val novelFileSystem = LocalMangaSourceFileSystem(Injekt.get(), novel = true)
                     val mutableMap = ConcurrentHashMap<Long, MangaSource>(
                         mapOf(
                             LocalMangaSource.ID to LocalMangaSource(
                                 context,
                                 Injekt.get(),
                                 Injekt.get(),
+                            ),
+                            LocalNovelSource.ID to LocalNovelSource(
+                                context,
+                                novelFileSystem,
+                                LocalMangaCoverManager(context, novelFileSystem),
                             ),
                         ),
                     )

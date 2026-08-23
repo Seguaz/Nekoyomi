@@ -35,6 +35,7 @@ import tachiyomi.presentation.core.screens.EmptyScreen
 import tachiyomi.presentation.core.screens.EmptyScreenAction
 import tachiyomi.presentation.core.screens.LoadingScreen
 import tachiyomi.source.local.entries.manga.LocalMangaSource
+import tachiyomi.source.local.entries.novel.LocalNovelSource
 
 @Composable
 fun BrowseSourceContent(
@@ -79,7 +80,7 @@ fun BrowseSourceContent(
         EmptyScreen(
             modifier = Modifier.padding(contentPadding),
             message = getErrorMessage(errorState),
-            actions = if (source is LocalMangaSource) {
+            actions = if (source is LocalMangaSource || source is LocalNovelSource) {
                 persistentListOf(
                     EmptyScreenAction(
                         stringRes = MR.strings.local_source_help_guide,

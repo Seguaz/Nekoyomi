@@ -24,6 +24,7 @@ import tachiyomi.domain.library.model.LibraryDisplayMode
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.source.local.entries.manga.LocalMangaSource
+import tachiyomi.source.local.entries.novel.LocalNovelSource
 
 @Composable
 fun BrowseMangaSourceToolbar(
@@ -44,7 +45,7 @@ fun BrowseMangaSourceToolbar(
 ) {
     // Avoid capturing unstable source in actions lambda
     val title = source?.name
-    val isLocalSource = source is LocalMangaSource
+    val isLocalSource = source is LocalMangaSource || source is LocalNovelSource
     val isConfigurableSource = source is ConfigurableSource
 
     var selectingDisplayMode by remember { mutableStateOf(false) }

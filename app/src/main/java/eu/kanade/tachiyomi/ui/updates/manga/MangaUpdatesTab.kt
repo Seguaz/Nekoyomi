@@ -37,9 +37,13 @@ import tachiyomi.presentation.core.i18n.stringResource
 fun Screen.mangaUpdatesTab(
     context: Context,
     fromMore: Boolean,
+    // When true this is the novel-only updates feed shown alongside the manga one.
+    novelOnly: Boolean = false,
 ): TabContent {
     val navigator = LocalNavigator.currentOrThrow
-    val screenModel = rememberScreenModel { MangaUpdatesScreenModel() }
+    val screenModel = rememberScreenModel(tag = "novel-updates".takeIf { novelOnly }) {
+        MangaUpdatesScreenModel(novelOnly = novelOnly)
+    }
     val state by screenModel.state.collectAsState()
 
     val scope = rememberCoroutineScope()
@@ -56,7 +60,7 @@ fun Screen.mangaUpdatesTab(
     }
 
     return TabContent(
-        titleRes = AYMR.strings.label_updates,
+        titleRes = if (novelOnly) AYMR.strings.label_novel else AYMR.strings.label_updates,
         searchEnabled = false,
         content = { contentPadding, _ ->
             MangaUpdateScreen(

@@ -7,6 +7,7 @@ import eu.kanade.domain.source.interactor.ToggleLanguage
 import eu.kanade.domain.source.manga.interactor.GetLanguagesWithMangaSources
 import eu.kanade.domain.source.manga.interactor.ToggleMangaSource
 import eu.kanade.domain.source.service.SourcePreferences
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -18,6 +19,8 @@ import uy.kohesive.injekt.api.get
 import java.util.SortedMap
 
 class MangaSourcesFilterScreenModel(
+    // When true only novel sources are listed; when false novels are excluded (the manga filter).
+    private val novelOnly: Boolean = false,
     private val preferences: SourcePreferences = Injekt.get(),
     private val getLanguagesWithSources: GetLanguagesWithMangaSources = Injekt.get(),
     private val toggleSource: ToggleMangaSource = Injekt.get(),
@@ -27,7 +30,7 @@ class MangaSourcesFilterScreenModel(
     init {
         screenModelScope.launch {
             combine(
-                getLanguagesWithSources.subscribe(),
+                getLanguagesWithSources.subscribe { NovelSourceCompat.isNovelSource(it.id) == novelOnly },
                 preferences.enabledLanguages().changes(),
                 preferences.disabledMangaSources().changes(),
             ) { a, b, c -> Triple(a, b, c) }

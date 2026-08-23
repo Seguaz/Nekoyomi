@@ -10,6 +10,7 @@ import eu.kanade.domain.source.anime.interactor.ToggleAnimeSourcePin
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.presentation.browse.anime.AnimeSourceUiModel
 import eu.kanade.tachiyomi.util.system.LAST_USED_KEY
+import eu.kanade.tachiyomi.util.system.LOCAL_SOURCE_KEY
 import eu.kanade.tachiyomi.util.system.PINNED_KEY
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -24,6 +25,7 @@ import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.source.anime.model.AnimeSource
 import tachiyomi.domain.source.anime.model.Pin
+import tachiyomi.source.local.entries.anime.LocalAnimeSource
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.util.TreeMap
@@ -55,6 +57,8 @@ class AnimeSourcesScreenModel(
             val map = TreeMap<String, MutableList<AnimeSource>> { d1, d2 ->
                 // Sources without a lang defined will be placed at the end
                 when {
+                    d1 == LOCAL_SOURCE_KEY && d2 != LOCAL_SOURCE_KEY -> -1
+                    d2 == LOCAL_SOURCE_KEY && d1 != LOCAL_SOURCE_KEY -> 1
                     d1 == LAST_USED_KEY && d2 != LAST_USED_KEY -> -1
                     d2 == LAST_USED_KEY && d1 != LAST_USED_KEY -> 1
                     d1 == PINNED_KEY && d2 != PINNED_KEY -> -1
@@ -64,13 +68,20 @@ class AnimeSourcesScreenModel(
                     else -> d1.compareTo(d2)
                 }
             }
-            val byLang = sources.groupByTo(map) {
-                when {
-                    it.isUsedLast -> LAST_USED_KEY
-                    Pin.Actual in it.pin -> PINNED_KEY
-                    else -> it.lang
+            val byLang = sources
+                // The local source has its own section, so drop the duplicate "last used" copy of it
+                // (GetEnabledAnimeSources emits an extra isUsedLast entry) to avoid listing it twice.
+                .filterNot { it.id == LocalAnimeSource.ID && it.isUsedLast }
+                .groupByTo(map) {
+                    when {
+                        // The local source gets its own section at the top instead of being buried in
+                        // the "Other" language group.
+                        it.id == LocalAnimeSource.ID -> LOCAL_SOURCE_KEY
+                        it.isUsedLast -> LAST_USED_KEY
+                        Pin.Actual in it.pin -> PINNED_KEY
+                        else -> it.lang
+                    }
                 }
-            }
 
             state.copy(
                 isLoading = false,

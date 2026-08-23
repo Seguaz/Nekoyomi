@@ -30,7 +30,9 @@ class MigrateMangaSearchScreenModel(
     init {
         extensionFilter = initialExtensionFilter
         screenModelScope.launch {
-            val manga = getManga.await(mangaId)!!
+            // The entry can be gone (deleted/removed from library) by the time this opens; bail out
+            // instead of crashing with an NPE on the missing manga.
+            val manga = getManga.await(mangaId) ?: return@launch
             mutableState.update {
                 it.copy(
                     fromSourceId = manga.source,

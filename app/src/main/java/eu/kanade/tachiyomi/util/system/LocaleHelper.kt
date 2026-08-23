@@ -29,6 +29,7 @@ object LocaleHelper {
      */
     fun getSourceDisplayName(lang: String?, context: Context): String {
         return when (lang) {
+            LOCAL_SOURCE_KEY -> context.stringResource(MR.strings.local_source)
             LAST_USED_KEY -> context.stringResource(MR.strings.last_used_source)
             PINNED_KEY -> context.stringResource(MR.strings.pinned_sources)
             "other" -> context.stringResource(MR.strings.other_source)
@@ -83,3 +84,7 @@ object LocaleHelper {
 
 internal const val PINNED_KEY = "pinned"
 internal const val LAST_USED_KEY = "last_used"
+
+// Groups the local source(s) into their own section, shown above everything else, so novel/local
+// imports aren't buried under the "Other" language group in the manga list.
+internal const val LOCAL_SOURCE_KEY = "__local_source__"

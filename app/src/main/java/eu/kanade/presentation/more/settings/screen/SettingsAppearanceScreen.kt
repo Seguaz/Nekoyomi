@@ -797,16 +797,17 @@ private fun AppIconItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .width(80.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
             .padding(4.dp),
     ) {
+        // Keep the tap target (and its ripple/selection box) tight to the icon instead of spanning
+        // the whole cell, which made the selection box look oversized.
         AsyncImage(
             model = icon.iconRes,
             contentDescription = null,
             modifier = Modifier
                 .size(64.dp)
                 .clip(shape)
+                .clickable(onClick = onClick)
                 .then(
                     if (selected) {
                         Modifier.border(3.dp, MaterialTheme.colorScheme.primary, shape)

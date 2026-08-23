@@ -37,6 +37,8 @@ fun novelExtensionsTab(screenModel: MangaExtensionsScreenModel): TabContent {
         // The tab now carries its own search binding (see TabContent.onChangeSearchQuery), so the
         // novel search stays on the novel model regardless of tab position.
         searchEnabled = true,
+        // Scope the language filter to novel extensions.
+        novelOnly = true,
     )
 }
 

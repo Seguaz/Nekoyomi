@@ -28,6 +28,7 @@ import tachiyomi.domain.source.manga.service.MangaSourceManager
 import tachiyomi.domain.storage.service.StorageManager
 import tachiyomi.i18n.MR
 import tachiyomi.source.local.entries.manga.LocalMangaSource
+import tachiyomi.source.local.entries.novel.LocalNovelSource
 import tachiyomi.source.local.io.ArchiveManga
 import tachiyomi.source.local.io.manga.LocalMangaSourceFileSystem
 import uy.kohesive.injekt.Injekt
@@ -221,9 +222,10 @@ class MangaDownloadManager(
      * @param manga the manga to check.
      */
     fun getDownloadCount(manga: Manga): Int {
-        return if (manga.source == LocalMangaSource.ID) {
-            LocalMangaSourceFileSystem(storageManager).getFilesInMangaDirectory(manga.url)
-                .count { it.isDirectory || ArchiveManga.isSupported(it) }
+        val isNovel = manga.source == LocalNovelSource.ID
+        return if (manga.source == LocalMangaSource.ID || isNovel) {
+            LocalMangaSourceFileSystem(storageManager, novel = isNovel).getFilesInMangaDirectory(manga.url)
+                .count { it.isDirectory || ArchiveManga.isSupported(it) || it.name.orEmpty().endsWith(".epub", true) }
         } else {
             cache.getDownloadCount(manga)
         }
@@ -242,8 +244,9 @@ class MangaDownloadManager(
      * @param manga the manga to check.
      */
     fun getDownloadSize(manga: Manga): Long {
-        return if (manga.source == LocalMangaSource.ID) {
-            LocalMangaSourceFileSystem(storageManager).getMangaDirectory(manga.url)
+        val isNovel = manga.source == LocalNovelSource.ID
+        return if (manga.source == LocalMangaSource.ID || isNovel) {
+            LocalMangaSourceFileSystem(storageManager, novel = isNovel).getMangaDirectory(manga.url)
                 ?.size() ?: 0L
         } else {
             cache.getDownloadSize(manga)

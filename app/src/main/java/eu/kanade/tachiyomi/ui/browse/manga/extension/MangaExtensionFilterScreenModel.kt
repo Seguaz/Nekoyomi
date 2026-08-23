@@ -6,6 +6,7 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import eu.kanade.domain.extension.manga.interactor.GetMangaExtensionLanguages
 import eu.kanade.domain.source.interactor.ToggleLanguage
 import eu.kanade.domain.source.service.SourcePreferences
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentSetOf
@@ -25,6 +26,8 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
 class MangaExtensionFilterScreenModel(
+    // When true only novel-extension languages are listed; when false novels are excluded.
+    private val novelOnly: Boolean = false,
     private val preferences: SourcePreferences = Injekt.get(),
     private val getExtensionLanguages: GetMangaExtensionLanguages = Injekt.get(),
     private val toggleLanguage: ToggleLanguage = Injekt.get(),
@@ -36,7 +39,7 @@ class MangaExtensionFilterScreenModel(
     init {
         screenModelScope.launch {
             combine(
-                getExtensionLanguages.subscribe(),
+                getExtensionLanguages.subscribe { NovelSourceCompat.isNovelExtensionPkg(it) == novelOnly },
                 preferences.enabledLanguages().changes(),
             ) { a, b -> a to b }
                 .catch { throwable ->

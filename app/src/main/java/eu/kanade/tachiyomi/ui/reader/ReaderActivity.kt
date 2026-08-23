@@ -897,8 +897,15 @@ class ReaderActivity : BaseActivity() {
                 .onEach(::setCutoutShort)
                 .launchIn(lifecycleScope)
 
-            readerPreferences.keepScreenOn().changes()
-                .onEach(::setKeepScreenOn)
+            merge(
+                readerPreferences.keepScreenOn().changes(),
+                viewModel.autoScrollActive,
+            )
+                .onEach {
+                    // Keep the screen awake if the user enabled it, or while webtoon auto-scroll is
+                    // running so the screen doesn't sleep mid-scroll.
+                    setKeepScreenOn(readerPreferences.keepScreenOn().get() || viewModel.autoScrollActive.value)
+                }
                 .launchIn(lifecycleScope)
 
             readerPreferences.customBrightness().changes()

@@ -13,16 +13,18 @@ class GetLanguagesWithMangaSources(
     private val preferences: SourcePreferences,
 ) {
 
-    fun subscribe(): Flow<SortedMap<String, List<Source>>> {
+    fun subscribe(sourceFilter: (Source) -> Boolean = { true }): Flow<SortedMap<String, List<Source>>> {
         return combine(
             preferences.enabledLanguages().changes(),
             preferences.disabledMangaSources().changes(),
             repository.getOnlineMangaSources(),
         ) { enabledLanguage, disabledSource, onlineSources ->
-            val sortedSources = onlineSources.sortedWith(
-                compareBy<Source> { it.id.toString() in disabledSource }
-                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name },
-            )
+            val sortedSources = onlineSources
+                .filter(sourceFilter)
+                .sortedWith(
+                    compareBy<Source> { it.id.toString() in disabledSource }
+                        .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name },
+                )
 
             sortedSources
                 .groupBy { it.lang }

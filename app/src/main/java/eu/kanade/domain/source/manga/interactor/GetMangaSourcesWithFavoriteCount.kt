@@ -8,6 +8,7 @@ import tachiyomi.core.common.util.lang.compareToWithCollator
 import tachiyomi.domain.source.manga.model.Source
 import tachiyomi.domain.source.manga.repository.MangaSourceRepository
 import tachiyomi.source.local.entries.manga.LocalMangaSource
+import tachiyomi.source.local.entries.novel.LocalNovelSource
 import java.util.Collections
 
 class GetMangaSourcesWithFavoriteCount(
@@ -22,7 +23,7 @@ class GetMangaSourcesWithFavoriteCount(
             repository.getMangaSourcesWithFavoriteCount(),
         ) { direction, mode, list ->
             list
-                .filterNot { it.first.id == LocalMangaSource.ID }
+                .filterNot { it.first.id == LocalMangaSource.ID || it.first.id == LocalNovelSource.ID }
                 .sortedWith(sortFn(direction, mode))
         }
     }

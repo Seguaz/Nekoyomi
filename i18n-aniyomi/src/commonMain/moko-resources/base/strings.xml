@@ -426,7 +426,9 @@
     <!-- Other -->
     <string name="download_notifier_download_finish">Download completed</string>
     <string name="action_hide">Hide</string>
+    <string name="action_show">Show</string>
     <string name="action_auto_hide_category">Auto-hide when the app closes (private)</string>
+    <string name="action_dont_auto_hide_category">Don\'t auto-hide when the app closes (private)</string>
     <string name="action_category_reading_mode">Default reading mode for this category</string>
     <string name="category_reading_mode_title">Reading mode for \"%1$s\"</string>
     <string name="label_all">All</string>
@@ -588,6 +590,7 @@
     <string name="downloaded_episodes">Downloaded episodes</string>
     <string name="local_manga_source">Local manga source</string>
     <string name="local_anime_source">Local anime source</string>
+    <string name="local_novel_source">Local novel source</string>
     <string name="episode_not_found">Episode not found</string>
     <string name="local_invalid_episode_format">Invalid episode format</string>
     <string name="unknown_studio">Unknown studio</string>

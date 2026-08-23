@@ -107,7 +107,17 @@ fun ReorderableCollectionItemScope.CategoryListItem(
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text(stringResource(AYMR.strings.action_auto_hide_category)) },
+                        text = {
+                            Text(
+                                stringResource(
+                                    if (autoHide) {
+                                        AYMR.strings.action_dont_auto_hide_category
+                                    } else {
+                                        AYMR.strings.action_auto_hide_category
+                                    },
+                                ),
+                            )
+                        },
                         onClick = {
                             menuExpanded = false
                             onToggleAutoHide()
@@ -120,7 +130,13 @@ fun ReorderableCollectionItemScope.CategoryListItem(
                         },
                     )
                     DropdownMenuItem(
-                        text = { Text(stringResource(AYMR.strings.action_hide)) },
+                        text = {
+                            Text(
+                                stringResource(
+                                    if (category.hidden) AYMR.strings.action_show else AYMR.strings.action_hide,
+                                ),
+                            )
+                        },
                         onClick = {
                             menuExpanded = false
                             onHide()

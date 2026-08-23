@@ -67,6 +67,7 @@ import eu.kanade.tachiyomi.ui.entries.anime.AnimeScreen
 import eu.kanade.tachiyomi.ui.webview.WebViewScreen
 import eu.kanade.tachiyomi.util.storage.ImportResult
 import eu.kanade.tachiyomi.util.storage.LocalSourceImporter
+import eu.kanade.tachiyomi.util.storage.LocalSourceType
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -148,7 +149,7 @@ data class BrowseAnimeSourceScreen(
             ActivityResultContracts.OpenMultipleDocuments(),
         ) { uris ->
             val picked = uris.mapNotNull { UniFile.fromUri(context, it) }
-            importSources.addAll(LocalSourceImporter.filterSupported(picked, isAnime = true))
+            importSources.addAll(LocalSourceImporter.filterSupported(picked, LocalSourceType.ANIME))
         }
         val importFolderPicker = rememberLauncherForActivityResult(
             ActivityResultContracts.OpenDocumentTree(),
@@ -158,7 +159,7 @@ data class BrowseAnimeSourceScreen(
                 // Add the folder's children (files and episode subfolders); the importer recurses
                 // into subfolders, so they're copied directly under the entry (no extra nesting).
                 importSources.addAll(
-                    LocalSourceImporter.filterImportable(tree.listFiles().orEmpty().toList(), isAnime = true),
+                    LocalSourceImporter.filterImportable(tree.listFiles().orEmpty().toList(), LocalSourceType.ANIME),
                 )
                 if (importTitle.isBlank()) importTitle = tree.name.orEmpty()
             }
@@ -360,7 +361,7 @@ data class BrowseAnimeSourceScreen(
                     onDismissRequest = onDismissRequest,
                     onConfirm = {
                         scope.launchIO {
-                            importer.delete(isAnime = true, url = dialog.anime.url)
+                            importer.delete(LocalSourceType.ANIME, url = dialog.anime.url)
                             screenModel.deleteCachedLocalEntry(dialog.anime.id)
                             withUIContext { animeList.refresh() }
                         }
@@ -395,7 +396,7 @@ data class BrowseAnimeSourceScreen(
                     val title = importTitle
                     val sources = importSources.toList()
                     scope.launchIO {
-                        val result = importer.import(isAnime = true, title = title, sources = sources)
+                        val result = importer.import(LocalSourceType.ANIME, title = title, sources = sources)
                         withUIContext {
                             importing = false
                             resetImport()

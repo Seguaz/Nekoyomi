@@ -16,6 +16,7 @@ import tachiyomi.domain.entries.manga.model.Manga
 import tachiyomi.domain.source.manga.model.StubMangaSource
 import tachiyomi.i18n.MR
 import tachiyomi.source.local.entries.manga.LocalMangaSource
+import tachiyomi.source.local.entries.novel.LocalNovelSource
 import tachiyomi.source.local.io.Format
 import uy.kohesive.injekt.injectLazy
 
@@ -95,22 +96,8 @@ class ChapterLoader(
                 downloadManager,
                 downloadProvider,
             )
-            source is LocalMangaSource -> source.getFormat(chapter.chapter).let { format ->
-                when (format) {
-                    is Format.Directory -> DirectoryPageLoader(format.file)
-                    is Format.Archive -> ArchivePageLoader(format.file.archiveReader(context))
-                    is Format.Epub -> {
-                        val reader = format.file.epubReader(context)
-                        // A text novel carries prose in its spine (even if each chapter also has a
-                        // decorative image); a manga epub is just images. Render text novels as text.
-                        if (reader.isTextNovel()) {
-                            EpubTextPageLoader(reader)
-                        } else {
-                            EpubPageLoader(reader)
-                        }
-                    }
-                }
-            }
+            source is LocalMangaSource -> source.getFormat(chapter.chapter).toLocalPageLoader()
+            source is LocalNovelSource -> source.getFormat(chapter.chapter).toLocalPageLoader()
             source is HttpSource && NovelSourceCompat.isNovelSource(source) ->
                 NovelHttpPageLoader(chapter, source)
             source is HttpSource -> HttpPageLoader(chapter, source)
@@ -118,6 +105,22 @@ class ChapterLoader(
                 context.stringResource(MR.strings.source_not_installed, source.toString()),
             )
             else -> error(context.stringResource(MR.strings.loader_not_implemented_error))
+        }
+    }
+
+    /** Picks the page loader for a local chapter [Format]. Shared by the local manga/novel sources. */
+    private fun Format.toLocalPageLoader(): PageLoader = when (this) {
+        is Format.Directory -> DirectoryPageLoader(file)
+        is Format.Archive -> ArchivePageLoader(file.archiveReader(context))
+        is Format.Epub -> {
+            val reader = file.epubReader(context)
+            // A text novel carries prose in its spine (even if each chapter also has a decorative
+            // image); a manga epub is just images. Render text novels as text.
+            if (reader.isTextNovel()) {
+                EpubTextPageLoader(reader)
+            } else {
+                EpubPageLoader(reader)
+            }
         }
     }
 }

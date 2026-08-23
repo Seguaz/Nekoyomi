@@ -44,11 +44,15 @@ val resumeLastChapterReadEvent = Channel<Unit>()
 fun Screen.mangaHistoryTab(
     context: Context,
     fromMore: Boolean,
+    // When true this is the novel-only history feed shown alongside the manga one.
+    novelOnly: Boolean = false,
 ): TabContent {
     val snackbarHostState = SnackbarHostState()
 
     val navigator = LocalNavigator.currentOrThrow
-    val screenModel = rememberScreenModel { MangaHistoryScreenModel() }
+    val screenModel = rememberScreenModel(tag = "novel-history".takeIf { novelOnly }) {
+        MangaHistoryScreenModel(novelOnly = novelOnly)
+    }
     val state by screenModel.state.collectAsState()
     val searchQuery by screenModel.query.collectAsState()
 
@@ -75,8 +79,12 @@ fun Screen.mangaHistoryTab(
     }
 
     return TabContent(
-        titleRes = AYMR.strings.label_history,
+        titleRes = if (novelOnly) AYMR.strings.label_novel else AYMR.strings.label_history,
         searchEnabled = true,
+        // The novel tab sits at index 2 where the legacy anime/manga (% 2) search mapping breaks, so
+        // it carries its own search binding.
+        searchQuery = if (novelOnly) searchQuery else null,
+        onChangeSearchQuery = if (novelOnly) screenModel::search else null,
         content = { contentPadding, _ ->
             MangaHistoryScreen(
                 state = state,
