@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.ui.reader.viewer.text
 
 import android.annotation.SuppressLint
+import android.graphics.Color
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
@@ -15,14 +16,17 @@ import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.model.ViewerChapters
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.ui.reader.viewer.Viewer
+import eu.kanade.tachiyomi.util.system.isNightMode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import logcat.LogPriority
 import tachiyomi.core.common.util.lang.withIOContext
@@ -59,6 +63,13 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
 
     private var pages: List<ReaderPage> = emptyList()
 
+    /** Non-null while auto-scroll is running. */
+    private var autoScrollJob: Job? = null
+
+    // Whether the user turned auto-scroll on. A manual drag suspends the running job but keeps this
+    // true so it resumes when the drag settles; a tap (menu hidden) or the toggle clears it.
+    private var autoScrollEnabled = false
+
     init {
         snapHelper.attachToRecyclerView(recyclerView)
         recyclerView.addOnScrollListener(
@@ -87,6 +98,13 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
             .onEach { style ->
                 adapter.style = style
                 recyclerView.children.filterIsInstance<TextWebView>().forEach { it.applyStyle(style) }
+            }
+            .launchIn(scope)
+        // Reader background/text color (white/black/gray/automatic/beige) applies live.
+        readerPreferences.readerTheme().changes()
+            .onEach {
+                val (bg, text) = readerColors()
+                recyclerView.children.filterIsInstance<TextWebView>().forEach { it.setColors(bg, text) }
             }
             .launchIn(scope)
     }
@@ -135,6 +153,89 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
         }
     }
 
+    /**
+     * Toggles auto-scroll and returns whether it is now running. Scrolls the current section's text
+     * vertically at the configured speed; when it reaches the bottom it advances to the next section,
+     * and stops once the last section is fully scrolled.
+     */
+    fun toggleAutoScroll(): Boolean {
+        if (autoScrollEnabled) stopAutoScroll() else startAutoScroll()
+        return autoScrollEnabled
+    }
+
+    private fun startAutoScroll() {
+        autoScrollEnabled = true
+        launchAutoScroll()
+    }
+
+    private fun launchAutoScroll() {
+        autoScrollJob?.cancel()
+        val density = recyclerView.resources.displayMetrics.density
+        autoScrollJob = scope.launch {
+            var remainder = 0f
+            while (isActive) {
+                val level = readerPreferences.webtoonAutoScrollSpeed().get()
+                    .coerceIn(1, MAX_AUTO_SCROLL_LEVEL)
+                val dpPerSecond = AUTO_SCROLL_MIN_DP_PER_SEC +
+                    (level - 1) * (AUTO_SCROLL_MAX_DP_PER_SEC - AUTO_SCROLL_MIN_DP_PER_SEC) /
+                    (MAX_AUTO_SCROLL_LEVEL - 1)
+                val distance = remainder + dpPerSecond * density * AUTO_SCROLL_FRAME_MS / 1000f
+                val dy = distance.toInt()
+                remainder = distance - dy
+                if (dy != 0) {
+                    val webView = snapHelper.findSnapView(layoutManager) as? TextWebView
+                    if (webView != null) {
+                        if (webView.canScrollVertically(1)) {
+                            webView.scrollBy(0, dy)
+                        } else {
+                            // Bottom of this section reached: advance to the next one, or stop at the end.
+                            val position = layoutManager.getPosition(webView)
+                            if (position < adapter.itemCount - 1) {
+                                recyclerView.smoothScrollToPosition(position + 1)
+                                // Let the horizontal snap settle before scrolling the next section.
+                                delay(SECTION_ADVANCE_DELAY_MS)
+                            } else {
+                                stopAutoScroll()
+                                activity.viewModel.setAutoScrollActive(false)
+                            }
+                        }
+                    }
+                }
+                delay(AUTO_SCROLL_FRAME_MS)
+            }
+        }
+    }
+
+    private fun stopAutoScroll() {
+        autoScrollEnabled = false
+        autoScrollJob?.cancel()
+        autoScrollJob = null
+    }
+
+    /** A manual drag suspends the running scroll (kept enabled); it resumes when the drag settles. */
+    private fun suspendAutoScroll() {
+        autoScrollJob?.cancel()
+    }
+
+    private fun resumeAutoScroll() {
+        if (autoScrollEnabled && autoScrollJob?.isActive != true) launchAutoScroll()
+    }
+
+    /**
+     * Handles a tap on a section, mirroring the webtoon reader: while the menu is up a tap only
+     * dismisses/uses it (e.g. right after pressing play) and doesn't stop the scroll; with the menu
+     * hidden while scrolling, a tap pauses auto-scroll and reveals the menu; otherwise it toggles it.
+     */
+    private fun handleTap() {
+        if (!activity.viewModel.state.value.menuVisible && autoScrollEnabled) {
+            stopAutoScroll()
+            activity.viewModel.setAutoScrollActive(false)
+            activity.showMenu()
+        } else {
+            activity.toggleMenu()
+        }
+    }
+
     private fun reportCurrentPage() {
         val snapView = snapHelper.findSnapView(layoutManager) ?: return
         val position = layoutManager.getPosition(snapView)
@@ -163,6 +264,19 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
         justify = readerPreferences.novelJustify().get(),
     )
 
+    /** Background + text colors for the current reader theme (white/black/gray/automatic/beige). */
+    private fun readerColors(): Pair<Int, Int> = when (readerPreferences.readerTheme().get()) {
+        0 -> Color.WHITE to READER_TEXT_DARK
+        2 -> READER_GRAY_BG to READER_TEXT_LIGHT
+        3 -> if (activity.isNightMode()) {
+            READER_GRAY_BG to READER_TEXT_LIGHT
+        } else {
+            Color.WHITE to READER_TEXT_DARK
+        }
+        4 -> READER_BEIGE_BG to READER_BEIGE_TEXT
+        else -> Color.BLACK to READER_TEXT_LIGHT
+    }
+
     private inner class TextViewerAdapter(
         var textScale: Int,
         var style: NovelStyle,
@@ -179,17 +293,21 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
         override fun getItemCount(): Int = pages.size
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextPageHolder {
-            val webView = TextWebView(activity, activity::toggleMenu).apply {
+            val webView = TextWebView(activity, this@TextViewer::handleTap).apply {
                 layoutParams = RecyclerView.LayoutParams(
                     RecyclerView.LayoutParams.MATCH_PARENT,
                     RecyclerView.LayoutParams.MATCH_PARENT,
                 )
+                // Manual drag suspends auto-scroll; it resumes when the finger lifts.
+                onUserDragStart = { suspendAutoScroll() }
+                onUserDragEnd = { resumeAutoScroll() }
             }
             return TextPageHolder(webView)
         }
 
         override fun onBindViewHolder(holder: TextPageHolder, position: Int) {
-            holder.bind(pages[position], textScale, style, scope, ::onPageReachedEnd)
+            val (bgColor, textColor) = readerColors()
+            holder.bind(pages[position], textScale, style, bgColor, textColor, scope, ::onPageReachedEnd)
         }
 
         override fun onViewRecycled(holder: TextPageHolder) {
@@ -208,11 +326,14 @@ private class TextPageHolder(
         page: ReaderPage,
         textScale: Int,
         style: NovelStyle,
+        bgColor: Int,
+        textColor: Int,
         scope: CoroutineScope,
         onReachedEnd: (ReaderPage) -> Unit,
     ) {
         job?.cancel()
         webView.setTextScale(textScale)
+        webView.setColors(bgColor, textColor)
         webView.onReachedBottom = { onReachedEnd(page) }
         val loader = page.chapter.pageLoader as? TextPageLoader
         if (loader == null) {
@@ -245,3 +366,17 @@ private class TextPageHolder(
         job = null
     }
 }
+
+// Auto-scroll tuning (mirrors the webtoon viewer so the same speed slider drives both).
+private const val MAX_AUTO_SCROLL_LEVEL = 10
+private const val AUTO_SCROLL_MIN_DP_PER_SEC = 25f
+private const val AUTO_SCROLL_MAX_DP_PER_SEC = 400f
+private const val AUTO_SCROLL_FRAME_MS = 16L
+private const val SECTION_ADVANCE_DELAY_MS = 400L
+
+// Reader-theme colors for the novel viewer (gray matches ReaderActivity; beige is a warm sepia).
+private val READER_GRAY_BG = Color.rgb(0x20, 0x21, 0x25)
+private val READER_BEIGE_BG = Color.rgb(0xF5, 0xEC, 0xD9)
+private val READER_BEIGE_TEXT = Color.rgb(0x5B, 0x46, 0x36)
+private val READER_TEXT_DARK = Color.rgb(0x1A, 0x1A, 0x1A)
+private val READER_TEXT_LIGHT = Color.rgb(0xE0, 0xE0, 0xE0)

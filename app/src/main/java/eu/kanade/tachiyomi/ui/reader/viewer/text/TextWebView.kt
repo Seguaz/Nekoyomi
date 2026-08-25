@@ -36,19 +36,48 @@ class TextWebView(
                 onSingleTap()
                 return true
             }
+
+            override fun onScroll(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                distanceX: Float,
+                distanceY: Float,
+            ): Boolean {
+                // First movement of a manual drag: suspend auto-scroll so the finger scrolls freely.
+                if (!dragging) {
+                    dragging = true
+                    onUserDragStart?.invoke()
+                }
+                return false
+            }
         },
     )
 
-    private val backgroundColor = MaterialColors.getColor(
+    /** Notified when the user starts / ends a manual drag, so auto-scroll can suspend and resume. */
+    var onUserDragStart: (() -> Unit)? = null
+    var onUserDragEnd: (() -> Unit)? = null
+    private var dragging = false
+
+    // Default to the theme colors; overridden by the reader-theme colors via [setColors].
+    private var backgroundColor = MaterialColors.getColor(
         context,
         com.google.android.material.R.attr.colorSurface,
         Color.BLACK,
     )
-    private val textColor = MaterialColors.getColor(
+    private var textColor = MaterialColors.getColor(
         context,
         com.google.android.material.R.attr.colorOnSurface,
         Color.WHITE,
     )
+
+    /** Applies the reader-theme background/text colors (white/black/gray/automatic/beige) and re-renders. */
+    fun setColors(background: Int, text: Int) {
+        if (backgroundColor == background && textColor == text) return
+        backgroundColor = background
+        textColor = text
+        setBackgroundColor(background)
+        render()
+    }
 
     private var body: String = ""
     private var style: NovelStyle = DEFAULT_STYLE
@@ -103,6 +132,12 @@ class TextWebView(
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         gestureDetector.onTouchEvent(event)
+        if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+            if (dragging) {
+                dragging = false
+                onUserDragEnd?.invoke()
+            }
+        }
         return super.onTouchEvent(event)
     }
 

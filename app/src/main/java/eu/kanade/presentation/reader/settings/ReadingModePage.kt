@@ -126,6 +126,17 @@ private fun ColumnScope.TextViewerSettings(screenModel: ReaderSettingsScreenMode
         label = stringResource(AYMR.strings.pref_novel_justify),
         pref = screenModel.preferences.novelJustify(),
     )
+
+    // Auto-scroll speed (shared with the webtoon reader; drives the reader's auto-scroll button).
+    val autoScrollSpeed by screenModel.preferences.webtoonAutoScrollSpeed().collectAsState()
+    SliderItem(
+        value = autoScrollSpeed,
+        valueRange = 1..10,
+        label = stringResource(AYMR.strings.pref_auto_scroll_speed),
+        valueText = "$autoScrollSpeed",
+        onChange = { screenModel.preferences.webtoonAutoScrollSpeed().set(it) },
+        pillColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    )
 }
 
 @Composable

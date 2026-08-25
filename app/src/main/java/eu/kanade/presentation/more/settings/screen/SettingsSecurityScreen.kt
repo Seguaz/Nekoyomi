@@ -14,6 +14,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableMap
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.i18n.pluralStringResource
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
@@ -72,6 +73,11 @@ object SettingsSecurityScreen : SearchableSettings {
             Preference.PreferenceItem.SwitchPreference(
                 preference = securityPreferences.hideNotificationContent(),
                 title = stringResource(MR.strings.hide_notification_content),
+            ),
+            Preference.PreferenceItem.SwitchPreference(
+                preference = securityPreferences.hideSourceInEntry(),
+                title = stringResource(AYMR.strings.pref_hide_source_in_entry),
+                subtitle = stringResource(AYMR.strings.pref_hide_source_in_entry_summary),
             ),
             Preference.PreferenceItem.ListPreference(
                 preference = securityPreferences.secureScreen(),

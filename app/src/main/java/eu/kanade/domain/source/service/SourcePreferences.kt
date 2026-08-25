@@ -55,6 +55,10 @@ class SourcePreferences(
         false,
     )
 
+    // Remembers the last-used global-search source filter (Pinned vs All) so global search opens with
+    // the user's choice next time. Defaults to Pinned to keep upstream's "don't spam every source".
+    fun globalSearchPinnedOnly() = preferenceStore.getBoolean("global_search_pinned_only", true)
+
     // Mixture Sources
 
     fun disabledAnimeSources() = preferenceStore.getStringSet("hidden_anime_catalogues", emptySet())

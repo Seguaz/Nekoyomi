@@ -378,6 +378,9 @@
     <string name="local_manga_source">Fuente local de manga</string>
     <string name="local_anime_source">Fuente local de anime</string>
     <string name="local_novel_source">Fuente local de novelas</string>
+    <string name="reader_theme_beige">Beige</string>
+    <string name="pref_hide_source_in_entry">Ocultar la fuente en la pantalla de entrada</string>
+    <string name="pref_hide_source_in_entry_summary">Oculta el nombre de la fuente/extensión en el detalle, para compartir capturas sin revelarla</string>
     <string name="episode_not_found">Episodio no encontrado</string>
     <string name="local_invalid_episode_format">Formato de episodio no válido</string>
     <string name="unknown_studio">Estudio desconocido</string>

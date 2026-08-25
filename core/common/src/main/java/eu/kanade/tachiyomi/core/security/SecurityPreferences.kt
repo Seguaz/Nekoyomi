@@ -18,6 +18,10 @@ class SecurityPreferences(
 
     fun hideNotificationContent() = preferenceStore.getBoolean("hide_notification_content", false)
 
+    // Hides the source/extension name on the entry (manga/anime/novel details) screen, so entries can
+    // be screenshotted or recorded without revealing the source.
+    fun hideSourceInEntry() = preferenceStore.getBoolean("hide_source_in_entry", false)
+
     /**
      * For app lock. Will be set when there is a pending timed lock.
      * Otherwise this pref should be deleted.

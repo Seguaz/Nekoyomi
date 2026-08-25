@@ -26,6 +26,7 @@ import eu.kanade.tachiyomi.ui.reader.setting.ReaderOrientation
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
 import eu.kanade.tachiyomi.ui.reader.viewer.Viewer
 import eu.kanade.tachiyomi.ui.reader.viewer.pager.R2LPagerViewer
+import eu.kanade.tachiyomi.ui.reader.viewer.text.TextViewer
 import eu.kanade.tachiyomi.ui.reader.viewer.webtoon.WebtoonViewer
 import kotlinx.collections.immutable.persistentListOf
 import tachiyomi.i18n.MR
@@ -69,7 +70,7 @@ fun ReaderAppBars(
     onClickAutoScroll: () -> Unit,
 ) {
     val isRtl = viewer is R2LPagerViewer
-    val isWebtoon = viewer is WebtoonViewer
+    val supportsAutoScroll = viewer is WebtoonViewer || viewer is TextViewer
     val backgroundColor = MaterialTheme.colorScheme
         .surfaceColorAtElevation(3.dp)
         .copy(alpha = if (isSystemInDarkTheme()) 0.9f else 0.95f)
@@ -184,7 +185,7 @@ fun ReaderAppBars(
                     onClickCropBorder = onClickCropBorder,
                     onClickSettings = onClickSettings,
                     autoScrollActive = autoScrollActive,
-                    onClickAutoScroll = onClickAutoScroll.takeIf { isWebtoon },
+                    onClickAutoScroll = onClickAutoScroll.takeIf { supportsAutoScroll },
                 )
             }
         }

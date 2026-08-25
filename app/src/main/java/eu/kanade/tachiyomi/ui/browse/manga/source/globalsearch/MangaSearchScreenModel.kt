@@ -124,7 +124,7 @@ abstract class MangaSearchScreenModel(
         mutableState.update { it.copy(searchQuery = query) }
     }
 
-    fun setSourceFilter(filter: MangaSourceFilter) {
+    open fun setSourceFilter(filter: MangaSourceFilter) {
         mutableState.update { it.copy(sourceFilter = filter) }
         search()
     }

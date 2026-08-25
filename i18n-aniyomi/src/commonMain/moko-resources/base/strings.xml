@@ -591,6 +591,9 @@
     <string name="local_manga_source">Local manga source</string>
     <string name="local_anime_source">Local anime source</string>
     <string name="local_novel_source">Local novel source</string>
+    <string name="reader_theme_beige">Beige</string>
+    <string name="pref_hide_source_in_entry">Hide source on entry screen</string>
+    <string name="pref_hide_source_in_entry_summary">Hides the source/extension name on entry details, so you can share screenshots without revealing it</string>
     <string name="episode_not_found">Episode not found</string>
     <string name="local_invalid_episode_format">Invalid episode format</string>
     <string name="unknown_studio">Unknown studio</string>

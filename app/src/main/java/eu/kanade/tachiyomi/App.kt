@@ -147,7 +147,11 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                         val pendingIntent = PendingIntent.getBroadcast(
                             this@App,
                             0,
-                            Intent(ACTION_DISABLE_INCOGNITO_MODE),
+                            // Must be an EXPLICIT intent (package set): Android 14+ won't deliver an
+                            // implicit broadcast to our RECEIVER_NOT_EXPORTED receiver, so tapping the
+                            // notification did nothing. Use the real app id (getPackageName() is
+                            // spoofed for WebView), so the disable-incognito receiver actually fires.
+                            Intent(ACTION_DISABLE_INCOGNITO_MODE).setPackage(BuildConfig.APPLICATION_ID),
                             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE,
                         )
                         setContentIntent(pendingIntent)

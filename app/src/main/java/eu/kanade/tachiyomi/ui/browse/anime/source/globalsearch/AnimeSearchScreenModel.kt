@@ -124,7 +124,7 @@ abstract class AnimeSearchScreenModel(
         mutableState.update { it.copy(searchQuery = query) }
     }
 
-    fun setSourceFilter(filter: AnimeSourceFilter) {
+    open fun setSourceFilter(filter: AnimeSourceFilter) {
         mutableState.update { it.copy(sourceFilter = filter) }
         search()
     }

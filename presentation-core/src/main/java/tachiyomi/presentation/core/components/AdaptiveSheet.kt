@@ -27,7 +27,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Velocity
@@ -133,14 +135,26 @@ fun AdaptiveSheet(
                 swipeDismissEnabled.value || newValue != SheetValue.Hidden
             },
         )
-        // Stop a fling on a scrollable sheet (source filters, long lists) from being handed to the
-        // sheet and dismissing it: if the content actually scrolled (consumed fling velocity),
-        // swallow the leftover so the sheet stays put. If the content didn't move (already at the
-        // edge), let the fling through so a deliberate fling-to-dismiss still works.
-        val flingDismissBlocker = remember {
+        // Keep a scrollable sheet (source filters, long lists) from being dismissed while scrolling.
+        // Once the content is back at the top, both a continued downward DRAG (onPostScroll) and a
+        // downward FLING (onPostFling) would otherwise be handed to the sheet and close it — which is
+        // easy to trigger by accident when scrolling back up with momentum. Swallow both leftovers so
+        // scrolling never closes the sheet; it still closes via the drag handle, tapping outside, the
+        // back gesture, or its own buttons.
+        val scrollDismissBlocker = remember {
             object : NestedScrollConnection {
+                override fun onPostScroll(
+                    consumed: Offset,
+                    available: Offset,
+                    source: NestedScrollSource,
+                ): Offset = if (source == NestedScrollSource.UserInput && available.y > 0f) {
+                    available.copy(x = 0f)
+                } else {
+                    Offset.Zero
+                }
+
                 override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity =
-                    if (consumed.y != 0f) available else Velocity.Zero
+                    available
             }
         }
         ModalBottomSheet(
@@ -150,7 +164,7 @@ fun AdaptiveSheet(
             sheetMaxWidth = maxWidth,
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
-            Box(Modifier.nestedScroll(flingDismissBlocker)) {
+            Box(Modifier.nestedScroll(scrollDismissBlocker)) {
                 content()
             }
         }

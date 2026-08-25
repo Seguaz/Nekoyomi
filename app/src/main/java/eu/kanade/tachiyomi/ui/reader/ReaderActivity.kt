@@ -434,7 +434,11 @@ class ReaderActivity : BaseActivity() {
                 onClickSettings = viewModel::openSettingsDialog,
                 autoScrollActive = autoScrollActive,
                 onClickAutoScroll = {
-                    (state.viewer as? WebtoonViewer)?.let { viewModel.setAutoScrollActive(it.toggleAutoScroll()) }
+                    when (val viewer = state.viewer) {
+                        is WebtoonViewer -> viewModel.setAutoScrollActive(viewer.toggleAutoScroll())
+                        is TextViewer -> viewModel.setAutoScrollActive(viewer.toggleAutoScroll())
+                        else -> {}
+                    }
                 },
             )
 
@@ -871,6 +875,7 @@ class ReaderActivity : BaseActivity() {
         }
 
         private val grayBackgroundColor = Color.rgb(0x20, 0x21, 0x25)
+        private val beigeBackgroundColor = Color.rgb(0xF5, 0xEC, 0xD9)
 
         /**
          * Initializes the reader subscriptions.
@@ -883,6 +888,7 @@ class ReaderActivity : BaseActivity() {
                             0 -> Color.WHITE
                             2 -> grayBackgroundColor
                             3 -> automaticBackgroundColor()
+                            4 -> beigeBackgroundColor
                             else -> Color.BLACK
                         },
                     )
