@@ -141,13 +141,13 @@ class BrowseMangaSourceScreenModel(
     }
 
     /**
-     * Toggles incognito mode for THIS source's extension (adds/removes it from the incognito set),
-     * so it can be flipped straight from the browse toolbar. No-op for sources without an extension.
+     * Toggles incognito mode from the browse toolbar. The flip is based on the EFFECTIVE state shown
+     * to the user (global OR per-extension), so tapping it while global incognito is active actually
+     * disables it (the interactor also clears the global switch) instead of only toggling this
+     * extension's own flag and leaving the global one stuck on.
      */
     fun toggleIncognito() {
-        val extensionPackage = extensionPackage ?: return
-        val enabled = extensionPackage in sourcePreferences.incognitoMangaExtensions().get()
-        toggleIncognitoInteractor.await(extensionPackage, !enabled)
+        toggleIncognitoInteractor.await(extensionPackage, !state.value.incognitoMode)
     }
 
     /**

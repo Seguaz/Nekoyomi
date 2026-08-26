@@ -387,6 +387,7 @@
     <string name="delete_confirmation">¿Seguro que desea borrar \"%s\"?</string>
     <string name="delete_downloads_for_anime">¿Borrar episodios descargados?</string>
     <string name="snack_add_to_manga_library">¿Añadir manga a la biblioteca?</string>
+    <string name="snack_add_to_novel_library">¿Añadir novela a la biblioteca?</string>
     <string name="snack_add_to_anime_library">¿Agregar anime a la biblioteca?</string>
     <string name="display_mode_episode">Episodio %1$s</string>
     <string name="episode_downloading_progress">Descargando (%d%%)</string>

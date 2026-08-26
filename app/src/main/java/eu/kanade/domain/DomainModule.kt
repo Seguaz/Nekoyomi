@@ -406,7 +406,7 @@ class DomainModule : InjektModule {
         addFactory { DeleteAnimeExtensionRepo(get()) }
         addFactory { ReplaceAnimeExtensionRepo(get()) }
         addFactory { UpdateAnimeExtensionRepo(get(), get()) }
-        addFactory { ToggleAnimeIncognito(get()) }
+        addFactory { ToggleAnimeIncognito(get(), get()) }
         addFactory { GetAnimeIncognitoState(get(), get(), get()) }
 
         addSingletonFactory<MangaExtensionRepoRepository> { MangaExtensionRepoRepositoryImpl(get()) }
@@ -416,7 +416,7 @@ class DomainModule : InjektModule {
         addFactory { DeleteMangaExtensionRepo(get()) }
         addFactory { ReplaceMangaExtensionRepo(get()) }
         addFactory { UpdateMangaExtensionRepo(get(), get()) }
-        addFactory { ToggleMangaIncognito(get()) }
+        addFactory { ToggleMangaIncognito(get(), get()) }
         addFactory { GetMangaIncognitoState(get(), get(), get()) }
 
         addSingletonFactory<CustomButtonRepository> { CustomButtonRepositoryImpl(get()) }

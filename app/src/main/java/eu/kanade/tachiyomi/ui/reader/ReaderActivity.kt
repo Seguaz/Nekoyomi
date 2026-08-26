@@ -731,6 +731,15 @@ class ReaderActivity : BaseActivity() {
     }
 
     /**
+     * Called from the text (novel) viewer when auto-scroll reaches the end of the last section, so it
+     * can carry on into the next chapter. The text viewer doesn't append the next chapter's sections
+     * like the image viewers do, so it asks for the switch explicitly instead of via [onPageSelected].
+     */
+    fun moveToNextChapterFromTextViewer() {
+        loadNextChapter()
+    }
+
+    /**
      * Called from the viewer whenever a [page] is long clicked. A bottom sheet with a list of
      * actions to perform is shown.
      */

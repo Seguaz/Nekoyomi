@@ -86,6 +86,15 @@ class TextWebView(
     var onReachedBottom: (() -> Unit)? = null
     private var bottomReported = false
 
+    /**
+     * True once the section's final text has finished rendering; false while a placeholder is shown or
+     * the (recycled) view is being rebound. Lets auto-scroll wait for real content before scrolling or
+     * deciding a section is at its end, so it never skips through chapters that are still loading.
+     */
+    var isContentLoaded: Boolean = false
+        private set
+    private var finalContent = false
+
     // Off while a placeholder is showing so it doesn't count as "reached the end" before the real
     // text has loaded; armed once the section's actual text is rendered.
     private var trackReading = false
@@ -100,6 +109,8 @@ class TextWebView(
         setBackgroundColor(backgroundColor)
         webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
+                // Real content is on screen only once a non-placeholder load finishes rendering.
+                isContentLoaded = finalContent
                 // A section shorter than the viewport can't be scrolled, so it's fully read on
                 // display. Re-check after layout settles (delay lets the content height measure so a
                 // long chapter isn't briefly seen as non-scrollable and marked read on open).
@@ -149,11 +160,16 @@ class TextWebView(
     /**
      * Renders the given section [body] HTML with the given typography. [trackReading] arms the
      * end-of-text detection; pass false for placeholders so they don't count as reaching the end.
+     * [isFinalContent] marks this as the section's real text (not a placeholder), which arms
+     * [isContentLoaded] once it finishes rendering.
      */
-    fun load(body: String, style: NovelStyle, trackReading: Boolean = true) {
+    fun load(body: String, style: NovelStyle, trackReading: Boolean = true, isFinalContent: Boolean = true) {
         this.body = body
         this.style = style
         this.trackReading = trackReading
+        this.finalContent = isFinalContent
+        // A placeholder (or rebind) means the real content isn't on screen yet.
+        if (!isFinalContent) isContentLoaded = false
         bottomReported = false
         render()
     }

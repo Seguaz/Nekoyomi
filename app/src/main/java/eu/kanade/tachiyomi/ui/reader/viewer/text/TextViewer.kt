@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
 import eu.kanade.tachiyomi.ui.reader.loader.TextPageLoader
+import eu.kanade.tachiyomi.ui.reader.model.ReaderChapter
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.model.ViewerChapters
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import logcat.LogPriority
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
@@ -62,6 +64,11 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
     }
 
     private var pages: List<ReaderPage> = emptyList()
+
+    // The chapter after the current one, if any. Drives auto-scroll's carry-over into the next chapter
+    // and the preload as the reader reaches the last section. Chapter navigation by swiping is left to
+    // the reader's own prev/next buttons.
+    private var nextChapter: ReaderChapter? = null
 
     /** Non-null while auto-scroll is running. */
     private var autoScrollJob: Job? = null
@@ -119,6 +126,7 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
     override fun setChapters(chapters: ViewerChapters) {
         val newPages = chapters.currChapter.pages.orEmpty()
         pages = newPages
+        nextChapter = chapters.nextChapter
         adapter.setPages(newPages)
         if (newPages.isEmpty()) return
         val target = chapters.currChapter.requestedPage.coerceIn(0, newPages.lastIndex)
@@ -156,7 +164,7 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
     /**
      * Toggles auto-scroll and returns whether it is now running. Scrolls the current section's text
      * vertically at the configured speed; when it reaches the bottom it advances to the next section,
-     * and stops once the last section is fully scrolled.
+     * carries on into the next chapter, and stops once the last chapter is fully scrolled.
      */
     fun toggleAutoScroll(): Boolean {
         if (autoScrollEnabled) stopAutoScroll() else startAutoScroll()
@@ -183,27 +191,61 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
                 val dy = distance.toInt()
                 remainder = distance - dy
                 if (dy != 0) {
+                    // Only act on a section whose real text has rendered; otherwise wait so a
+                    // still-loading page isn't mistaken for a fully-read one (which would skip chapters).
                     val webView = snapHelper.findSnapView(layoutManager) as? TextWebView
-                    if (webView != null) {
+                    if (webView != null && webView.isContentLoaded) {
                         if (webView.canScrollVertically(1)) {
                             webView.scrollBy(0, dy)
                         } else {
-                            // Bottom of this section reached: advance to the next one, or stop at the end.
-                            val position = layoutManager.getPosition(webView)
-                            if (position < adapter.itemCount - 1) {
-                                recyclerView.smoothScrollToPosition(position + 1)
-                                // Let the horizontal snap settle before scrolling the next section.
-                                delay(SECTION_ADVANCE_DELAY_MS)
-                            } else {
-                                stopAutoScroll()
-                                activity.viewModel.setAutoScrollActive(false)
-                            }
+                            advanceAfterSection(layoutManager.getPosition(webView))
                         }
                     }
                 }
                 delay(AUTO_SCROLL_FRAME_MS)
             }
         }
+    }
+
+    /** Auto-scroll reached the bottom of the section at [position]: move on, or stop at the very end. */
+    private suspend fun advanceAfterSection(position: Int) {
+        when {
+            // More sections remain in this chapter: turn to the next one.
+            position < pages.lastIndex -> {
+                recyclerView.smoothScrollToPosition(position + 1)
+                // Let the horizontal snap settle before scrolling the next section.
+                delay(SECTION_ADVANCE_DELAY_MS)
+            }
+            // Last section, but there's a next chapter: load it and keep auto-scrolling into it.
+            nextChapter != null -> {
+                if (!advanceToNextChapterAndWait()) {
+                    stopAutoScroll()
+                    activity.viewModel.setAutoScrollActive(false)
+                }
+            }
+            // End of the last chapter: stop.
+            else -> {
+                stopAutoScroll()
+                activity.viewModel.setAutoScrollActive(false)
+            }
+        }
+    }
+
+    /**
+     * Loads the next chapter and waits until [setChapters] has swapped it in, so auto-scroll can carry
+     * straight on into it (the loop then waits for the new section to render before scrolling). Returns
+     * false if there is no next chapter or it didn't load in time.
+     */
+    private suspend fun advanceToNextChapterAndWait(): Boolean {
+        val target = nextChapter ?: return false
+        activity.moveToNextChapterFromTextViewer()
+        // The target's pages carry its ReaderChapter, so once they're on screen the swap is done.
+        return withTimeoutOrNull(CHAPTER_LOAD_TIMEOUT_MS) {
+            while (pages.firstOrNull()?.chapter !== target) {
+                delay(CHAPTER_LOAD_POLL_MS)
+            }
+            true
+        } ?: false
     }
 
     private fun stopAutoScroll() {
@@ -240,6 +282,10 @@ class TextViewer(private val activity: ReaderActivity) : Viewer {
         val snapView = snapHelper.findSnapView(layoutManager) ?: return
         val position = layoutManager.getPosition(snapView)
         pages.getOrNull(position)?.let(activity::onPageSelected)
+        // Preload the next chapter once the last section is reached so the switch feels instant.
+        if (position == pages.lastIndex) {
+            nextChapter?.let(activity::requestPreloadChapter)
+        }
     }
 
     /**
@@ -340,10 +386,10 @@ private class TextPageHolder(
             webView.load("", style, trackReading = false)
             return
         }
-        // Show a placeholder (not tracked), then load the (possibly network-fetched) text and only
-        // then arm end-of-text tracking — and only when there's actual text, so a failed/empty fetch
-        // isn't counted as read.
-        webView.load("<p style=\"opacity:0.5\">…</p>", style, trackReading = false)
+        // Show a placeholder (not tracked, not final), then load the (possibly network-fetched) text
+        // and only then arm end-of-text tracking — and only when there's actual text, so a failed or
+        // empty fetch isn't counted as read.
+        webView.load("<p style=\"opacity:0.5\">…</p>", style, trackReading = false, isFinalContent = false)
         job = scope.launch {
             val html = try {
                 withIOContext { loader.getPageText(page) }
@@ -373,6 +419,10 @@ private const val AUTO_SCROLL_MIN_DP_PER_SEC = 25f
 private const val AUTO_SCROLL_MAX_DP_PER_SEC = 400f
 private const val AUTO_SCROLL_FRAME_MS = 16L
 private const val SECTION_ADVANCE_DELAY_MS = 400L
+
+// How long auto-scroll waits for the next chapter to load before giving up, and how often it polls.
+private const val CHAPTER_LOAD_TIMEOUT_MS = 15_000L
+private const val CHAPTER_LOAD_POLL_MS = 50L
 
 // Reader-theme colors for the novel viewer (gray matches ReaderActivity; beige is a warm sepia).
 private val READER_GRAY_BG = Color.rgb(0x20, 0x21, 0x25)

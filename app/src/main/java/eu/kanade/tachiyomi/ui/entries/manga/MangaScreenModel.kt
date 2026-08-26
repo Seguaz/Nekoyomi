@@ -757,7 +757,13 @@ class MangaScreenModel(
                     state.copy(hasPromptedToAddBefore = true)
                 }
                 val result = snackbarHostState.showSnackbar(
-                    message = context.stringResource(AYMR.strings.snack_add_to_manga_library),
+                    message = context.stringResource(
+                        if (NovelSourceCompat.isNovelSource(successState.source)) {
+                            AYMR.strings.snack_add_to_novel_library
+                        } else {
+                            AYMR.strings.snack_add_to_manga_library
+                        },
+                    ),
                     actionLabel = context.stringResource(MR.strings.action_add),
                     withDismissAction = true,
                 )

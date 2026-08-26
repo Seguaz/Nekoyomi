@@ -507,7 +507,13 @@ class MangaLibraryScreenModel(
         val libraryMangasFlow = combine(
             // Novels use their own library view (joined on the novel category junction) so each entry
             // arrives already tagged with its novel category — exactly like the manga library.
-            if (novelOnly) getNovelLibraryManga.subscribe() else getLibraryManga.subscribe(),
+            // Combined with catalogueSources so the novel/manga split (isNovelSource below) re-runs
+            // once sources finish loading; otherwise novel extensions that load after the library's
+            // first emission leave novels misclassified as manga until the app restarts.
+            combine(
+                if (novelOnly) getNovelLibraryManga.subscribe() else getLibraryManga.subscribe(),
+                sourceManager.catalogueSources,
+            ) { library, _ -> library },
             getLibraryItemPreferencesFlow(),
             downloadCache.changes,
             libraryPreferences.pinnedMangaIds().changes(),

@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -75,8 +76,12 @@ class MangaHistoryScreenModel(
     init {
         screenModelScope.launch {
             _query.collectLatest { query ->
-                getHistory.subscribe(query ?: "")
-                    .distinctUntilChanged()
+                combine(
+                    getHistory.subscribe(query ?: "").distinctUntilChanged(),
+                    // Re-run the novel filter once sources load; novel extensions can load after the
+                    // first emission, otherwise novel history stays in the wrong (manga) tab.
+                    sourceManager.catalogueSources,
+                ) { history, _ -> history }
                     .catch { error ->
                         logcat(LogPriority.ERROR, error)
                         _events.send(Event.InternalError)

@@ -6,6 +6,7 @@ import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import eu.kanade.tachiyomi.source.CatalogueSource
 import eu.kanade.tachiyomi.source.MangaSource
 import eu.kanade.tachiyomi.source.online.HttpSource
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -78,6 +79,9 @@ class AndroidMangaSourceManager(
                         }
                     }
                     sourcesMapFlow.value = mutableMap
+                    // Sources changed: drop cached novel/manga classifications so they re-evaluate
+                    // against the new source map (avoids stale entries after install/update/uninstall).
+                    NovelSourceCompat.clearCache()
                     _isInitialized.value = true
                 }
         }

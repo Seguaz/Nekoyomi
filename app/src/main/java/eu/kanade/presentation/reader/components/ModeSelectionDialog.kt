@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -48,7 +48,7 @@ fun ModeSelectionDialog(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                FilledTonalButton(
+                Button(
                     onClick = onApply,
                 ) {
                     Row(

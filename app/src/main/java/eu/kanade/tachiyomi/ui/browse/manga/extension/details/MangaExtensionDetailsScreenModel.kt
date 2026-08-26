@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Immutable
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
+import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.extension.manga.interactor.GetExtensionSources
 import eu.kanade.domain.extension.manga.interactor.MangaExtensionSourceItem
 import eu.kanade.domain.source.manga.interactor.ToggleMangaIncognito
@@ -21,6 +22,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -41,6 +43,7 @@ class MangaExtensionDetailsScreenModel(
     private val toggleSource: ToggleMangaSource = Injekt.get(),
     private val toggleIncognito: ToggleMangaIncognito = Injekt.get(),
     private val preferences: SourcePreferences = Injekt.get(),
+    private val basePreferences: BasePreferences = Injekt.get(),
 ) : StateScreenModel<MangaExtensionDetailsScreenModel.State>(State()) {
 
     private val _events: Channel<MangaExtensionDetailsEvent> = Channel()
@@ -89,9 +92,14 @@ class MangaExtensionDetailsScreenModel(
                 }
             }
             launch {
-                preferences.incognitoMangaExtensions()
-                    .changes()
-                    .map { pkgName in it }
+                // The switch reflects the EFFECTIVE incognito (global OR this extension's own flag) so
+                // it also detects a global incognito and can be used to turn it off (see the toggle).
+                combine(
+                    basePreferences.incognitoMode().changes(),
+                    preferences.incognitoMangaExtensions().changes(),
+                ) { globalIncognito, incognitoExtensions ->
+                    globalIncognito || pkgName in incognitoExtensions
+                }
                     .distinctUntilChanged()
                     .collectLatest { isIncognito ->
                         mutableState.update { it.copy(isIncognito = isIncognito) }

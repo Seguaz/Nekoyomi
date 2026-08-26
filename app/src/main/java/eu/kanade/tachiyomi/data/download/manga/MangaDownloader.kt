@@ -14,6 +14,8 @@ import eu.kanade.tachiyomi.data.notification.NotificationHandler
 import eu.kanade.tachiyomi.source.UnmeteredSource
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.online.HttpSource
+import eu.kanade.tachiyomi.ui.reader.loader.DownloadedNovelPageLoader
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import eu.kanade.tachiyomi.util.storage.DiskUtil
 import eu.kanade.tachiyomi.util.storage.DiskUtil.NOMEDIA_FILE
 import eu.kanade.tachiyomi.util.storage.saveTo
@@ -350,6 +352,13 @@ class MangaDownloader(
         val tmpDir = mangaDir.createDirectory(chapterDirname + TMP_DIR_SUFFIX)!!
 
         try {
+            // Novel chapters are a single block of text (not images): fetch and save it, then finish,
+            // bypassing the whole image pipeline (page list, image download, CBZ archiving).
+            if (NovelSourceCompat.isNovelSource(download.source)) {
+                downloadNovelChapter(download, tmpDir, chapterDirname, mangaDir)
+                return
+            }
+
             // If the page list already exists, start from the file
             val pageList = download.pages ?: run {
                 // Otherwise, pull page list from network and add them to download object
@@ -439,6 +448,41 @@ class MangaDownloader(
             download.status = MangaDownload.State.ERROR
             notifier.onError(error.message, download.chapter.name, download.manga.title, download.manga.id)
         }
+    }
+
+    /**
+     * Downloads a novel chapter. Its content is a single block of text rather than images, so the
+     * image pipeline is skipped entirely: the text is fetched via the source's `fetchPageText` and
+     * saved to a single file inside the chapter directory. Read back offline by
+     * [DownloadedNovelPageLoader].
+     */
+    private suspend fun downloadNovelChapter(
+        download: MangaDownload,
+        tmpDir: UniFile,
+        chapterDirname: String,
+        mangaDir: UniFile,
+    ) {
+        download.status = MangaDownload.State.DOWNLOADING
+
+        // A novel chapter is a single text page (mirrors NovelHttpPageLoader's stub page).
+        val page = Page(0, download.chapter.url).apply { status = Page.State.READY }
+        download.pages = listOf(page)
+        notifier.onProgressChange(download)
+
+        val text = NovelSourceCompat.fetchPageText(download.source, page)
+        if (text.isBlank()) {
+            throw Exception(context.stringResource(MR.strings.page_list_empty_error))
+        }
+
+        tmpDir.createFile(DownloadedNovelPageLoader.DOWNLOADED_NOVEL_FILENAME)!!
+            .openOutputStream()
+            .use { it.write(text.toByteArray()) }
+
+        // Novels are always stored as a plain directory (never CBZ, which is for image archives).
+        tmpDir.renameTo(chapterDirname)
+        cache.addChapter(chapterDirname, mangaDir, download.manga)
+
+        download.status = MangaDownload.State.DOWNLOADED
     }
 
     /**

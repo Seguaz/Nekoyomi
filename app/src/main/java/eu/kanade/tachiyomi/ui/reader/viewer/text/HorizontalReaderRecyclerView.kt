@@ -17,6 +17,11 @@ class HorizontalReaderRecyclerView(context: Context) : RecyclerView(context) {
     private var startX = 0f
     private var startY = 0f
 
+    init {
+        // No edge bounce/glow: reading is vertical, and horizontal over-scroll just flickers.
+        overScrollMode = OVER_SCROLL_NEVER
+    }
+
     override fun onInterceptTouchEvent(e: MotionEvent): Boolean {
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
@@ -27,11 +32,19 @@ class HorizontalReaderRecyclerView(context: Context) : RecyclerView(context) {
                 return false
             }
             MotionEvent.ACTION_MOVE -> {
-                val dx = abs(e.x - startX)
+                val rawDx = e.x - startX
+                val dx = abs(rawDx)
                 val dy = abs(e.y - startY)
                 // Only page on a decidedly horizontal swipe; otherwise let the WebView scroll.
                 if (dx > touchSlop && dx > dy * HORIZONTAL_BIAS) {
-                    return super.onInterceptTouchEvent(e)
+                    // Swiping left (rawDx < 0) reveals the next section (scroll right, +1); right the
+                    // previous (-1). Only take over the gesture if there's actually a section that way,
+                    // so a swipe with nowhere to go doesn't bounce/flicker (e.g. single-section chapters).
+                    val direction = if (rawDx < 0) 1 else -1
+                    if (canScrollHorizontally(direction)) {
+                        return super.onInterceptTouchEvent(e)
+                    }
+                    return false
                 }
                 return false
             }

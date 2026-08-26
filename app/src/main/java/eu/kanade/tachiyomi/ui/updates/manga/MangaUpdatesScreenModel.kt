@@ -82,7 +82,10 @@ class MangaUpdatesScreenModel(
                 getUpdates.subscribe(limit).distinctUntilChanged(),
                 downloadCache.changes,
                 downloadManager.queueState,
-            ) { updates, _, _ ->
+                // Re-run the novel filter once sources load; novel extensions can load after the
+                // first emission, otherwise novel updates stay in the wrong (manga) tab until restart.
+                sourceManager.catalogueSources,
+            ) { updates, _, _, _ ->
                 updates.filter { NovelSourceCompat.isNovelSource(it.sourceId) == novelOnly }
             }
                 .catch {

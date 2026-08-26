@@ -36,6 +36,16 @@ object NovelSourceCompat {
         return interfaceCache.getOrPut(source.javaClass) { hasInterface(source.javaClass, NOVEL_SOURCE_FQN) }
     }
 
+    /**
+     * Clears the classification caches so sources are re-evaluated. Call when the installed
+     * extensions change (install/update/uninstall) so a source's novel-ness reflects the new state
+     * and stale entries for removed extensions don't linger.
+     */
+    fun clearCache() {
+        interfaceCache.clear()
+        sourceIdCache.clear()
+    }
+
     /** Whether the installed source with [sourceId] is a novel source (looks up the runtime source). */
     fun isNovelSource(sourceId: Long): Boolean {
         sourceIdCache[sourceId]?.let { return it }

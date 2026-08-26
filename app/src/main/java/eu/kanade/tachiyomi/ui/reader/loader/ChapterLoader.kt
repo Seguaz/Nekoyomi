@@ -89,6 +89,9 @@ class ChapterLoader(
             skipCache = true,
         )
         return when {
+            // A downloaded novel is a single text file, not images: read it back as text.
+            isDownloaded && NovelSourceCompat.isNovelSource(source) ->
+                DownloadedNovelPageLoader(chapter, manga, source, downloadProvider)
             isDownloaded -> DownloadPageLoader(
                 chapter,
                 manga,
