@@ -17,6 +17,7 @@ val migrations: List<Migration>
         ResetRotationMigration(),
         MigrateRotationViewerValuesMigration(),
         RemoveOneTwoHourUpdateMigration(),
+        RemoveThreeSixHourUpdateMigration(),
         SetupBackgroundTasksMigration(),
         MigrateSortingModeMigration(),
         AddAllLangMigration(),

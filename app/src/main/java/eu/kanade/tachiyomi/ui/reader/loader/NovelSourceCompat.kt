@@ -33,7 +33,15 @@ object NovelSourceCompat {
 
     fun isNovelSource(source: Any): Boolean {
         if (source is NovelSource) return true
-        return interfaceCache.getOrPut(source.javaClass) { hasInterface(source.javaClass, NOVEL_SOURCE_FQN) }
+        return interfaceCache.getOrPut(source.javaClass) {
+            // Match by the NovelSource interface (fast, first-party) OR by the presence of a
+            // `fetchPageText` method. Newer novel-extension builds (tsundoku / NovelSourcery) stopped
+            // exposing `eu.kanade.tachiyomi.source.NovelSource` under that exact FQN, so the interface
+            // check alone started failing after an extension update (novels fell into the manga
+            // section + read as images). The method IS the actual novel contract we call, so keying
+            // detection off it too is robust across those repackagings.
+            hasInterface(source.javaClass, NOVEL_SOURCE_FQN) || hasFetchPageText(source.javaClass)
+        }
     }
 
     /**
@@ -85,6 +93,15 @@ object NovelSourceCompat {
             logcat(LogPriority.ERROR, e) { "NovelSourceCompat: fetchPageText call failed" }
             ""
         }
+    }
+
+    /**
+     * Whether [clazz] exposes the suspend `fetchPageText(Page, Continuation)` method (novel contract),
+     * inherited methods included. This is what actually returns a chapter's text, so a source that has
+     * it is a novel source regardless of how (or whether) it declares the [NovelSource] interface.
+     */
+    private fun hasFetchPageText(clazz: Class<*>): Boolean {
+        return clazz.methods.any { it.name == "fetchPageText" && it.parameterTypes.size == 2 }
     }
 
     private fun hasInterface(clazz: Class<*>, name: String): Boolean {

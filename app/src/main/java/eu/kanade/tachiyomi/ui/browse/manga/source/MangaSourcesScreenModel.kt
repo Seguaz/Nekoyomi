@@ -20,6 +20,7 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -29,6 +30,7 @@ import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.source.manga.model.Pin
 import tachiyomi.domain.source.manga.model.Source
+import tachiyomi.domain.source.manga.service.MangaSourceManager
 import tachiyomi.source.local.entries.manga.LocalMangaSource
 import tachiyomi.source.local.entries.novel.LocalNovelSource
 import uy.kohesive.injekt.Injekt
@@ -44,6 +46,7 @@ class MangaSourcesScreenModel(
     // SY -->
     private val toggleExcludeFromMangaDataSaver: ToggleExcludeFromMangaDataSaver = Injekt.get(),
     // SY <--
+    private val sourceManager: MangaSourceManager = Injekt.get(),
     // Filters which sources this screen shows. Used to split manga vs novel sources (novels are
     // manga sources implementing the NovelSource marker).
     private val sourceFilter: (Source) -> Boolean = { true },
@@ -54,7 +57,14 @@ class MangaSourcesScreenModel(
 
     init {
         screenModelScope.launchIO {
-            getEnabledSources.subscribe()
+            // Re-run when the source map changes too: the manga/novel split uses
+            // NovelSourceCompat.isNovelSource(id), which returns false until the (async) extensions
+            // finish loading. The enabled-sources flow doesn't re-emit on that (a Source's data is
+            // unchanged), so without this a novel source stays stuck in the Manga tab for the session.
+            combine(
+                getEnabledSources.subscribe(),
+                sourceManager.catalogueSources,
+            ) { sources, _ -> sources }
                 .catch {
                     logcat(LogPriority.ERROR, it)
                     _events.send(Event.FailedFetchingSources)
