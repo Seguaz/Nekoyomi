@@ -21,6 +21,7 @@ import eu.kanade.tachiyomi.util.system.setForegroundSafely
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combineTransform
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -54,7 +55,7 @@ class AnimeDownloadJob(context: Context, workerParams: WorkerParameters) : Corou
     }
 
     override suspend fun doWork(): Result {
-        var networkCheck = checkNetworkState(
+        var networkCheck = isNetworkOk(
             applicationContext.activeNetworkState(),
             downloadPreferences.downloadOnlyOverWifi().get(),
         )
@@ -66,13 +67,25 @@ class AnimeDownloadJob(context: Context, workerParams: WorkerParameters) : Corou
 
         setForegroundSafely()
 
+        // Watch the network. On loss, PAUSE (keeping this worker alive) instead of stopping, so
+        // downloads resume automatically once the connection returns — e.g. losing signal between
+        // cell towers on a train no longer errors the download and forces a manual resume.
         coroutineScope {
             combineTransform(
                 applicationContext.networkStateFlow(),
                 downloadPreferences.downloadOnlyOverWifi().changes(),
-                transform = { a, b -> emit(checkNetworkState(a, b)) },
+                transform = { state, onlyWifi -> emit(networkStatusFor(state, onlyWifi)) },
             )
-                .onEach { networkCheck = it }
+                .distinctUntilChanged()
+                .onEach { status ->
+                    networkCheck = status.ok
+                    if (status.ok) {
+                        // Resume any downloads paused while the network was unavailable.
+                        downloadManager.downloaderStart()
+                    } else {
+                        downloadManager.pauseDownloadsForNetwork(status.reason)
+                    }
+                }
                 .launchIn(this)
         }
 
@@ -84,19 +97,24 @@ class AnimeDownloadJob(context: Context, workerParams: WorkerParameters) : Corou
         return Result.success()
     }
 
-    private fun checkNetworkState(state: NetworkState, requireWifi: Boolean): Boolean {
-        return if (state.isOnline) {
-            val noWifi = requireWifi && !state.isWifi
-            if (noWifi) {
-                downloadManager.downloaderStop(
-                    applicationContext.getString(R.string.download_notifier_text_only_wifi),
-                )
-            }
-            !noWifi
-        } else {
-            downloadManager.downloaderStop(applicationContext.getString(R.string.download_notifier_no_network))
-            false
+    private data class NetworkStatus(val ok: Boolean, val reason: String)
+
+    private fun networkStatusFor(state: NetworkState, requireWifi: Boolean): NetworkStatus {
+        return when {
+            !state.isOnline -> NetworkStatus(
+                ok = false,
+                reason = applicationContext.getString(R.string.download_notifier_no_network),
+            )
+            requireWifi && !state.isWifi -> NetworkStatus(
+                ok = false,
+                reason = applicationContext.getString(R.string.download_notifier_text_only_wifi),
+            )
+            else -> NetworkStatus(ok = true, reason = "")
         }
+    }
+
+    private fun isNetworkOk(state: NetworkState, requireWifi: Boolean): Boolean {
+        return state.isOnline && !(requireWifi && !state.isWifi)
     }
 
     companion object {

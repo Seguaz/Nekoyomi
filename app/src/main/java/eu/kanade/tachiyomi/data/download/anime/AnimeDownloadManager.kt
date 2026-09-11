@@ -66,6 +66,12 @@ class AnimeDownloadManager(
     fun downloaderStart() = downloader.start()
     fun downloaderStop(reason: String? = null) = downloader.stop(reason)
 
+    /**
+     * Pauses downloads because the network is unavailable while keeping the download worker alive, so
+     * they resume automatically once the connection returns (used by [AnimeDownloadJob]).
+     */
+    fun pauseDownloadsForNetwork(reason: String) = downloader.pauseForNetwork(reason)
+
     val isDownloaderRunning
         get() = AnimeDownloadJob.isRunningFlow(context)
 

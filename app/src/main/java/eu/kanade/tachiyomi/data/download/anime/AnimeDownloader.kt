@@ -184,6 +184,19 @@ class AnimeDownloader(
     }
 
     /**
+     * Pauses the downloader because the network is unavailable, WITHOUT stopping the download worker,
+     * so downloads resume automatically once the connection returns instead of erroring out and
+     * requiring a manual resume (e.g. losing signal between cell towers on a train).
+     */
+    fun pauseForNetwork(reason: String) {
+        cancelDownloaderJob()
+        queueState.value
+            .filter { it.status == AnimeDownload.State.DOWNLOADING }
+            .forEach { it.status = AnimeDownload.State.QUEUE }
+        notifier.onWarning(reason)
+    }
+
+    /**
      * Removes everything from the queue.
      */
     fun clearQueue() {
