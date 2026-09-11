@@ -89,7 +89,7 @@ fun MangaLibrarySettingsDialog(
 private fun ColumnScope.GroupPage(
     screenModel: MangaLibrarySettingsScreenModel,
 ) {
-    val groupMode by screenModel.libraryPreferences.libraryGroupModeManga().collectAsState()
+    val groupMode by screenModel.groupModePref().collectAsState()
     val modes = listOf(
         LibraryGroupMode.NONE to stringResource(MR.strings.group_by_none),
         LibraryGroupMode.BY_SOURCE to stringResource(MR.strings.group_by_source),
@@ -102,7 +102,7 @@ private fun ColumnScope.GroupPage(
         RadioItem(
             label = label,
             selected = groupMode == mode.ordinal,
-            onClick = { screenModel.libraryPreferences.libraryGroupModeManga().set(mode.ordinal) },
+            onClick = { screenModel.groupModePref().set(mode.ordinal) },
         )
     }
 }
@@ -112,7 +112,7 @@ private fun ColumnScope.FilterPage(
     screenModel: MangaLibrarySettingsScreenModel,
     genres: ImmutableList<String>,
 ) {
-    val filterDownloaded by screenModel.libraryPreferences.filterDownloadedManga().collectAsState()
+    val filterDownloaded by screenModel.filterDownloadedPref().collectAsState()
     val downloadedOnly by screenModel.preferences.downloadedOnly().collectAsState()
     val autoUpdateMangaRestrictions by screenModel.libraryPreferences.autoUpdateItemRestrictions().collectAsState()
 
@@ -124,40 +124,40 @@ private fun ColumnScope.FilterPage(
             filterDownloaded
         },
         enabled = !downloadedOnly,
-        onClick = { screenModel.toggleFilter(LibraryPreferences::filterDownloadedManga) },
+        onClick = { screenModel.toggleFilter(screenModel.filterDownloadedPref()) },
     )
-    val filterUnread by screenModel.libraryPreferences.filterUnread().collectAsState()
+    val filterUnread by screenModel.filterUnreadPref().collectAsState()
     TriStateItem(
         label = stringResource(MR.strings.action_filter_unread),
         state = filterUnread,
-        onClick = { screenModel.toggleFilter(LibraryPreferences::filterUnread) },
+        onClick = { screenModel.toggleFilter(screenModel.filterUnreadPref()) },
     )
-    val filterStarted by screenModel.libraryPreferences.filterStartedManga().collectAsState()
+    val filterStarted by screenModel.filterStartedPref().collectAsState()
     TriStateItem(
         label = stringResource(MR.strings.label_started),
         state = filterStarted,
-        onClick = { screenModel.toggleFilter(LibraryPreferences::filterStartedManga) },
+        onClick = { screenModel.toggleFilter(screenModel.filterStartedPref()) },
     )
-    val filterBookmarked by screenModel.libraryPreferences.filterBookmarkedManga().collectAsState()
+    val filterBookmarked by screenModel.filterBookmarkedPref().collectAsState()
     TriStateItem(
         label = stringResource(MR.strings.action_filter_bookmarked),
         state = filterBookmarked,
-        onClick = { screenModel.toggleFilter(LibraryPreferences::filterBookmarkedManga) },
+        onClick = { screenModel.toggleFilter(screenModel.filterBookmarkedPref()) },
     )
-    val filterCompleted by screenModel.libraryPreferences.filterCompletedManga().collectAsState()
+    val filterCompleted by screenModel.filterCompletedPref().collectAsState()
     TriStateItem(
         label = stringResource(MR.strings.completed),
         state = filterCompleted,
-        onClick = { screenModel.toggleFilter(LibraryPreferences::filterCompletedManga) },
+        onClick = { screenModel.toggleFilter(screenModel.filterCompletedPref()) },
     )
 
     // TODO: re-enable when custom intervals are ready for stable
     if ((!isReleaseBuildType) && LibraryPreferences.ENTRY_OUTSIDE_RELEASE_PERIOD in autoUpdateMangaRestrictions) {
-        val filterIntervalCustom by screenModel.libraryPreferences.filterIntervalCustom().collectAsState()
+        val filterIntervalCustom by screenModel.filterIntervalCustomPref().collectAsState()
         TriStateItem(
             label = stringResource(MR.strings.action_filter_interval_custom),
             state = filterIntervalCustom,
-            onClick = { screenModel.toggleFilter(LibraryPreferences::filterIntervalCustom) },
+            onClick = { screenModel.toggleFilter(screenModel.filterIntervalCustomPref()) },
         )
     }
 
@@ -168,7 +168,7 @@ private fun ColumnScope.FilterPage(
         }
         1 -> {
             val service = trackers[0]
-            val filterTracker by screenModel.libraryPreferences.filterTrackedManga(
+            val filterTracker by screenModel.filterTrackedPref(
                 service.id.toInt(),
             ).collectAsState()
             TriStateItem(
@@ -180,7 +180,7 @@ private fun ColumnScope.FilterPage(
         else -> {
             HeadingItem(MR.strings.action_filter_tracked)
             trackers.map { service ->
-                val filterTracker by screenModel.libraryPreferences.filterTrackedManga(
+                val filterTracker by screenModel.filterTrackedPref(
                     service.id.toInt(),
                 ).collectAsState()
                 TriStateItem(
@@ -192,8 +192,8 @@ private fun ColumnScope.FilterPage(
         }
     }
 
-    val includedGenres by screenModel.libraryPreferences.filterGenresIncludeManga().collectAsState()
-    val excludedGenres by screenModel.libraryPreferences.filterGenresExcludeManga().collectAsState()
+    val includedGenres by screenModel.filterGenresIncludePref().collectAsState()
+    val excludedGenres by screenModel.filterGenresExcludePref().collectAsState()
     val tagsExpanded by screenModel.libraryPreferences.filterTagsExpanded().collectAsState()
     GenreFilterSection(
         genres = genres,
@@ -296,9 +296,9 @@ private fun ColumnScope.DisplayPage(
     val configuration = LocalConfiguration.current
     val columnPreference = remember {
         if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            screenModel.libraryPreferences.mangaLandscapeColumns()
+            screenModel.landscapeColumnsPref()
         } else {
-            screenModel.libraryPreferences.mangaPortraitColumns()
+            screenModel.portraitColumnsPref()
         }
     }
 

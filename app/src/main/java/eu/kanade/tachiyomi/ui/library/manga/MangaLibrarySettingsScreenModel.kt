@@ -37,6 +37,80 @@ class MangaLibrarySettingsScreenModel(
         libraryPreferences.categoryTabs()
     }
 
+    // Preferences that are scoped per media type so tweaking the novel library doesn't change the
+    // manga library (and vice versa). Each returns the novel-only pref when [novelOnly], else manga.
+    fun groupModePref() = if (novelOnly) {
+        libraryPreferences.libraryGroupModeNovel()
+    } else {
+        libraryPreferences.libraryGroupModeManga()
+    }
+
+    fun portraitColumnsPref() = if (novelOnly) {
+        libraryPreferences.novelPortraitColumns()
+    } else {
+        libraryPreferences.mangaPortraitColumns()
+    }
+
+    fun landscapeColumnsPref() = if (novelOnly) {
+        libraryPreferences.novelLandscapeColumns()
+    } else {
+        libraryPreferences.mangaLandscapeColumns()
+    }
+
+    fun filterDownloadedPref() = if (novelOnly) {
+        libraryPreferences.filterDownloadedNovel()
+    } else {
+        libraryPreferences.filterDownloadedManga()
+    }
+
+    fun filterUnreadPref() = if (novelOnly) {
+        libraryPreferences.filterUnreadNovel()
+    } else {
+        libraryPreferences.filterUnread()
+    }
+
+    fun filterStartedPref() = if (novelOnly) {
+        libraryPreferences.filterStartedNovel()
+    } else {
+        libraryPreferences.filterStartedManga()
+    }
+
+    fun filterBookmarkedPref() = if (novelOnly) {
+        libraryPreferences.filterBookmarkedNovel()
+    } else {
+        libraryPreferences.filterBookmarkedManga()
+    }
+
+    fun filterCompletedPref() = if (novelOnly) {
+        libraryPreferences.filterCompletedNovel()
+    } else {
+        libraryPreferences.filterCompletedManga()
+    }
+
+    fun filterIntervalCustomPref() = if (novelOnly) {
+        libraryPreferences.filterIntervalCustomNovel()
+    } else {
+        libraryPreferences.filterIntervalCustom()
+    }
+
+    fun filterTrackedPref(id: Int) = if (novelOnly) {
+        libraryPreferences.filterTrackedNovel(id)
+    } else {
+        libraryPreferences.filterTrackedManga(id)
+    }
+
+    fun filterGenresIncludePref() = if (novelOnly) {
+        libraryPreferences.filterGenresIncludeNovel()
+    } else {
+        libraryPreferences.filterGenresIncludeManga()
+    }
+
+    fun filterGenresExcludePref() = if (novelOnly) {
+        libraryPreferences.filterGenresExcludeNovel()
+    } else {
+        libraryPreferences.filterGenresExcludeManga()
+    }
+
     val trackersFlow = trackerManager.loggedInTrackersFlow()
         .stateIn(
             scope = screenModelScope,
@@ -44,20 +118,20 @@ class MangaLibrarySettingsScreenModel(
             initialValue = trackerManager.loggedInTrackers(),
         )
 
-    fun toggleFilter(preference: (LibraryPreferences) -> Preference<TriState>) {
-        preference(libraryPreferences).getAndSet {
+    fun toggleFilter(preference: Preference<TriState>) {
+        preference.getAndSet {
             it.next()
         }
     }
 
     fun toggleTracker(id: Int) {
-        toggleFilter { libraryPreferences.filterTrackedManga(id) }
+        toggleFilter(filterTrackedPref(id))
     }
 
     /** Cycles a tag through neutral -> included -> excluded -> neutral for the library tag filter. */
     fun cycleGenreFilter(genre: String) {
-        val include = libraryPreferences.filterGenresIncludeManga()
-        val exclude = libraryPreferences.filterGenresExcludeManga()
+        val include = filterGenresIncludePref()
+        val exclude = filterGenresExcludePref()
         when (genre) {
             in include.get() -> {
                 include.set(include.get() - genre)
@@ -69,8 +143,8 @@ class MangaLibrarySettingsScreenModel(
     }
 
     fun clearGenreFilters() {
-        libraryPreferences.filterGenresIncludeManga().set(emptySet())
-        libraryPreferences.filterGenresExcludeManga().set(emptySet())
+        filterGenresIncludePref().set(emptySet())
+        filterGenresExcludePref().set(emptySet())
     }
 
     fun setDisplayMode(mode: LibraryDisplayMode) {

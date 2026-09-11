@@ -22,17 +22,25 @@ class SeriesCoverCache(
     companion object {
         private const val ANIME_DIR = "series_covers/anime"
         private const val MANGA_DIR = "series_covers/manga"
+        private const val NOVEL_DIR = "series_covers/novel"
         private const val SEP = '|'
     }
 
-    private fun dir(isAnime: Boolean): File {
-        val path = if (isAnime) ANIME_DIR else MANGA_DIR
+    private fun dir(isAnime: Boolean, isNovel: Boolean): File {
+        val path = when {
+            isNovel -> NOVEL_DIR
+            isAnime -> ANIME_DIR
+            else -> MANGA_DIR
+        }
         return context.getExternalFilesDir(path)
             ?: File(context.filesDir, path).also { it.mkdirs() }
     }
 
-    private fun pref(isAnime: Boolean) =
-        if (isAnime) libraryPreferences.seriesCoversAnime() else libraryPreferences.seriesCoversManga()
+    private fun pref(isAnime: Boolean, isNovel: Boolean) = when {
+        isNovel -> libraryPreferences.seriesCoversNovel()
+        isAnime -> libraryPreferences.seriesCoversAnime()
+        else -> libraryPreferences.seriesCoversManga()
+    }
 
     private fun fileNameFor(raw: Set<String>, name: String): String? = raw.firstNotNullOfOrNull { entry ->
         val i = entry.indexOf(SEP)
@@ -41,41 +49,42 @@ class SeriesCoverCache(
     }
 
     /** The custom cover file for [name], or null if none is set / the file is missing. */
-    fun getCoverFile(isAnime: Boolean, name: String): File? {
-        val fileName = fileNameFor(pref(isAnime).get(), name) ?: return null
-        return File(dir(isAnime), fileName).takeIf { it.exists() }
+    fun getCoverFile(isAnime: Boolean, name: String, isNovel: Boolean = false): File? {
+        val fileName = fileNameFor(pref(isAnime, isNovel).get(), name) ?: return null
+        return File(dir(isAnime, isNovel), fileName).takeIf { it.exists() }
     }
 
-    fun hasCover(isAnime: Boolean, name: String): Boolean = getCoverFile(isAnime, name) != null
+    fun hasCover(isAnime: Boolean, name: String, isNovel: Boolean = false): Boolean =
+        getCoverFile(isAnime, name, isNovel) != null
 
     /** Copies [inputStream] as the custom cover for [name], replacing any previous one. */
     @Throws(IOException::class)
-    fun setCover(isAnime: Boolean, name: String, inputStream: InputStream) {
-        val p = pref(isAnime)
+    fun setCover(isAnime: Boolean, name: String, inputStream: InputStream, isNovel: Boolean = false) {
+        val p = pref(isAnime, isNovel)
         val raw = p.get()
         // Delete the previous file for this group, if any.
-        fileNameFor(raw, name)?.let { File(dir(isAnime), it).delete() }
+        fileNameFor(raw, name)?.let { File(dir(isAnime, isNovel), it).delete() }
 
         val newFileName = "${DiskUtil.hashKeyForDisk(name)}_${System.currentTimeMillis()}"
-        File(dir(isAnime), newFileName).outputStream().use { out -> inputStream.copyTo(out) }
+        File(dir(isAnime, isNovel), newFileName).outputStream().use { out -> inputStream.copyTo(out) }
 
         p.set(raw.dropEntriesFor(name) + "$newFileName$SEP$name")
     }
 
     /** Moves the custom cover mapping from [oldName] to [newName] (keeps the same file). */
-    fun renameSeries(isAnime: Boolean, oldName: String, newName: String) {
-        val p = pref(isAnime)
+    fun renameSeries(isAnime: Boolean, oldName: String, newName: String, isNovel: Boolean = false) {
+        val p = pref(isAnime, isNovel)
         val raw = p.get()
         val fileName = fileNameFor(raw, oldName) ?: return
         p.set(raw.dropEntriesFor(oldName).dropEntriesFor(newName) + "$fileName$SEP$newName")
     }
 
     /** Deletes the custom cover for [name], if any. */
-    fun deleteCover(isAnime: Boolean, name: String) {
-        val p = pref(isAnime)
+    fun deleteCover(isAnime: Boolean, name: String, isNovel: Boolean = false) {
+        val p = pref(isAnime, isNovel)
         val raw = p.get()
         val fileName = fileNameFor(raw, name) ?: return
-        File(dir(isAnime), fileName).delete()
+        File(dir(isAnime, isNovel), fileName).delete()
         p.set(raw.dropEntriesFor(name))
     }
 

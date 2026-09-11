@@ -95,6 +95,11 @@ class LibraryPreferences(
         TriState.DISABLED,
     )
 
+    fun filterIntervalCustomNovel() = preferenceStore.getEnum(
+        "pref_filter_novellib_interval_custom",
+        TriState.DISABLED,
+    )
+
     // Common badges
 
     fun downloadBadge() = preferenceStore.getBoolean("display_download_badge", false)
@@ -120,9 +125,11 @@ class LibraryPreferences(
 
     fun animePortraitColumns() = preferenceStore.getInt("pref_animelib_columns_portrait_key", 0)
     fun mangaPortraitColumns() = preferenceStore.getInt("pref_library_columns_portrait_key", 0)
+    fun novelPortraitColumns() = preferenceStore.getInt("pref_novellib_columns_portrait_key", 0)
 
     fun animeLandscapeColumns() = preferenceStore.getInt("pref_animelib_columns_landscape_key", 0)
     fun mangaLandscapeColumns() = preferenceStore.getInt("pref_library_columns_landscape_key", 0)
+    fun novelLandscapeColumns() = preferenceStore.getInt("pref_novellib_columns_landscape_key", 0)
 
     // Mixture Filter
 
@@ -132,11 +139,17 @@ class LibraryPreferences(
     fun filterDownloadedManga() =
         preferenceStore.getEnum("pref_filter_library_downloaded_v2", TriState.DISABLED)
 
+    fun filterDownloadedNovel() =
+        preferenceStore.getEnum("pref_filter_novellib_downloaded_v2", TriState.DISABLED)
+
     fun filterUnseen() =
         preferenceStore.getEnum("pref_filter_animelib_unread_v2", TriState.DISABLED)
 
     fun filterUnread() =
         preferenceStore.getEnum("pref_filter_library_unread_v2", TriState.DISABLED)
+
+    fun filterUnreadNovel() =
+        preferenceStore.getEnum("pref_filter_novellib_unread_v2", TriState.DISABLED)
 
     fun filterStartedAnime() =
         preferenceStore.getEnum("pref_filter_animelib_started_v2", TriState.DISABLED)
@@ -144,11 +157,17 @@ class LibraryPreferences(
     fun filterStartedManga() =
         preferenceStore.getEnum("pref_filter_library_started_v2", TriState.DISABLED)
 
+    fun filterStartedNovel() =
+        preferenceStore.getEnum("pref_filter_novellib_started_v2", TriState.DISABLED)
+
     fun filterBookmarkedAnime() =
         preferenceStore.getEnum("pref_filter_animelib_bookmarked_v2", TriState.DISABLED)
 
     fun filterBookmarkedManga() =
         preferenceStore.getEnum("pref_filter_library_bookmarked_v2", TriState.DISABLED)
+
+    fun filterBookmarkedNovel() =
+        preferenceStore.getEnum("pref_filter_novellib_bookmarked_v2", TriState.DISABLED)
 
     fun filterCompletedAnime() =
         preferenceStore.getEnum("pref_filter_animelib_completed_v2", TriState.DISABLED)
@@ -156,11 +175,17 @@ class LibraryPreferences(
     fun filterCompletedManga() =
         preferenceStore.getEnum("pref_filter_library_completed_v2", TriState.DISABLED)
 
+    fun filterCompletedNovel() =
+        preferenceStore.getEnum("pref_filter_novellib_completed_v2", TriState.DISABLED)
+
     fun filterTrackedAnime(id: Int) =
         preferenceStore.getEnum("pref_filter_animelib_tracked_${id}_v2", TriState.DISABLED)
 
     fun filterTrackedManga(id: Int) =
         preferenceStore.getEnum("pref_filter_library_tracked_${id}_v2", TriState.DISABLED)
+
+    fun filterTrackedNovel(id: Int) =
+        preferenceStore.getEnum("pref_filter_novellib_tracked_${id}_v2", TriState.DISABLED)
 
     // Tag/genre library filter: entries must have ALL "include" tags and NONE of the "exclude" tags.
     fun filterGenresIncludeAnime() =
@@ -174,6 +199,12 @@ class LibraryPreferences(
 
     fun filterGenresExcludeManga() =
         preferenceStore.getStringSet("pref_filter_library_genres_exclude", emptySet())
+
+    fun filterGenresIncludeNovel() =
+        preferenceStore.getStringSet("pref_filter_novellib_genres_include", emptySet())
+
+    fun filterGenresExcludeNovel() =
+        preferenceStore.getStringSet("pref_filter_novellib_genres_exclude", emptySet())
 
     // Whether the tag chips are expanded in the library filter sheet (collapsed by default so the
     // long tag list stays out of the way for users who don't filter by tag).
@@ -197,18 +228,22 @@ class LibraryPreferences(
     // Entries pinned to the top of the library.
     fun pinnedAnimeIds() = preferenceStore.getStringSet("library_pinned_anime_ids", emptySet())
     fun pinnedMangaIds() = preferenceStore.getStringSet("library_pinned_manga_ids", emptySet())
+    fun pinnedNovelIds() = preferenceStore.getStringSet("library_pinned_novel_ids", emptySet())
 
     // Custom series groupings. Each element encodes one entry's membership as "<id><seriesName>".
     fun seriesGroupingsAnime() = preferenceStore.getStringSet("library_series_anime", emptySet())
     fun seriesGroupingsManga() = preferenceStore.getStringSet("library_series_manga", emptySet())
+    fun seriesGroupingsNovel() = preferenceStore.getStringSet("library_series_novel", emptySet())
 
     // Custom cover per series group. Each element encodes one group as "<fileName>|<seriesName>".
     fun seriesCoversAnime() = preferenceStore.getStringSet("library_series_covers_anime", emptySet())
     fun seriesCoversManga() = preferenceStore.getStringSet("library_series_covers_manga", emptySet())
+    fun seriesCoversNovel() = preferenceStore.getStringSet("library_series_covers_novel", emptySet())
 
     // Automatic library grouping mode (0 = none/categories, see LibraryGroupMode ordinal).
     fun libraryGroupModeAnime() = preferenceStore.getInt("library_group_mode_anime", 0)
     fun libraryGroupModeManga() = preferenceStore.getInt("library_group_mode_manga", 0)
+    fun libraryGroupModeNovel() = preferenceStore.getInt("library_group_mode_novel", 0)
 
     fun animeUpdateCategories() =
         preferenceStore.getStringSet(LIBRARY_UPDATE_ANIME_CATEGORIES_PREF_KEY, emptySet())
@@ -221,6 +256,14 @@ class LibraryPreferences(
 
     fun mangaUpdateCategoriesExclude() =
         preferenceStore.getStringSet(LIBRARY_UPDATE_MANGA_CATEGORIES_EXCLUDE_PREF_KEY, emptySet())
+
+    // Novel update categories are stored separately from manga so the two can be scheduled/filtered
+    // independently (novel category ids live in their own id space).
+    fun novelUpdateCategories() =
+        preferenceStore.getStringSet(LIBRARY_UPDATE_NOVEL_CATEGORIES_PREF_KEY, emptySet())
+
+    fun novelUpdateCategoriesExclude() =
+        preferenceStore.getStringSet(LIBRARY_UPDATE_NOVEL_CATEGORIES_EXCLUDE_PREF_KEY, emptySet())
 
     // Mixture Item
 
@@ -469,8 +512,10 @@ class LibraryPreferences(
         const val DEFAULT_NOVEL_CATEGORY_PREF_KEY = "default_novel_category"
         private const val LIBRARY_UPDATE_MANGA_CATEGORIES_PREF_KEY = "library_update_categories"
         private const val LIBRARY_UPDATE_ANIME_CATEGORIES_PREF_KEY = "animelib_update_categories"
+        private const val LIBRARY_UPDATE_NOVEL_CATEGORIES_PREF_KEY = "novellib_update_categories"
         private const val LIBRARY_UPDATE_MANGA_CATEGORIES_EXCLUDE_PREF_KEY = "library_update_categories_exclude"
         private const val LIBRARY_UPDATE_ANIME_CATEGORIES_EXCLUDE_PREF_KEY = "animelib_update_categories_exclude"
+        private const val LIBRARY_UPDATE_NOVEL_CATEGORIES_EXCLUDE_PREF_KEY = "novellib_update_categories_exclude"
         val mangaCategoryPreferenceKeys = setOf(
             DEFAULT_MANGA_CATEGORY_PREF_KEY,
             LIBRARY_UPDATE_MANGA_CATEGORIES_PREF_KEY,

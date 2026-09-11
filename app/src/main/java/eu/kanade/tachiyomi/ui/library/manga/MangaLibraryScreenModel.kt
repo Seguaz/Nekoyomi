@@ -130,11 +130,44 @@ class MangaLibraryScreenModel(
     private val context = Injekt.get<Application>()
     private val seriesCoverCache = SeriesCoverCache(context, libraryPreferences)
 
+    // Per-media-type library preferences: novels keep their own so tweaking one library doesn't
+    // change the other. Each returns the novel-only pref when [novelOnly], else the manga one.
+    private fun pinnedIdsPref() =
+        if (novelOnly) libraryPreferences.pinnedNovelIds() else libraryPreferences.pinnedMangaIds()
+    private fun seriesGroupingsPref() =
+        if (novelOnly) libraryPreferences.seriesGroupingsNovel() else libraryPreferences.seriesGroupingsManga()
+    private fun seriesCoversPref() =
+        if (novelOnly) libraryPreferences.seriesCoversNovel() else libraryPreferences.seriesCoversManga()
+    private fun groupModePref() =
+        if (novelOnly) libraryPreferences.libraryGroupModeNovel() else libraryPreferences.libraryGroupModeManga()
+    private fun portraitColumnsPref() =
+        if (novelOnly) libraryPreferences.novelPortraitColumns() else libraryPreferences.mangaPortraitColumns()
+    private fun landscapeColumnsPref() =
+        if (novelOnly) libraryPreferences.novelLandscapeColumns() else libraryPreferences.mangaLandscapeColumns()
+    private fun filterDownloadedPref() =
+        if (novelOnly) libraryPreferences.filterDownloadedNovel() else libraryPreferences.filterDownloadedManga()
+    private fun filterUnreadPref() =
+        if (novelOnly) libraryPreferences.filterUnreadNovel() else libraryPreferences.filterUnread()
+    private fun filterStartedPref() =
+        if (novelOnly) libraryPreferences.filterStartedNovel() else libraryPreferences.filterStartedManga()
+    private fun filterBookmarkedPref() =
+        if (novelOnly) libraryPreferences.filterBookmarkedNovel() else libraryPreferences.filterBookmarkedManga()
+    private fun filterCompletedPref() =
+        if (novelOnly) libraryPreferences.filterCompletedNovel() else libraryPreferences.filterCompletedManga()
+    private fun filterIntervalCustomPref() =
+        if (novelOnly) libraryPreferences.filterIntervalCustomNovel() else libraryPreferences.filterIntervalCustom()
+    private fun filterTrackedPref(id: Int) =
+        if (novelOnly) libraryPreferences.filterTrackedNovel(id) else libraryPreferences.filterTrackedManga(id)
+    private fun filterGenresIncludePref() =
+        if (novelOnly) libraryPreferences.filterGenresIncludeNovel() else libraryPreferences.filterGenresIncludeManga()
+    private fun filterGenresExcludePref() =
+        if (novelOnly) libraryPreferences.filterGenresExcludeNovel() else libraryPreferences.filterGenresExcludeManga()
+
     init {
         screenModelScope.launchIO {
             val searchAndCovers = combine(
                 state.map { it.searchQuery }.distinctUntilChanged().debounce(SEARCH_DEBOUNCE_MILLIS),
-                libraryPreferences.seriesCoversManga().changes(),
+                seriesCoversPref().changes(),
             ) { searchQuery, _ -> searchQuery }
             combine(
                 searchAndCovers,
@@ -173,7 +206,7 @@ class MangaLibraryScreenModel(
             (if (novelOnly) libraryPreferences.categoryTabsNovel() else libraryPreferences.categoryTabs()).changes(),
             libraryPreferences.categoryNumberOfItems().changes(),
             libraryPreferences.showContinueViewingButton().changes(),
-            libraryPreferences.libraryGroupModeManga().changes(),
+            groupModePref().changes(),
         ) { categoryTabs, showCount, showContinue, groupMode ->
             mutableState.update { state ->
                 state.copy(
@@ -211,16 +244,17 @@ class MangaLibraryScreenModel(
             }
             .launchIn(screenModelScope)
 
-        libraryPreferences.pinnedMangaIds().changes()
+        pinnedIdsPref().changes()
             .onEach { pinned -> mutableState.update { it.copy(pinnedIds = pinned) } }
             .launchIn(screenModelScope)
 
-        libraryPreferences.seriesGroupingsManga().changes()
+        seriesGroupingsPref().changes()
             .onEach { set -> mutableState.update { it.copy(seriesIds = SeriesGrouping.decode(set).keys) } }
             .launchIn(screenModelScope)
 
         // Keep the sorted set of all tags/genres in the library up to date for the tag-filter chips.
-        getLibraryManga.subscribe()
+        // Use the active library so the novel tab's chips show novel genres, not manga ones.
+        (if (novelOnly) getNovelLibraryManga.subscribe() else getLibraryManga.subscribe())
             .map { list ->
                 list.asSequence()
                     .flatMap { it.manga.genre.orEmpty().asSequence() }
@@ -390,7 +424,7 @@ class MangaLibraryScreenModel(
             }
         }
 
-        val pinnedIds = libraryPreferences.pinnedMangaIds().get()
+        val pinnedIds = pinnedIdsPref().get()
         val pinnedFirst = compareByDescending<MangaLibraryItem> { it.libraryManga.id.toString() in pinnedIds }
 
         return mapValues { (key, value) ->
@@ -447,7 +481,8 @@ class MangaLibraryScreenModel(
             isFolder = true
             seriesName = name
             seriesMemberCount = members.size
-            seriesCoverPath = seriesCoverCache.getCoverFile(isAnime = false, name = name)?.absolutePath
+            seriesCoverPath =
+                seriesCoverCache.getCoverFile(isAnime = false, name = name, isNovel = novelOnly)?.absolutePath
             folderPreviewCovers = members.take(4).map {
                 val manga = it.libraryManga.manga
                 MangaCover(
@@ -470,14 +505,14 @@ class MangaLibraryScreenModel(
             libraryPreferences.autoUpdateItemRestrictions().changes(),
 
             preferences.downloadedOnly().changes(),
-            libraryPreferences.filterDownloadedManga().changes(),
-            libraryPreferences.filterUnread().changes(),
-            libraryPreferences.filterStartedManga().changes(),
-            libraryPreferences.filterBookmarkedManga().changes(),
-            libraryPreferences.filterCompletedManga().changes(),
-            libraryPreferences.filterIntervalCustom().changes(),
-            libraryPreferences.filterGenresIncludeManga().changes(),
-            libraryPreferences.filterGenresExcludeManga().changes(),
+            filterDownloadedPref().changes(),
+            filterUnreadPref().changes(),
+            filterStartedPref().changes(),
+            filterBookmarkedPref().changes(),
+            filterCompletedPref().changes(),
+            filterIntervalCustomPref().changes(),
+            filterGenresIncludePref().changes(),
+            filterGenresExcludePref().changes(),
         ) {
             @Suppress("UNCHECKED_CAST")
             ItemPreferences(
@@ -511,8 +546,8 @@ class MangaLibraryScreenModel(
             if (novelOnly) getNovelLibraryManga.subscribe() else getLibraryManga.subscribe(),
             getLibraryItemPreferencesFlow(),
             downloadCache.changes,
-            libraryPreferences.pinnedMangaIds().changes(),
-            libraryPreferences.seriesGroupingsManga().changes(),
+            pinnedIdsPref().changes(),
+            seriesGroupingsPref().changes(),
         ) { libraryMangaList, prefs, _, pinnedIds, seriesSet ->
             val seriesById = SeriesGrouping.decode(seriesSet)
             libraryMangaList
@@ -541,7 +576,7 @@ class MangaLibraryScreenModel(
         return combine(
             if (novelOnly) getNovelCategories.subscribe() else getCategories.subscribe(),
             libraryMangasFlow,
-            libraryPreferences.libraryGroupModeManga().changes(),
+            groupModePref().changes(),
             getTracksPerManga.subscribe(),
         ) { categories, libraryItems, groupModeValue, trackMap ->
             when (LibraryGroupMode.fromInt(groupModeValue)) {
@@ -681,7 +716,7 @@ class MangaLibraryScreenModel(
             if (loggedInTrackers.isEmpty()) return@flatMapLatest flowOf(emptyMap())
 
             val prefFlows = loggedInTrackers.map { tracker ->
-                libraryPreferences.filterTrackedManga(tracker.id.toInt()).changes()
+                filterTrackedPref(tracker.id.toInt()).changes()
             }
             combine(prefFlows) {
                 loggedInTrackers
@@ -763,7 +798,7 @@ class MangaLibraryScreenModel(
      * already pinned.
      */
     fun togglePinSelection() {
-        val pref = libraryPreferences.pinnedMangaIds()
+        val pref = pinnedIdsPref()
         val selectedIds = state.value.selection.map { it.id.toString() }.toSet()
         if (selectedIds.isEmpty()) return
         val current = pref.get()
@@ -778,7 +813,7 @@ class MangaLibraryScreenModel(
     fun openGroupIntoSeriesDialog() {
         val ids = state.value.selection.map { it.id }
         if (ids.isEmpty()) return
-        val existing = SeriesGrouping.seriesNames(libraryPreferences.seriesGroupingsManga().get())
+        val existing = SeriesGrouping.seriesNames(seriesGroupingsPref().get())
         mutableState.update { it.copy(dialog = Dialog.GroupIntoSeries(ids, existing.toImmutableList())) }
     }
 
@@ -787,7 +822,7 @@ class MangaLibraryScreenModel(
      */
     fun groupIntoSeries(name: String, ids: List<Long>) {
         if (name.isBlank() || ids.isEmpty()) return
-        val pref = libraryPreferences.seriesGroupingsManga()
+        val pref = seriesGroupingsPref()
         pref.set(SeriesGrouping.assign(pref.get(), ids, name.trim()))
         clearSelection()
     }
@@ -821,12 +856,12 @@ class MangaLibraryScreenModel(
 
     /** Whether the folder [name] has a custom cover set. */
     fun folderHasCover(name: String?): Boolean =
-        name != null && seriesCoverCache.hasCover(isAnime = false, name = name)
+        name != null && seriesCoverCache.hasCover(isAnime = false, name = name, isNovel = novelOnly)
 
     /** Opens the actions menu for the folder [name] (change cover, rename, disband). */
     fun showFolderActionsDialog(name: String?) {
         name ?: return
-        val hasCover = seriesCoverCache.hasCover(isAnime = false, name = name)
+        val hasCover = seriesCoverCache.hasCover(isAnime = false, name = name, isNovel = novelOnly)
         mutableState.update { it.copy(dialog = Dialog.FolderActions(name, hasCover)) }
     }
 
@@ -839,20 +874,20 @@ class MangaLibraryScreenModel(
     fun renameFolder(oldName: String, newName: String) {
         val trimmed = newName.trim()
         if (trimmed.isBlank() || trimmed == oldName) return
-        val pref = libraryPreferences.seriesGroupingsManga()
+        val pref = seriesGroupingsPref()
         val ids = SeriesGrouping.decode(pref.get()).filterValues { it == oldName }.keys.toList()
         if (ids.isEmpty()) return
         pref.set(SeriesGrouping.assign(pref.get(), ids, trimmed))
-        seriesCoverCache.renameSeries(isAnime = false, oldName = oldName, newName = trimmed)
+        seriesCoverCache.renameSeries(isAnime = false, oldName = oldName, newName = trimmed, isNovel = novelOnly)
         mutableState.update { if (it.openFolder == oldName) it.copy(openFolder = trimmed) else it }
     }
 
     /** Disbands the folder [name], ungrouping all its members and dropping its cover. */
     fun disbandFolder(name: String) {
-        val pref = libraryPreferences.seriesGroupingsManga()
+        val pref = seriesGroupingsPref()
         val ids = SeriesGrouping.decode(pref.get()).filterValues { it == name }.keys.toList()
         if (ids.isNotEmpty()) pref.set(SeriesGrouping.remove(pref.get(), ids))
-        seriesCoverCache.deleteCover(isAnime = false, name = name)
+        seriesCoverCache.deleteCover(isAnime = false, name = name, isNovel = novelOnly)
         mutableState.update { if (it.openFolder == name) it.copy(openFolder = null) else it }
     }
 
@@ -862,7 +897,7 @@ class MangaLibraryScreenModel(
     fun ungroupSelection() {
         val ids = state.value.selection.map { it.id }
         if (ids.isEmpty()) return
-        val pref = libraryPreferences.seriesGroupingsManga()
+        val pref = seriesGroupingsPref()
         val decoded = SeriesGrouping.decode(pref.get())
         // A collapsed series head only selects itself (its members are hidden), yet ungrouping should
         // disband the WHOLE group. So remove every entry that shares a series with any selection.
@@ -879,7 +914,7 @@ class MangaLibraryScreenModel(
     fun selectedSingleSeriesName(): String? {
         val ids = state.value.selection.map { it.id }
         if (ids.isEmpty()) return null
-        val decoded = SeriesGrouping.decode(libraryPreferences.seriesGroupingsManga().get())
+        val decoded = SeriesGrouping.decode(seriesGroupingsPref().get())
         // singleOrNull() yields the shared name only when every id maps to the same non-null series.
         return ids.map { decoded[it] }.toSet().singleOrNull()
     }
@@ -887,7 +922,7 @@ class MangaLibraryScreenModel(
     /** Whether the current selection's series already has a custom cover. */
     fun selectionHasSeriesCover(): Boolean {
         val name = selectedSingleSeriesName() ?: return false
-        return seriesCoverCache.hasCover(isAnime = false, name = name)
+        return seriesCoverCache.hasCover(isAnime = false, name = name, isNovel = novelOnly)
     }
 
     /** Sets [uri] as the custom cover of the custom series [name]. */
@@ -895,7 +930,7 @@ class MangaLibraryScreenModel(
         screenModelScope.launchIO {
             try {
                 context.contentResolver.openInputStream(uri)?.use { input ->
-                    seriesCoverCache.setCover(isAnime = false, name = name, inputStream = input)
+                    seriesCoverCache.setCover(isAnime = false, name = name, inputStream = input, isNovel = novelOnly)
                 }
             } catch (e: Exception) {
                 logcat(LogPriority.ERROR, e)
@@ -907,7 +942,7 @@ class MangaLibraryScreenModel(
 
     /** Removes the custom cover of the custom series [name]. */
     fun removeSeriesCover(name: String) {
-        seriesCoverCache.deleteCover(isAnime = false, name = name)
+        seriesCoverCache.deleteCover(isAnime = false, name = name, isNovel = novelOnly)
         clearSelection()
     }
 
@@ -1004,9 +1039,9 @@ class MangaLibraryScreenModel(
     fun getColumnsPreferenceForCurrentOrientation(isLandscape: Boolean): PreferenceMutableState<Int> {
         return (
             if (isLandscape) {
-                libraryPreferences.mangaLandscapeColumns()
+                landscapeColumnsPref()
             } else {
-                libraryPreferences.mangaPortraitColumns()
+                portraitColumnsPref()
             }
             ).asState(
             screenModelScope,
