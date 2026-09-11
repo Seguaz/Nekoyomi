@@ -3,6 +3,7 @@ package eu.kanade.domain.entries.manga.model
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.tachiyomi.data.cache.MangaCoverCache
 import eu.kanade.tachiyomi.source.model.SManga
+import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderOrientation
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
 import tachiyomi.core.common.preference.TriState
@@ -82,6 +83,10 @@ fun SManga.toDomainManga(sourceId: Long): Manga {
         updateStrategy = update_strategy,
         initialized = initialized,
         source = sourceId,
+        // Persist novel-ness at insert so new entries are classified without waiting for the (async)
+        // source to reload. Sources are loaded whenever we reach here (browse/search), so this is
+        // accurate; the runtime reconcile self-heals any entry added while its source wasn't loaded.
+        isNovel = NovelSourceCompat.isNovelSource(sourceId),
     )
 }
 

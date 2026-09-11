@@ -53,7 +53,6 @@ import eu.kanade.tachiyomi.ui.entries.manga.track.MangaTrackInfoDialogHomeScreen
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.library.manga.MangaLibraryTab
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
-import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import eu.kanade.tachiyomi.ui.setting.SettingsScreen
 import eu.kanade.tachiyomi.ui.webview.WebViewScreen
 import eu.kanade.tachiyomi.util.system.copyToClipboard
@@ -160,7 +159,7 @@ class MangaScreen(
                         navigator,
                         query,
                         global,
-                        novelOnly = NovelSourceCompat.isNovelSource(successState.manga.source),
+                        novelOnly = successState.manga.isNovel,
                     )
                 }
             },

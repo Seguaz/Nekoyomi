@@ -13,5 +13,6 @@ data class MangaUpdatesWithRelations(
     val lastPageRead: Long,
     val sourceId: Long,
     val dateFetch: Long,
+    val isNovel: Boolean,
     val coverData: MangaCover,
 )

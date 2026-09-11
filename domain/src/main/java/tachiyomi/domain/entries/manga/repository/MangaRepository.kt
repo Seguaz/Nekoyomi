@@ -34,6 +34,9 @@ interface MangaRepository {
     /** Removes the given non-favorite (browse-cached) manga from the database. */
     suspend fun deleteMangasNotInLibrary(mangaIds: List<Long>)
 
+    /** Additively marks entries from the given (novel) sources as novels (never demotes). */
+    suspend fun setNovelFlagForSources(sourceIds: List<Long>)
+
     suspend fun getUpcomingManga(statuses: Set<Long>): Flow<List<Manga>>
 
     suspend fun resetMangaViewerFlags(): Boolean

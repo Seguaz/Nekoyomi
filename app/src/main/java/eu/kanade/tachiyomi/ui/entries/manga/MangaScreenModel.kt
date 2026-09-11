@@ -39,7 +39,6 @@ import eu.kanade.tachiyomi.data.track.EnhancedMangaTracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.network.HttpException
 import eu.kanade.tachiyomi.source.MangaSource
-import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.util.chapter.getNextUnread
 import eu.kanade.tachiyomi.util.removeCovers
@@ -144,7 +143,7 @@ class MangaScreenModel(
         get() = manga?.favorite ?: false
 
     private val isNovel: Boolean
-        get() = manga?.let { NovelSourceCompat.isNovelSource(it.source) } ?: false
+        get() = manga?.isNovel ?: false
 
     private val allChapters: List<ChapterList.Item>?
         get() = successState?.chapters
@@ -385,10 +384,7 @@ class MangaScreenModel(
                 if (checkDuplicate) {
                     // Same-media-type only: a novel and a manga sharing a title must not clash.
                     val duplicate = getDuplicateLibraryManga.await(manga)
-                        .firstOrNull {
-                            NovelSourceCompat.isNovelSource(it.source) ==
-                                NovelSourceCompat.isNovelSource(manga.source)
-                        }
+                        .firstOrNull { it.isNovel == manga.isNovel }
 
                     if (duplicate != null) {
                         updateSuccessState {
@@ -758,7 +754,7 @@ class MangaScreenModel(
                 }
                 val result = snackbarHostState.showSnackbar(
                     message = context.stringResource(
-                        if (NovelSourceCompat.isNovelSource(successState.source)) {
+                        if (successState.manga.isNovel) {
                             AYMR.strings.snack_add_to_novel_library
                         } else {
                             AYMR.strings.snack_add_to_manga_library

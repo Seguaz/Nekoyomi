@@ -32,6 +32,9 @@ data class Manga(
     val lastModifiedAt: Long,
     val favoriteModifiedAt: Long?,
     val version: Long,
+    // Whether this entry is a novel (a manga entry backed by a NovelSource). Persisted so novels can
+    // be split from manga in queries without re-classifying against the (async-loaded) source.
+    val isNovel: Boolean,
 ) : Serializable {
 
     val expectedNextUpdate: Instant?
@@ -134,6 +137,7 @@ data class Manga(
             lastModifiedAt = 0L,
             favoriteModifiedAt = null,
             version = 0L,
+            isNovel = false,
         )
     }
 }

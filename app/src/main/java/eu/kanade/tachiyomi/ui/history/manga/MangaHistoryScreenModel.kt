@@ -8,7 +8,6 @@ import eu.kanade.core.util.insertSeparators
 import eu.kanade.domain.entries.manga.interactor.UpdateManga
 import eu.kanade.domain.track.manga.interactor.AddMangaTracks
 import eu.kanade.presentation.history.manga.MangaHistoryUiModel
-import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import eu.kanade.tachiyomi.util.lang.toLocalDate
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
@@ -20,7 +19,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -76,12 +74,7 @@ class MangaHistoryScreenModel(
     init {
         screenModelScope.launch {
             _query.collectLatest { query ->
-                combine(
-                    getHistory.subscribe(query ?: "").distinctUntilChanged(),
-                    // Re-run the novel filter once sources load; novel extensions can load after the
-                    // first emission, otherwise novel history stays in the wrong (manga) tab.
-                    sourceManager.catalogueSources,
-                ) { history, _ -> history }
+                getHistory.subscribe(query ?: "").distinctUntilChanged()
                     .catch { error ->
                         logcat(LogPriority.ERROR, error)
                         _events.send(Event.InternalError)
@@ -100,7 +93,9 @@ class MangaHistoryScreenModel(
     }
 
     private fun List<MangaHistoryWithRelations>.toHistoryUiModels(): List<MangaHistoryUiModel> {
-        return filter { NovelSourceCompat.isNovelSource(it.coverData.sourceId) == novelOnly }
+        // Split by the persisted is_novel flag carried on each row (no runtime source classification),
+        // so novels don't leak into the manga history during the cold-start source-loading race.
+        return filter { it.isNovel == novelOnly }
             .map { MangaHistoryUiModel.Item(it) }
             .insertSeparators { before, after ->
                 val beforeDate = before?.item?.readAt?.time?.toLocalDate()
@@ -196,10 +191,7 @@ class MangaHistoryScreenModel(
             val manga = getManga.await(mangaId) ?: return@launchIO
 
             val duplicate = getDuplicateLibraryManga.await(manga)
-                .firstOrNull {
-                    NovelSourceCompat.isNovelSource(it.source) ==
-                        NovelSourceCompat.isNovelSource(manga.source)
-                }
+                .firstOrNull { it.isNovel == manga.isNovel }
             if (duplicate != null) {
                 mutableState.update { it.copy(dialog = Dialog.DuplicateManga(manga, duplicate)) }
                 return@launchIO

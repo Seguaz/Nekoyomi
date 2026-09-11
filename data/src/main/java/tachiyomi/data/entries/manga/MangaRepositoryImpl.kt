@@ -57,6 +57,11 @@ class MangaRepositoryImpl(
         handler.await { mangasQueries.deleteMangasNotInLibraryByMangaIds(mangaIds) }
     }
 
+    override suspend fun setNovelFlagForSources(sourceIds: List<Long>) {
+        if (sourceIds.isEmpty()) return
+        handler.await { mangasQueries.setIsNovelForSources(sourceIds) }
+    }
+
     override suspend fun getLibraryManga(): List<LibraryManga> {
         return handler.awaitList { libraryViewQueries.library(MangaMapper::mapLibraryManga) }
     }
@@ -132,6 +137,7 @@ class MangaRepositoryImpl(
                 dateAdded = manga.dateAdded,
                 updateStrategy = manga.updateStrategy,
                 version = manga.version,
+                isNovel = manga.isNovel,
             )
             mangasQueries.selectLastInsertedRowId()
         }

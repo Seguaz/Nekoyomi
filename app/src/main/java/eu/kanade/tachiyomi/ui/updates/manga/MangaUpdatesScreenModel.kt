@@ -16,7 +16,6 @@ import eu.kanade.tachiyomi.data.download.manga.MangaDownloadCache
 import eu.kanade.tachiyomi.data.download.manga.MangaDownloadManager
 import eu.kanade.tachiyomi.data.download.manga.model.MangaDownload
 import eu.kanade.tachiyomi.data.library.manga.MangaLibraryUpdateJob
-import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import eu.kanade.tachiyomi.util.lang.toLocalDate
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.mutate
@@ -82,11 +81,10 @@ class MangaUpdatesScreenModel(
                 getUpdates.subscribe(limit).distinctUntilChanged(),
                 downloadCache.changes,
                 downloadManager.queueState,
-                // Re-run the novel filter once sources load; novel extensions can load after the
-                // first emission, otherwise novel updates stay in the wrong (manga) tab until restart.
-                sourceManager.catalogueSources,
-            ) { updates, _, _, _ ->
-                updates.filter { NovelSourceCompat.isNovelSource(it.sourceId) == novelOnly }
+            ) { updates, _, _ ->
+                // Split by the persisted is_novel flag carried on each row, so novels no longer leak
+                // into the manga updates tab (or vice versa) during the cold-start source-loading race.
+                updates.filter { it.isNovel == novelOnly }
             }
                 .catch {
                     logcat(LogPriority.ERROR, it)

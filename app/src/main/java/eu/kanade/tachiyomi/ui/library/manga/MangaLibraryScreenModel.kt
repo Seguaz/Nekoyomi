@@ -33,7 +33,6 @@ import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.ui.library.LibraryGroupMode
 import eu.kanade.tachiyomi.ui.library.SeriesGrouping
-import eu.kanade.tachiyomi.ui.reader.loader.NovelSourceCompat
 import eu.kanade.tachiyomi.util.chapter.getNextUnread
 import eu.kanade.tachiyomi.util.removeCovers
 import eu.kanade.tachiyomi.util.system.LocaleHelper
@@ -505,15 +504,11 @@ class MangaLibraryScreenModel(
      */
     private fun getLibraryFlow(): Flow<MangaLibraryMap> {
         val libraryMangasFlow = combine(
-            // Novels use their own library view (joined on the novel category junction) so each entry
-            // arrives already tagged with its novel category — exactly like the manga library.
-            // Combined with catalogueSources so the novel/manga split (isNovelSource below) re-runs
-            // once sources finish loading; otherwise novel extensions that load after the library's
-            // first emission leave novels misclassified as manga until the app restarts.
-            combine(
-                if (novelOnly) getNovelLibraryManga.subscribe() else getLibraryManga.subscribe(),
-                sourceManager.catalogueSources,
-            ) { library, _ -> library },
+            // Novels use their own library view (joined on the novel category junction); both views now
+            // filter on the persisted is_novel flag, so the manga/novel split happens in SQL. No runtime
+            // source classification is needed — that used to leave novels stuck in the manga tab on a
+            // cold start until the async-loaded novel extensions finished loading.
+            if (novelOnly) getNovelLibraryManga.subscribe() else getLibraryManga.subscribe(),
             getLibraryItemPreferencesFlow(),
             downloadCache.changes,
             libraryPreferences.pinnedMangaIds().changes(),
@@ -521,8 +516,6 @@ class MangaLibraryScreenModel(
         ) { libraryMangaList, prefs, _, pinnedIds, seriesSet ->
             val seriesById = SeriesGrouping.decode(seriesSet)
             libraryMangaList
-                // Partition manga vs novel libraries (novels = manga entries with a NovelSource).
-                .filter { NovelSourceCompat.isNovelSource(it.manga.source) == novelOnly }
                 .map { libraryManga ->
                     // Display mode based on user preference: take it from global library setting or category
                     MangaLibraryItem(

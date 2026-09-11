@@ -53,6 +53,7 @@ class MangaUpdatesRepositoryImpl(
         coverLastModified: Long,
         dateUpload: Long,
         dateFetch: Long,
+        isNovel: Boolean,
     ): MangaUpdatesWithRelations = MangaUpdatesWithRelations(
         mangaId = mangaId,
         mangaTitle = mangaTitle,
@@ -64,6 +65,7 @@ class MangaUpdatesRepositoryImpl(
         lastPageRead = lastPageRead,
         sourceId = sourceId,
         dateFetch = dateFetch,
+        isNovel = isNovel,
         coverData = MangaCover(
             mangaId = mangaId,
             sourceId = sourceId,

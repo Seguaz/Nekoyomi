@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import tachiyomi.domain.entries.manga.repository.MangaRepository
 import tachiyomi.domain.source.manga.model.StubMangaSource
 import tachiyomi.domain.source.manga.repository.MangaStubSourceRepository
 import tachiyomi.domain.source.manga.service.MangaSourceManager
@@ -40,6 +41,7 @@ class AndroidMangaSourceManager(
     override val isInitialized: StateFlow<Boolean> = _isInitialized.asStateFlow()
 
     private val downloadManager: MangaDownloadManager by injectLazy()
+    private val mangaRepository: MangaRepository by injectLazy()
 
     private val scope = CoroutineScope(Job() + Dispatchers.IO)
 
@@ -83,6 +85,10 @@ class AndroidMangaSourceManager(
                     // against the new source map (avoids stale entries after install/update/uninstall).
                     NovelSourceCompat.clearCache()
                     _isInitialized.value = true
+                    // Reconcile the persisted is_novel flag from the now-loaded novel sources. Additive
+                    // (never demotes), idempotent and cheap, so it safely backfills existing entries on
+                    // the first launch after upgrading and keeps new novel sources classified thereafter.
+                    reconcileNovelFlags(mutableMap)
                 }
         }
 
@@ -114,6 +120,14 @@ class AndroidMangaSourceManager(
     override fun getStubSources(): List<StubMangaSource> {
         val onlineSourceIds = getOnlineSources().map { it.id }
         return stubSourcesMap.values.filterNot { it.id in onlineSourceIds }
+    }
+
+    private suspend fun reconcileNovelFlags(sources: Map<Long, MangaSource>) {
+        val novelSourceIds = sources.values
+            .filter { NovelSourceCompat.isNovelSource(it) }
+            .map { it.id }
+        if (novelSourceIds.isEmpty()) return
+        mangaRepository.setNovelFlagForSources(novelSourceIds)
     }
 
     private fun registerStubSource(source: StubMangaSource) {
