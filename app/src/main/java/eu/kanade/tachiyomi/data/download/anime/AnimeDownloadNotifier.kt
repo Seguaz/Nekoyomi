@@ -70,6 +70,7 @@ internal class AnimeDownloadNotifier(private val context: Context) {
      *
      * @param download download object containing download information.
      */
+    @Synchronized
     fun onProgressChange(download: AnimeDownload) {
         with(progressNotificationBuilder) {
             if (!isDownloading) {
@@ -126,6 +127,7 @@ internal class AnimeDownloadNotifier(private val context: Context) {
     /**
      * Show notification when download is paused.
      */
+    @Synchronized
     fun onPaused() {
         with(progressNotificationBuilder) {
             setContentTitle(context.stringResource(AYMR.strings.download_paused))
@@ -159,6 +161,7 @@ internal class AnimeDownloadNotifier(private val context: Context) {
     /**
      *  Resets the state once downloads are completed.
      */
+    @Synchronized
     fun onComplete() {
         dismissProgress()
 
@@ -173,6 +176,7 @@ internal class AnimeDownloadNotifier(private val context: Context) {
      * @param timeout duration after which to automatically dismiss the notification.
      * @param animeId the id of the entry being warned about
      */
+    @Synchronized
     fun onWarning(reason: String, timeout: Long? = null, contentIntent: PendingIntent? = null, animeId: Long? = null) {
         with(errorNotificationBuilder) {
             setContentTitle(context.stringResource(MR.strings.download_notifier_downloader_title))
@@ -207,6 +211,7 @@ internal class AnimeDownloadNotifier(private val context: Context) {
      * @param episode string containing episode title.
      * @param animeId the id of the entry that the error occurred on
      */
+    @Synchronized
     fun onError(error: String? = null, episode: String? = null, animeTitle: String? = null, animeId: Long? = null) {
         // Create notification
         with(errorNotificationBuilder) {

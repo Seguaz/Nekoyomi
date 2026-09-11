@@ -70,6 +70,7 @@ internal class MangaDownloadNotifier(private val context: Context) {
      *
      * @param download download object containing download information.
      */
+    @Synchronized
     fun onProgressChange(download: MangaDownload) {
         with(progressNotificationBuilder) {
             if (!isDownloading) {
@@ -121,6 +122,7 @@ internal class MangaDownloadNotifier(private val context: Context) {
     /**
      * Show notification when download is paused.
      */
+    @Synchronized
     fun onPaused() {
         with(progressNotificationBuilder) {
             setContentTitle(context.stringResource(AYMR.strings.download_paused))
@@ -154,6 +156,7 @@ internal class MangaDownloadNotifier(private val context: Context) {
     /**
      * Resets the state once downloads are completed.
      */
+    @Synchronized
     fun onComplete() {
         dismissProgress()
 
@@ -169,6 +172,7 @@ internal class MangaDownloadNotifier(private val context: Context) {
      * @param mangaId the id of the entry being warned about
      * Only works on Android 8+.
      */
+    @Synchronized
     fun onWarning(reason: String, timeout: Long? = null, contentIntent: PendingIntent? = null, mangaId: Long? = null) {
         with(errorNotificationBuilder) {
             setContentTitle(context.stringResource(MR.strings.download_notifier_downloader_title))
@@ -203,6 +207,7 @@ internal class MangaDownloadNotifier(private val context: Context) {
      * @param chapter string containing chapter title.
      * @param mangaId the id of the entry that the error occurred on
      */
+    @Synchronized
     fun onError(error: String? = null, chapter: String? = null, mangaTitle: String? = null, mangaId: Long? = null) {
         // Create notification
         with(errorNotificationBuilder) {
