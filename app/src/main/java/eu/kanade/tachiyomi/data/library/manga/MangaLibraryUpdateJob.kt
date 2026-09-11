@@ -30,6 +30,7 @@ import eu.kanade.tachiyomi.util.storage.getUriCompat
 import eu.kanade.tachiyomi.util.system.createFileInCacheDir
 import eu.kanade.tachiyomi.util.system.isConnectedToWifi
 import eu.kanade.tachiyomi.util.system.isRunning
+import eu.kanade.tachiyomi.util.system.setForegroundSafely
 import eu.kanade.tachiyomi.util.system.workManager
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -47,6 +48,7 @@ import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.entries.manga.interactor.GetLibraryManga
 import tachiyomi.domain.entries.manga.interactor.GetManga
+import tachiyomi.domain.entries.manga.interactor.GetNovelLibraryManga
 import tachiyomi.domain.entries.manga.interactor.MangaFetchInterval
 import tachiyomi.domain.entries.manga.model.Manga
 import tachiyomi.domain.items.chapter.model.Chapter
@@ -82,6 +84,7 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
     private val downloadManager: MangaDownloadManager = Injekt.get()
     private val coverCache: MangaCoverCache = Injekt.get()
     private val getLibraryManga: GetLibraryManga = Injekt.get()
+    private val getNovelLibraryManga: GetNovelLibraryManga = Injekt.get()
     private val getManga: GetManga = Injekt.get()
     private val updateManga: UpdateManga = Injekt.get()
     private val syncChaptersWithSource: SyncChaptersWithSource = Injekt.get()
@@ -108,16 +111,16 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
             }
         }
 
-        try {
-            setForeground(getForegroundInfo())
-        } catch (e: IllegalStateException) {
-            logcat(LogPriority.ERROR, e) { "Not allowed to set foreground job" }
-        }
+        // Use the safe wrapper (adds a short delay so the system can actually call
+        // Service.startForeground() in time) to avoid ForegroundServiceDidNotStartInTimeException
+        // crashes on strict OEMs (e.g. Samsung) during a background library update.
+        setForegroundSafely()
 
         libraryPreferences.lastUpdatedTimestamp().set(Instant.now().toEpochMilli())
 
         val categoryId = inputData.getLong(KEY_CATEGORY, -1L)
-        addMangaToQueue(categoryId, tags.contains(WORK_NAME_AUTO))
+        val isNovelUpdate = inputData.getBoolean(KEY_NOVEL, false)
+        addMangaToQueue(categoryId, tags.contains(WORK_NAME_AUTO), isNovelUpdate)
 
         return withIOContext {
             try {
@@ -157,29 +160,36 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
      *
      * @param categoryId the ID of the category to update, or -1 if no category specified.
      */
-    private suspend fun addMangaToQueue(categoryId: Long, isAutoUpdate: Boolean) {
-        val libraryManga = getLibraryManga.await()
-
-        val listToUpdate = if (categoryId != -1L) {
-            libraryManga.filter { it.category == categoryId }
-        } else {
-            val categoriesToUpdate = libraryPreferences.mangaUpdateCategories().get().map { it.toLong() }
-            val includedManga = if (categoriesToUpdate.isNotEmpty()) {
-                libraryManga.filter { it.category in categoriesToUpdate }
-            } else {
-                libraryManga
+    private suspend fun addMangaToQueue(categoryId: Long, isAutoUpdate: Boolean, isNovel: Boolean) {
+        val listToUpdate = when {
+            // A specific category: read the matching library (novel category ids live in their own space).
+            categoryId != -1L -> {
+                val library = if (isNovel) getNovelLibraryManga.await() else getLibraryManga.await()
+                library.filter { it.category == categoryId }
             }
-
-            val categoriesToExclude = libraryPreferences.mangaUpdateCategoriesExclude().get().map { it.toLong() }
-            val excludedMangaIds = if (categoriesToExclude.isNotEmpty()) {
-                libraryManga.filter { it.category in categoriesToExclude }.map { it.manga.id }
-            } else {
-                emptyList()
+            // A scheduled run updates both manga and novels, each honoring its own update categories.
+            isAutoUpdate -> {
+                selectForUpdate(
+                    getLibraryManga.await(),
+                    libraryPreferences.mangaUpdateCategories().get(),
+                    libraryPreferences.mangaUpdateCategoriesExclude().get(),
+                ) + selectForUpdate(
+                    getNovelLibraryManga.await(),
+                    libraryPreferences.novelUpdateCategories().get(),
+                    libraryPreferences.novelUpdateCategoriesExclude().get(),
+                )
             }
-
-            includedManga
-                .filterNot { it.manga.id in excludedMangaIds }
-                .distinctBy { it.manga.id }
+            // A manual "update all" from a library tab updates only that tab's media type.
+            isNovel -> selectForUpdate(
+                getNovelLibraryManga.await(),
+                libraryPreferences.novelUpdateCategories().get(),
+                libraryPreferences.novelUpdateCategoriesExclude().get(),
+            )
+            else -> selectForUpdate(
+                getLibraryManga.await(),
+                libraryPreferences.mangaUpdateCategories().get(),
+                libraryPreferences.mangaUpdateCategoriesExclude().get(),
+            )
         }
 
         val restrictions = libraryPreferences.autoUpdateItemRestrictions().get()
@@ -245,6 +255,25 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
                     .joinToString()
             }
         }
+    }
+
+    /** Filters a library to the entries selected by the include/exclude update-category prefs. */
+    private fun selectForUpdate(
+        library: List<LibraryManga>,
+        includedCategories: Set<String>,
+        excludedCategories: Set<String>,
+    ): List<LibraryManga> {
+        val included = includedCategories.map { it.toLong() }
+        val excluded = excludedCategories.map { it.toLong() }
+        val includedManga = if (included.isNotEmpty()) library.filter { it.category in included } else library
+        val excludedMangaIds = if (excluded.isNotEmpty()) {
+            library.filter { it.category in excluded }.map { it.manga.id }
+        } else {
+            emptyList()
+        }
+        return includedManga
+            .filterNot { it.manga.id in excludedMangaIds }
+            .distinctBy { it.manga.id }
     }
 
     /**
@@ -453,6 +482,12 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
          */
         private const val KEY_CATEGORY = "category"
 
+        /**
+         * Key for whether this run updates the novel library (true) or the manga library (false).
+         * A scheduled/auto run ignores it and updates both.
+         */
+        private const val KEY_NOVEL = "novel"
+
         fun cancelAllWorks(context: Context) {
             context.workManager.cancelAllWorkByTag(TAG)
         }
@@ -533,6 +568,7 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
         fun startNow(
             context: Context,
             category: Category? = null,
+            novel: Boolean = false,
         ): Boolean {
             val wm = context.workManager
             if (wm.isRunning(TAG)) {
@@ -542,6 +578,7 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
 
             val inputData = workDataOf(
                 KEY_CATEGORY to category?.id,
+                KEY_NOVEL to novel,
             )
             val request = OneTimeWorkRequestBuilder<MangaLibraryUpdateJob>()
                 .addTag(TAG)

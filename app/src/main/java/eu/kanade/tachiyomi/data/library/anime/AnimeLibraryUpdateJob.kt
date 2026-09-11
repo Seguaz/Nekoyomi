@@ -32,6 +32,7 @@ import eu.kanade.tachiyomi.util.storage.getUriCompat
 import eu.kanade.tachiyomi.util.system.createFileInCacheDir
 import eu.kanade.tachiyomi.util.system.isConnectedToWifi
 import eu.kanade.tachiyomi.util.system.isRunning
+import eu.kanade.tachiyomi.util.system.setForegroundSafely
 import eu.kanade.tachiyomi.util.system.workManager
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -109,11 +110,10 @@ class AnimeLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
             }
         }
 
-        try {
-            setForeground(getForegroundInfo())
-        } catch (e: IllegalStateException) {
-            logcat(LogPriority.ERROR, e) { "Not allowed to set foreground job" }
-        }
+        // Use the safe wrapper (adds a short delay so the system can actually call
+        // Service.startForeground() in time) to avoid ForegroundServiceDidNotStartInTimeException
+        // crashes on strict OEMs (e.g. Samsung) during a background library update.
+        setForegroundSafely()
 
         libraryPreferences.lastUpdatedTimestamp().set(Instant.now().toEpochMilli())
 

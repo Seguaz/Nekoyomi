@@ -133,7 +133,7 @@ class MangaUpdatesScreenModel(
     }
 
     fun updateLibrary(): Boolean {
-        val started = MangaLibraryUpdateJob.startNow(Injekt.get<Application>())
+        val started = MangaLibraryUpdateJob.startNow(Injekt.get<Application>(), novel = novelOnly)
         screenModelScope.launch {
             _events.send(Event.LibraryUpdateTriggered(started))
         }

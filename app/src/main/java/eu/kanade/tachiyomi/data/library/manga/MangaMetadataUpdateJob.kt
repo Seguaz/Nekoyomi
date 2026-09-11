@@ -17,6 +17,7 @@ import eu.kanade.tachiyomi.data.cache.MangaCoverCache
 import eu.kanade.tachiyomi.data.notification.Notifications
 import eu.kanade.tachiyomi.util.prepUpdateCover
 import eu.kanade.tachiyomi.util.system.isRunning
+import eu.kanade.tachiyomi.util.system.setForegroundSafely
 import eu.kanade.tachiyomi.util.system.workManager
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -29,6 +30,7 @@ import logcat.LogPriority
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.entries.manga.interactor.GetLibraryManga
+import tachiyomi.domain.entries.manga.interactor.GetNovelLibraryManga
 import tachiyomi.domain.entries.manga.model.Manga
 import tachiyomi.domain.entries.manga.model.toMangaUpdate
 import tachiyomi.domain.library.manga.LibraryManga
@@ -44,6 +46,7 @@ class MangaMetadataUpdateJob(private val context: Context, workerParams: WorkerP
     private val sourceManager: MangaSourceManager = Injekt.get()
     private val coverCache: MangaCoverCache = Injekt.get()
     private val getLibraryManga: GetLibraryManga = Injekt.get()
+    private val getNovelLibraryManga: GetNovelLibraryManga = Injekt.get()
     private val updateManga: UpdateManga = Injekt.get()
 
     private val notifier = MangaLibraryUpdateNotifier(context)
@@ -51,11 +54,8 @@ class MangaMetadataUpdateJob(private val context: Context, workerParams: WorkerP
     private var mangaToUpdate: List<LibraryManga> = mutableListOf()
 
     override suspend fun doWork(): Result {
-        try {
-            setForeground(getForegroundInfo())
-        } catch (e: IllegalStateException) {
-            logcat(LogPriority.ERROR, e) { "Not allowed to set foreground job" }
-        }
+        // Safe wrapper avoids ForegroundServiceDidNotStartInTimeException on strict OEMs.
+        setForegroundSafely()
 
         addMangaToQueue()
 
@@ -94,7 +94,8 @@ class MangaMetadataUpdateJob(private val context: Context, workerParams: WorkerP
      * Adds list of manga to be updated.
      */
     private suspend fun addMangaToQueue() {
-        mangaToUpdate = getLibraryManga.await()
+        // Refresh metadata for the whole library, novels included.
+        mangaToUpdate = getLibraryManga.await() + getNovelLibraryManga.await()
         notifier.showQueueSizeWarningNotificationIfNeeded(mangaToUpdate)
     }
 

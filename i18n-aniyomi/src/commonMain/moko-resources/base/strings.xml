@@ -434,6 +434,7 @@
     <string name="label_all">All</string>
     <string name="label_category">Category</string>
     <string name="manga_categories">Manga Categories</string>
+    <string name="novel_categories">Novel Categories</string>
     <string name="general_categories">Categories</string>
     <string name="anime_categories">Anime Categories</string>
     <string name="entries">Library entries</string>
@@ -563,6 +564,7 @@
     <string name="default_manga_category">Default manga category</string>
     <string name="default_anime_category">Default anime category</string>
     <string name="pref_manga_library_update_categories_details">Manga in excluded categories will not be updated even if they are also in included categories.</string>
+    <string name="pref_novel_library_update_categories_details">Novels in excluded categories will not be updated even if they are also in included categories.</string>
     <string name="pref_anime_library_update_categories_details">Anime in excluded categories will not be updated even if they are also in included categories.</string>
     <string name="unofficial_extension_message_aniyomi">This extension is not from the official list.</string>
     <string name="unofficial_anime_extension_message">This extension is not from the official list.</string>

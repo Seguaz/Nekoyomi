@@ -223,6 +223,7 @@
     <string name="label_all">Todo</string>
     <string name="label_category">Categoría</string>
     <string name="manga_categories">Categorías de los mangas</string>
+    <string name="novel_categories">Categorías de las novelas</string>
     <string name="general_categories">Categorías</string>
     <string name="anime_categories">Categorías de Anime</string>
     <string name="entries">Entradas de la biblioteca</string>
@@ -350,6 +351,7 @@
     <string name="default_manga_category">Categoría predeterminada de manga</string>
     <string name="default_anime_category">Categoría predeterminada de anime</string>
     <string name="pref_manga_library_update_categories_details">El manga de las categorías excluidas no se actualizará, ni siquiera si pertenece a alguna de las categorías que sí estén incluidas.</string>
+    <string name="pref_novel_library_update_categories_details">Las novelas de las categorías excluidas no se actualizarán, ni siquiera si pertenecen a alguna de las categorías que sí estén incluidas.</string>
     <string name="pref_anime_library_update_categories_details">El anime de las categorías excluidas no se actualizará, ni siquiera si pertenece a alguna de las categorías que sí estén incluidas.</string>
     <string name="unofficial_extension_message_aniyomi">Esta extensión no es de la lista oficial de extensiones de Nekoyomi.</string>
     <string name="unofficial_anime_extension_message">Esta extensión no pertenece a la lista oficial de extensiones de Nekoyomi.</string>

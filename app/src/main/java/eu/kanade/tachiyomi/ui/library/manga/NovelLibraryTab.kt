@@ -123,7 +123,7 @@ data object NovelLibraryTab : Tab {
         }
 
         val onClickRefresh: (Category?) -> Boolean = { category ->
-            val started = MangaLibraryUpdateJob.startNow(context, category)
+            val started = MangaLibraryUpdateJob.startNow(context, category, novel = true)
             scope.launch {
                 val msgRes = if (started) MR.strings.updating_category else MR.strings.update_already_running
                 snackbarHostState.showSnackbar(context.stringResource(msgRes))
